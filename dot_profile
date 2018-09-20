@@ -8,11 +8,7 @@ export MANPATH=/opt/local/share/man:$MANPATH
 export CLICOLOR=1
 export TERM=xterm-color
 export LSCOLORS=DxGxcxdxCxegedabagacad
-export LOCAL_MAVEN_OPTIONS=-DskipTests
 export HTML_TIDY=/Users/cpaterson/.html_tidy
-
-export SAUCE_USERNAME=CNVR_cpaterson
-export SAUCE_ACCESS_KEY=9878e3ac-4ad9-4961-9993-7f53f06e039e
 
 #nvm
 export NVM_NODEJS_ORG_MIRROR=http://nodejs.org/dist
@@ -34,13 +30,5 @@ alias ll='ls -hla'
 alias l='ls -l'
 alias hidehidden="defaults write com.apple.finder AppleShowAllFiles FALSE && killall Finder"
 alias showhidden="defaults write com.apple.finder AppleShowAllFiles TRUE && killall Finder"
-alias setHostname="sudo hostname Locutus"
-alias startEclim="/Users/cpaterson/.eclipse/org.eclipse.platform_4.7.0_794797554_macosx_cocoa_x86_64/eclimd"
-
-## Tag Manager stuff
-#export VC_HOME=/Users/cpaterson/stash/cvus/creatives/
-export VC_HOME=/Users/cpaterson/stash/tagManager/main/
-export VC_FORCE_HOSTNAME=cpaterson.dev.mastertms.com
-alias sudo='sudo env PATH=$PATH VC_HOME=$VC_HOME'
 
 export jsbeautify_indent_size=2
