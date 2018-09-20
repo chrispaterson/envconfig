@@ -1,14 +1,9 @@
 #paths
-export PATH=$PATH:/Users/cpaterson/bin:/Users/cpaterson/stash/tagManager/main/apps/maven/bin/
 export EDITOR=vi
-export JAVA_HOME=`/usr/libexec/java_home -v 1.8`
-export JAVA_1_7_HOME=/Library/Java/JavaVirtualMachines/jdk1.7.0_71.jdk/Contents/Home
-export ANT_HOME=/usr/share/ant
 export MANPATH=/opt/local/share/man:$MANPATH
 export CLICOLOR=1
 export TERM=xterm-color
 export LSCOLORS=DxGxcxdxCxegedabagacad
-export HTML_TIDY=/Users/cpaterson/.html_tidy
 
 #nvm
 export NVM_NODEJS_ORG_MIRROR=http://nodejs.org/dist
