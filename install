@@ -1,0 +1,8 @@
+ln -s ~/envconfig/dot_bash ~/.bash
+ln -s ~/envconfig/dot_vim ~/.vim
+ln -s ~/envconfig/dot_jsbeautifyrc ~/.jsbeautifyrc
+ln -s ~/envconfig/dot_npmrc ~/.npmrc
+ln -s ~/envconfig/dot_profile ~/.profile
+ln -s ~/envconfig/dot_vim/vimrc ~/.vimrc
+source ~/.profile
+echo "All done, enjoy your configs!"
