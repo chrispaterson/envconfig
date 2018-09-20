@@ -1,0 +1,106 @@
+execute pathogen#infect()
+syntax on
+filetype plugin indent on
+
+let g:jsx_ext_required = 0
+
+" nerdtree stuff
+" Run nerdtree automatically when openeing VIM
+autocmd vimenter * NERDTree
+" Move window focus to the right instead of on Nerdtree
+" when openeing
+autocmd VimEnter * wincmd p
+" Toggle Nerd Tree on ctrl+n
+map <C-n> :NERDTreeToggle<CR>
+" show hidden files and folders in NerdTree
+let NERDTreeShowHidden=1
+" close VIM when only nertree is open
+autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
+
+
+" Colors.  Themes at http://vimcolors.com/
+colorscheme sonoma
+
+" Syntax Checker with Syntastic
+ let g:syntastic_javascript_checkers = ['eslint']
+ let g:syntastic_json_checkers = ['jsonlint']
+ let g:syntastic_typescript_checkers = ['tslint']
+ "let g:syntastic_html_checkers = ['/usr/local/Cellar/tidy-html5/5.4.0/bin/tidy']
+
+" use the local version of eslint via the project
+ let g:syntastic_javascript_eslint_exec = './node_modules/.bin/eslint'
+ let g:syntastic_typescript_tslint_exec = './node_modules/.bin/tslint'
+
+set statusline+=%#warningmsg#
+set statusline+=%{SyntasticStatuslineFlag()}
+set statusline+=%*
+
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 1
+let g:syntastic_check_on_open = 1
+let g:syntastic_check_on_wq = 1
+
+
+" FILETYPES
+au bufread,bufnewfile *.jade set filetype=jade 
+au bufread,bufnewfile *.js set filetype=javascript 
+au bufread,bufnewfile *.ts set filetype=typescript 
+au bufread,bufnewfile *.json set filetype=json 
+au bufread,bufnewfile *.as set filetype=actionscript 
+au bufread,bufnewfile *.java set filetype=java 
+au bufread,bufnewfile *.jsx set filetype=jsx 
+au bufread,bufnewfile *.css set filetype=css 
+au bufread,bufnewfile *.html set filetype=html 
+
+" filenames like *.xml, *.html, *.xhtml, ...
+" Then after you press <kbd>&gt;</kbd> in these files, this plugin will try to close the current tag.
+"
+let g:closetag_filenames = '*.html,*.xhtml,*.phtml'
+
+" filenames like *.xml, *.xhtml, ...
+" This will make the list of non closing tags self closing in the specified files.
+"
+let g:closetag_xhtml_filenames = '*.xhtml,*.jsx'
+
+" integer value [0|1]
+" This will make the list of non closing tags case sensitive (e.g. `<Link>` will be closed while `<link>` won't.)
+"
+let g:closetag_emptyTags_caseSensitive = 1
+
+" Shortcut for closing tags, default is '>'
+"
+let g:closetag_shortcut = '>'
+
+" Add > at current position without closing the current tag, default is ''
+"
+let g:closetag_close_shortcut = '<leader>>'
+
+""""
+"general options
+""""
+
+"indentation
+set tabstop=4 softtabstop=0 expandtab shiftwidth=2 smarttab
+
+"line number
+set number
+set ruler
+
+"smarter search
+set showmatch
+set incsearch
+set hlsearch
+
+"other options
+set showcmd
+set noautochdir
+
+"" Key Mappins"
+map <C-S-H> <C-w>h
+map <C-S-J> <C-w>j
+map <C-S-K> <C-w>k
+map <C-S-L> <C-w>l
+noremap <F12> :Autoformat<CR>
+noremap <F4> :SyntasticToggleMode<CR>
+set laststatus=2
+set statusline=%f "tail of the filename

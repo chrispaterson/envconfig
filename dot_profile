@@ -1,0 +1,46 @@
+#paths
+export PATH=$PATH:/Users/cpaterson/bin:/Users/cpaterson/stash/tagManager/main/apps/maven/bin/
+export EDITOR=vi
+export JAVA_HOME=`/usr/libexec/java_home -v 1.8`
+export JAVA_1_7_HOME=/Library/Java/JavaVirtualMachines/jdk1.7.0_71.jdk/Contents/Home
+export ANT_HOME=/usr/share/ant
+export MANPATH=/opt/local/share/man:$MANPATH
+export CLICOLOR=1
+export TERM=xterm-color
+export LSCOLORS=DxGxcxdxCxegedabagacad
+export LOCAL_MAVEN_OPTIONS=-DskipTests
+export HTML_TIDY=/Users/cpaterson/.html_tidy
+
+export SAUCE_USERNAME=CNVR_cpaterson
+export SAUCE_ACCESS_KEY=9878e3ac-4ad9-4961-9993-7f53f06e039e
+
+#nvm
+export NVM_NODEJS_ORG_MIRROR=http://nodejs.org/dist
+export NVM_DIR=~/.nvm
+source $(brew --prefix nvm)/nvm.sh
+
+# Command Prompt things with git
+export GITAWAREPROMPT=~/.bash/git-aware-prompt
+source "${GITAWAREPROMPT}/main.sh"
+PS1="\n<\[\033[0;32m\]\h\[\033[0m\]:\[\033[0;35m\]\u\[\033[0m\]> \j [\$(date +%m-%d\" \"%H:%M)] \[$txtcyn\]\$git_branch \[$txtred\]\$git_dirty\[$txtrst\] \w\n! "
+
+#Aliases for shortcut things
+alias sp="source ~/.profile"
+alias ep="vi ~/.profile"
+alias ..="cd ../"
+alias vi="vim"
+alias ls='ls -G'
+alias ll='ls -hla'
+alias l='ls -l'
+alias hidehidden="defaults write com.apple.finder AppleShowAllFiles FALSE && killall Finder"
+alias showhidden="defaults write com.apple.finder AppleShowAllFiles TRUE && killall Finder"
+alias setHostname="sudo hostname Locutus"
+alias startEclim="/Users/cpaterson/.eclipse/org.eclipse.platform_4.7.0_794797554_macosx_cocoa_x86_64/eclimd"
+
+## Tag Manager stuff
+#export VC_HOME=/Users/cpaterson/stash/cvus/creatives/
+export VC_HOME=/Users/cpaterson/stash/tagManager/main/
+export VC_FORCE_HOSTNAME=cpaterson.dev.mastertms.com
+alias sudo='sudo env PATH=$PATH VC_HOME=$VC_HOME'
+
+export jsbeautify_indent_size=2
