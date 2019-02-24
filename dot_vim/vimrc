@@ -17,10 +17,27 @@ let NERDTreeShowHidden=1
 " close VIM when only nertree is open
 autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
 
-
+" FILETYPES
+au bufread,bufnewfile *.jade set filetype=jade 
+au bufread,bufnewfile *.js set filetype=javascript 
+au bufread,bufnewfile *.ts set filetype=typescript 
+au bufread,bufnewfile *.json set filetype=json 
+au bufread,bufnewfile *.as set filetype=actionscript 
+au bufread,bufnewfile *.java set filetype=java 
+au bufread,bufnewfile *.jsx set filetype=jsx 
+au bufread,bufnewfile *.css set filetype=css 
+au bufread,bufnewfile *.html set filetype=html 
 
 " Syntax Checker with Syntastic
- let g:syntastic_javascript_checkers = ['eslint']
+ set autoread
+
+let g:syntastic_javascript_checkers = ['eslint']
+
+" autofix with eslint
+let g:syntastic_javascript_eslint_args = ['--fix']
+function! SyntasticCheckHook(errors)
+  checktime
+endfunction
  let g:syntastic_json_checkers = ['jsonlint']
  let g:syntastic_typescript_checkers = ['tslint']
  "let g:syntastic_html_checkers = ['/usr/local/Cellar/tidy-html5/5.4.0/bin/tidy']
@@ -39,17 +56,8 @@ let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 1
 
 
-
-" FILETYPES
-au bufread,bufnewfile *.jade set filetype=jade 
-au bufread,bufnewfile *.js set filetype=javascript 
-au bufread,bufnewfile *.ts set filetype=typescript 
-au bufread,bufnewfile *.json set filetype=json 
-au bufread,bufnewfile *.as set filetype=actionscript 
-au bufread,bufnewfile *.java set filetype=java 
-au bufread,bufnewfile *.jsx set filetype=jsx 
-au bufread,bufnewfile *.css set filetype=css 
-au bufread,bufnewfile *.html set filetype=html 
+" Colors.  Themes at http://vimcolors.com/
+colorscheme Tomorrow-Night-Bright
 
 " filenames like *.xml, *.html, *.xhtml, ...
 " Then after you press <kbd>&gt;</kbd> in these files, this plugin will try to close the current tag.
@@ -99,10 +107,7 @@ map <C-S-H> <C-w>h
 map <C-S-J> <C-w>j
 map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
-noremap <F12> :Autoformat<CR>
 noremap <F4> :SyntasticToggleMode<CR>
 set laststatus=2
 set statusline=%f "tail of the filename
 
-" Colors.  Themes at http://vimcolors.com/
-colorscheme Tomorrow-Night-Bright
