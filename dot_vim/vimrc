@@ -57,6 +57,7 @@ let g:syntastic_check_on_wq = 1
 
 
 " Colors.  Themes at http://vimcolors.com/
+set background=dark
 colorscheme Tomorrow-Night-Bright
 
 " filenames like *.xml, *.html, *.xhtml, ...
