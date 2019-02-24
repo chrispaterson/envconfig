@@ -18,8 +18,6 @@ let NERDTreeShowHidden=1
 autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
 
 
-" Colors.  Themes at http://vimcolors.com/
-colorscheme sonoma
 
 " Syntax Checker with Syntastic
  let g:syntastic_javascript_checkers = ['eslint']
@@ -39,6 +37,7 @@ let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 1
+
 
 
 " FILETYPES
@@ -104,3 +103,6 @@ noremap <F12> :Autoformat<CR>
 noremap <F4> :SyntasticToggleMode<CR>
 set laststatus=2
 set statusline=%f "tail of the filename
+
+" Colors.  Themes at http://vimcolors.com/
+colorscheme Tomorrow-Night-Bright
