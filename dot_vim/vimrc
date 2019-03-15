@@ -55,6 +55,8 @@ let g:syntastic_auto_loc_list = 1
 let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 1
 
+" JsDoc
+let g:jsdoc_enable_es6 = 1;
 
 " Colors.  Themes at http://vimcolors.com/
 set background=dark
@@ -109,6 +111,9 @@ map <C-S-J> <C-w>j
 map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
 noremap <F4> :SyntasticToggleMode<CR>
+noremap <F5> :JsDoc<CR>
 set laststatus=2
 set statusline=%f "tail of the filename
 
+highlight OverLength ctermbg=red ctermfg=white guibg=#592929
+match OverLength /\%81v.\+/
