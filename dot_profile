@@ -13,7 +13,8 @@ source $(brew --prefix nvm)/nvm.sh
 # Command Prompt things with git
 export GITAWAREPROMPT=~/.bash/git-aware-prompt
 source "${GITAWAREPROMPT}/main.sh"
-PS1="\n<\[\033[0;32m\]\h\[\033[0m\]:\[\033[0;35m\]\u\[\033[0m\]> \j [\$(date +%m-%d\" \"%H:%M)] \[$txtcyn\]\$git_branch \[$txtred\]\$git_dirty\[$txtrst\] \w\n! "
+export PS1="\n\[\$bldwht\]\w \[$txtrst\]\$git_branch \$git_dirty \$git_ahead_behind\n\[$txtpur\]↳ \[$txtrst\]"
+
 
 #Aliases for shortcut things
 alias sp="source ~/.profile"
@@ -23,6 +24,20 @@ alias vi="vim"
 alias ls='ls -G'
 alias ll='ls -hla'
 alias l='ls -l'
+alias hidehidden="defaults write com.apple.finder AppleShowAllFiles FALSE && killall Finder"
+alias showhidden="defaults write com.apple.finder AppleShowAllFiles TRUE && killall Finder"
+
+export jsbeautify_indent_size=2
+
+
+#Aliases for shortcut things
+alias sp="source ~/.profile"
+alias ep="vi ~/.profile"
+alias ..="cd ../"
+alias ls='ls -G'
+alias ll='ls -hla'
+alias l='ls -l'
+alias gitlog='git log --graph --decorate --pretty=oneline --abbrev-commit'
 alias hidehidden="defaults write com.apple.finder AppleShowAllFiles FALSE && killall Finder"
 alias showhidden="defaults write com.apple.finder AppleShowAllFiles TRUE && killall Finder"
 

@@ -28,40 +28,63 @@ au bufread,bufnewfile *.jsx set filetype=jsx
 au bufread,bufnewfile *.css set filetype=css 
 au bufread,bufnewfile *.html set filetype=html 
 
+"""""""""""""""""""""""""""""""
 " Syntax Checker with Syntastic
- set autoread
+"""""""""""""""""""""""""""""""
+set autoread
+
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 1
+let g:syntastic_check_on_open = 0
+let g:syntastic_check_on_wq = 1
+let g:syntastic_aggregate_errors = 1
 
 let g:syntastic_javascript_checkers = ['eslint']
-
-" autofix with eslint
-let g:syntastic_javascript_eslint_args = ['--fix']
-function! SyntasticCheckHook(errors)
-  checktime
-endfunction
- let g:syntastic_json_checkers = ['jsonlint']
- let g:syntastic_typescript_checkers = ['tslint']
- "let g:syntastic_html_checkers = ['/usr/local/Cellar/tidy-html5/5.4.0/bin/tidy']
-
+let g:syntastic_typescript_checkers = ['tslint', 'tsc']
+let g:syntastic_json_checkers = ['jsonlint']
+let g:syntastic_typescript_checkers = ['tslint']
+"let g:syntastic_html_checkers = ['/usr/local/Cellar/tidy-html5/5.4.0/bin/tidy']
+"
 " use the local version of eslint via the project
  let g:syntastic_javascript_eslint_exec = './node_modules/.bin/eslint'
  let g:syntastic_typescript_tslint_exec = './node_modules/.bin/tslint'
 
-set statusline+=%#warningmsg#
-set statusline+=%{SyntasticStatuslineFlag()}
-set statusline+=%*
 
-let g:syntastic_always_populate_loc_list = 1
-let g:syntastic_auto_loc_list = 1
-let g:syntastic_check_on_open = 1
-let g:syntastic_check_on_wq = 1
+" Autofind config
+function! FindConfig(prefix, what, where)
+    let cfg = findfile(a:what, escape(a:where, ' ') . ';')
+    return cfg !=# '' ? ' ' . a:prefix . ' ' . shellescape(cfg) : ''
+endfunction
 
+autocmd FileType javascript let b:syntastic_javascript_eslint_args =
+    \ get(g:, 'syntastic_javascript_jscs_args', '') .
+    \ FindConfig('-c', '.eslintrc', expand('<afile>:p:h', 1))
+
+"""""""""""""""""""""""""""""""
+" Ale (auto fixer)
+"""""""""""""""""""""""""""""""
+let g:ale_fixers = {
+\   '*': ['remove_trailing_lines', 'trim_whitespace'],
+\   'javascript': ['eslint'],
+\}
+let g:ale_fix_on_save = 1
+
+"""""""""""""""""""""""""""""""
 " JsDoc
-let g:jsdoc_enable_es6 = 1;
+"""""""""""""""""""""""""""""""
+let g:jsdoc_enable_es6 = 1
+let g:jsdoc_return = 1
+let g:jsdoc_param_description_separator = ' - ' 
 
+"""""""""""""""""""""""""""""""
 " Colors.  Themes at http://vimcolors.com/
+"""""""""""""""""""""""""""""""
 set background=dark
 colorscheme Tomorrow-Night-Bright
 
+"""""""""""""""""""""""""""""""
+" Close Tag
+"""""""""""""""""""""""""""""""
 " filenames like *.xml, *.html, *.xhtml, ...
 " Then after you press <kbd>&gt;</kbd> in these files, this plugin will try to close the current tag.
 "
@@ -89,6 +112,8 @@ let g:closetag_close_shortcut = '<leader>>'
 "general options
 """"
 
+let mapleader=","
+
 "indentation
 set tabstop=4 softtabstop=0 expandtab shiftwidth=2 smarttab
 
@@ -110,10 +135,11 @@ map <C-S-H> <C-w>h
 map <C-S-J> <C-w>j
 map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
-noremap <F4> :SyntasticToggleMode<CR>
+noremap <F4> :SyntasticCheck<CR>
 noremap <F5> :JsDoc<CR>
 set laststatus=2
 set statusline=%f "tail of the filename
 
+"" Highlight when it's over 120"
 highlight OverLength ctermbg=red ctermfg=white guibg=#592929
-match OverLength /\%81v.\+/
+match OverLength /\%121v.\+/

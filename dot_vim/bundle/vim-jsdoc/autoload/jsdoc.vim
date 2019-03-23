@@ -34,13 +34,13 @@ let g:jsdoc_user_defined_tags = exists('g:jsdoc_user_defined_tags')
       \ : {}
 
 " Default tag names
-"   @returns      (synonyms: @return)
+"   @return      (synonyms: @return)
 "   @function     (synonyms: @func, @method)
 "   @param        (synonyms: @arg, @argument)
 "   @description  (synonyms: @desc)
 "   @class        (synonyms: @constructor)
 let s:jsdoc_default_tags = {
-      \   'returns':   'returns',
+      \   'return':   'return',
       \   'function':  'function',
       \   'param':     'param',
       \   'class':     'class'
@@ -492,7 +492,7 @@ function! jsdoc#insert() abort
   elseif g:jsdoc_return == 1
     if g:jsdoc_allow_input_prompt == 1
       let s:candidate_type = l:return_type
-      let l:returnType = input('Return type (blank for no @' . g:jsdoc_tags['returns'] . '): ', '', 'custom,jsdoc#listDataTypes')
+      let l:returnType = input('Return type (blank for no @' . g:jsdoc_tags['return'] . '): ', '', 'custom,jsdoc#listDataTypes')
       redraw | echo ''
       let l:returnDescription = ''
       if l:returnType !=# ''
@@ -502,14 +502,14 @@ function! jsdoc#insert() abort
         if l:returnDescription !=# ''
           let l:returnDescription = ' ' . l:returnDescription
         endif
-        call add(l:lines, l:space . ' * @' . g:jsdoc_tags['returns'] . ' {' . l:returnType . '}' . l:returnDescription)
+        call add(l:lines, l:space . ' * @' . g:jsdoc_tags['return'] . ' {' . l:returnType . '}' . l:returnDescription)
       endif
     else
       let l:return_type = l:return_type == ''
             \ ? ' {undefined}'
             \ : printf(' {%s}', l:return_type)
 
-      cal add(l:lines, l:space . ' * @' . g:jsdoc_tags['returns'] . l:return_type)
+      cal add(l:lines, l:space . ' * @' . g:jsdoc_tags['return'] . l:return_type)
     endif
   endif
   call add(l:lines, l:space . ' */')
