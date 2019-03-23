@@ -13,7 +13,7 @@ source $(brew --prefix nvm)/nvm.sh
 # Command Prompt things with git
 export GITAWAREPROMPT=~/.bash/git-aware-prompt
 source "${GITAWAREPROMPT}/main.sh"
-export PS1="\n\[\$bldwht\]\w \[$txtrst\]\$git_branch \$git_dirty \$git_ahead_behind\n\[$txtpur\]↳ \[$txtrst\]"
+PS1="\n\[\$bldwht\]\w \[$txtrst\]\$git_branch \$git_dirty \$git_ahead_behind\n\[$txtpur\]↳ \[$txtrst\]"
 
 
 #Aliases for shortcut things
@@ -26,8 +26,6 @@ alias ll='ls -hla'
 alias l='ls -l'
 alias hidehidden="defaults write com.apple.finder AppleShowAllFiles FALSE && killall Finder"
 alias showhidden="defaults write com.apple.finder AppleShowAllFiles TRUE && killall Finder"
-
-export jsbeautify_indent_size=2
 
 
 #Aliases for shortcut things
