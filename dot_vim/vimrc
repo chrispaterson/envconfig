@@ -18,15 +18,15 @@ let NERDTreeShowHidden=1
 autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
 
 " FILETYPES
-au bufread,bufnewfile *.jade set filetype=jade 
-au bufread,bufnewfile *.js set filetype=javascript 
-au bufread,bufnewfile *.ts set filetype=typescript 
-au bufread,bufnewfile *.json set filetype=json 
-au bufread,bufnewfile *.as set filetype=actionscript 
-au bufread,bufnewfile *.java set filetype=java 
-au bufread,bufnewfile *.jsx set filetype=jsx 
-au bufread,bufnewfile *.css set filetype=css 
-au bufread,bufnewfile *.html set filetype=html 
+au bufread,bufnewfile *.jade set filetype=jade
+au bufread,bufnewfile *.js set filetype=javascript
+au bufread,bufnewfile *.ts set filetype=typescript
+au bufread,bufnewfile *.json set filetype=json
+au bufread,bufnewfile *.as set filetype=actionscript
+au bufread,bufnewfile *.java set filetype=java
+au bufread,bufnewfile *.jsx set filetype=jsx
+au bufread,bufnewfile *.css set filetype=css
+au bufread,bufnewfile *.html set filetype=html
 
 """""""""""""""""""""""""""""""
 " Syntax Checker with Syntastic
@@ -35,7 +35,7 @@ set autoread
 
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
-let g:syntastic_check_on_open = 0
+let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 1
 let g:syntastic_aggregate_errors = 1
 
@@ -74,7 +74,7 @@ let g:ale_fix_on_save = 1
 """""""""""""""""""""""""""""""
 let g:jsdoc_enable_es6 = 1
 let g:jsdoc_return = 1
-let g:jsdoc_param_description_separator = ' - ' 
+let g:jsdoc_param_description_separator = ' - '
 
 """""""""""""""""""""""""""""""
 " Colors.  Themes at http://vimcolors.com/
