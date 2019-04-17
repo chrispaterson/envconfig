@@ -40,13 +40,13 @@ let g:syntastic_check_on_wq = 1
 let g:syntastic_aggregate_errors = 1
 
 let g:syntastic_javascript_checkers = ['eslint']
+let g:syntastic_json_checkers = ['eslint']
 let g:syntastic_typescript_checkers = ['tslint', 'tsc']
-let g:syntastic_json_checkers = ['jsonlint']
-let g:syntastic_typescript_checkers = ['tslint']
 "let g:syntastic_html_checkers = ['/usr/local/Cellar/tidy-html5/5.4.0/bin/tidy']
 "
 " use the local version of eslint via the project
  let g:syntastic_javascript_eslint_exec = './node_modules/.bin/eslint'
+ let g:syntastic_json_eslint_exec = './node_modules/.bin/eslint'
  let g:syntastic_typescript_tslint_exec = './node_modules/.bin/tslint'
 
 
@@ -60,12 +60,17 @@ autocmd FileType javascript let b:syntastic_javascript_eslint_args =
     \ get(g:, 'syntastic_javascript_jscs_args', '') .
     \ FindConfig('-c', '.eslintrc', expand('<afile>:p:h', 1))
 
+autocmd FileType json let b:syntastic_json_eslint_args =
+    \ get(g:, 'syntastic_json_jscs_args', '') .
+    \ FindConfig('-c', '.eslintrc', expand('<afile>:p:h', 1))
+
 """""""""""""""""""""""""""""""
 " Ale (auto fixer)
 """""""""""""""""""""""""""""""
 let g:ale_fixers = {
 \   '*': ['remove_trailing_lines', 'trim_whitespace'],
 \   'javascript': ['eslint'],
+\   'json': ['eslint'],
 \}
 let g:ale_fix_on_save = 1
 
@@ -109,6 +114,12 @@ let g:closetag_shortcut = '>'
 let g:closetag_close_shortcut = '<leader>>'
 
 """"
+" NERDCommenter
+""""
+" Add your own custom formats or override the defaults
+let g:NERDCustomDelimiters = { 'javascript': { 'left': '/** ','right': '*/' } }
+
+""""
 "general options
 """"
 
@@ -140,6 +151,6 @@ noremap <F5> :JsDoc<CR>
 set laststatus=2
 set statusline=%f "tail of the filename
 
-"" Highlight when it's over 120"
+"" Highlight when it's over 80"
 highlight OverLength ctermbg=red ctermfg=white guibg=#592929
-match OverLength /\%121v.\+/
+match OverLength /\%81v.\+/

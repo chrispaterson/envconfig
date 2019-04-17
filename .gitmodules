@@ -4,3 +4,36 @@
 [submodule "dot_bash/git-aware-prompt"]
 	path = dot_bash/git-aware-prompt
 	url = https://github.com/chrispaterson/git-aware-prompt.git
+[submodule "dot_vim/bundle/auto-pairs"]
+	path = dot_vim/bundle/auto-pairs
+	url = git://github.com/jiangmiao/auto-pairs.git
+[submodule "dot_vim/bundle/nerdcommenter"]
+	path = dot_vim/bundle/nerdcommenter
+	url = https://github.com/scrooloose/nerdcommenter.git
+[submodule "dot_vim/bundle/nerdtree-git-plugin"]
+	path = dot_vim/bundle/nerdtree-git-plugin
+	url = https://github.com/Xuyuanp/nerdtree-git-plugin.git
+[submodule "dot_vim/bundle/nerdtree"]
+	path = dot_vim/bundle/nerdtree
+	url = https://github.com/scrooloose/nerdtree.git
+[submodule "dot_vim/bundle/syntastic"]
+	path = dot_vim/bundle/syntastic
+	url = https://github.com/chrispaterson/envconfig.git
+[submodule "dot_vim/bundle/typescript-vim"]
+	path = dot_vim/bundle/typescript-vim
+	url = https://github.com/leafgarland/typescript-vim.git
+[submodule "dot_vim/bundle/vim-closetag"]
+	path = dot_vim/bundle/vim-closetag
+	url = https://github.com/alvan/vim-closetag.git
+[submodule "dot_vim/bundle/vim-colorschemes"]
+	path = dot_vim/bundle/vim-colorschemes
+	url = https://github.com/flazz/vim-colorschemes.git
+[submodule "dot_vim/bundle/vim-javascript"]
+	path = dot_vim/bundle/vim-javascript
+	url = https://github.com/pangloss/vim-javascript.git
+[submodule "dot_vim/bundle/vim-jsx"]
+	path = dot_vim/bundle/vim-jsx
+	url = https://github.com/mxw/vim-jsx.git
+[submodule "dot_vim/bundle/vim-vue"]
+	path = dot_vim/bundle/vim-vue
+	url = https://github.com/posva/vim-vue.git
