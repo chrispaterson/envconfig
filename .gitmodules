@@ -16,9 +16,6 @@
 [submodule "dot_vim/bundle/nerdtree"]
 	path = dot_vim/bundle/nerdtree
 	url = https://github.com/scrooloose/nerdtree.git
-[submodule "dot_vim/bundle/syntastic"]
-	path = dot_vim/bundle/syntastic
-	url = https://github.com/chrispaterson/envconfig.git
 [submodule "dot_vim/bundle/typescript-vim"]
 	path = dot_vim/bundle/typescript-vim
 	url = https://github.com/leafgarland/typescript-vim.git
