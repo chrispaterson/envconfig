@@ -1,6 +1,3 @@
-[submodule "dot_vim/dot_vim/pack/git-plugins/start/ale"]
-	path = dot_vim/dot_vim/pack/lib/start/ale
-	url = https://github.com/w0rp/ale.git
 [submodule "dot_bash/git-aware-prompt"]
 	path = dot_bash/git-aware-prompt
 	url = https://github.com/chrispaterson/git-aware-prompt.git
