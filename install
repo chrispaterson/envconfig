@@ -3,7 +3,6 @@ ln -s ~/envconfig/dot_vim ~/.vim
 ln -s ~/envconfig/dot_profile ~/.profile
 ln -s ~/envconfig/dot_vim/vimrc ~/.vimrc
 source ~/.profile
-mkdir -p dot_vim/pack/git-plugins/start
 git submodule init
 git submodule update
 echo "All done, enjoy!"
