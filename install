@@ -1,7 +1,7 @@
-ln -s ~/envconfig/dot_bash ~/.bash
-ln -s ~/envconfig/dot_vim ~/.vim
-ln -s ~/envconfig/dot_profile ~/.profile
-ln -s ~/envconfig/dot_vim/vimrc ~/.vimrc
+ln -s ~/envconfig/.bash ~/.bash
+ln -s ~/envconfig/.vim ~/.vim
+ln -s ~/envconfig/.profile ~/.profile
+ln -s ~/envconfig/.vimrc ~/.vimrc
 source ~/.profile
 git submodule init
 git submodule update
