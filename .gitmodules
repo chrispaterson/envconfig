@@ -34,3 +34,6 @@
 [submodule "dot_vim/pack/lib/start/ale"]
 	path = dot_vim/pack/lib/start/ale
 	url = https://github.com/w0rp/ale.git
+[submodule "dot_vim/pack/lib/start/syntastic"]
+	path = dot_vim/pack/lib/start/syntastic
+	url = https://github.com/vim-syntastic/syntastic.git
