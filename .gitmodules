@@ -31,3 +31,6 @@
 [submodule "dot_vim/bundle/vim-colorschemes"]
 	path = dot_vim/pack/lib/start/vim-colorschemes
 	url = https://github.com/chrispaterson/vim-colorschemes.git
+[submodule "dot_vim/pack/lib/start/ale"]
+	path = dot_vim/pack/lib/start/ale
+	url = https://github.com/w0rp/ale.git
