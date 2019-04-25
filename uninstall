@@ -1,0 +1,16 @@
+#!/bin/bash
+
+cd ~
+if [[ -d .oldenv ]]; then
+
+  rm .bash 2>/dev/null
+  mv .oldenv/.bash . 2>/dev/null
+
+  mv .oldenv/.vim . 2>/dev/null
+
+  mv .oldenv/.vimrc . 2>/dev/null
+
+  mv .oldenv/.profile . 2>/dev/null
+
+  rm -r .oldenv
+fi

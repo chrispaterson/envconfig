@@ -5,7 +5,14 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 HOME_DIR=$(echo ~)
 DIR=./${DIR#"$HOME_DIR/"}
 
-cd ~
+cd $HOME_DIR
+
+mkdir .oldenv 2>/dev/null
+mv .bash .oldenv/ 2>/dev/null
+mv .vim .oldenv/ 2>/dev/null
+mv .vimrc .oldenv/ 2>/dev/null
+mv .profile .oldenv/ 2>/dev/null
+
 ln -sf $DIR/.bash
 ln -sf $DIR/.vim
 ln -sf $DIR/.profile
