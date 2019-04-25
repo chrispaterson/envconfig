@@ -1,36 +1,36 @@
 [submodule "dot_vim/dot_vim/pack/git-plugins/start/ale"]
-	path = dot_vim/dot_vim/pack/git-plugins/start/ale
+	path = dot_vim/dot_vim/pack/lib/start/ale
 	url = https://github.com/w0rp/ale.git
 [submodule "dot_bash/git-aware-prompt"]
 	path = dot_bash/git-aware-prompt
 	url = https://github.com/chrispaterson/git-aware-prompt.git
 [submodule "dot_vim/bundle/auto-pairs"]
-	path = dot_vim/bundle/auto-pairs
+	path = dot_vim/pack/lib/start/auto-pairs
 	url = git://github.com/jiangmiao/auto-pairs.git
 [submodule "dot_vim/bundle/nerdcommenter"]
-	path = dot_vim/bundle/nerdcommenter
+	path = dot_vim/pack/lib/start/nerdcommenter
 	url = https://github.com/scrooloose/nerdcommenter.git
 [submodule "dot_vim/bundle/nerdtree-git-plugin"]
-	path = dot_vim/bundle/nerdtree-git-plugin
+	path = dot_vim/pack/lib/start/nerdtree-git-plugin
 	url = https://github.com/Xuyuanp/nerdtree-git-plugin.git
 [submodule "dot_vim/bundle/nerdtree"]
-	path = dot_vim/bundle/nerdtree
+	path = dot_vim/pack/lib/start/nerdtree
 	url = https://github.com/scrooloose/nerdtree.git
 [submodule "dot_vim/bundle/typescript-vim"]
-	path = dot_vim/bundle/typescript-vim
+	path = dot_vim/pack/lib/start/typescript-vim
 	url = https://github.com/leafgarland/typescript-vim.git
 [submodule "dot_vim/bundle/vim-closetag"]
-	path = dot_vim/bundle/vim-closetag
+	path = dot_vim/pack/lib/start/vim-closetag
 	url = https://github.com/alvan/vim-closetag.git
 [submodule "dot_vim/bundle/vim-javascript"]
-	path = dot_vim/bundle/vim-javascript
+	path = dot_vim/pack/lib/start/vim-javascript
 	url = https://github.com/pangloss/vim-javascript.git
 [submodule "dot_vim/bundle/vim-jsx"]
-	path = dot_vim/bundle/vim-jsx
+	path = dot_vim/pack/lib/start/vim-jsx
 	url = https://github.com/mxw/vim-jsx.git
 [submodule "dot_vim/bundle/vim-vue"]
-	path = dot_vim/bundle/vim-vue
+	path = dot_vim/pack/lib/start/vim-vue
 	url = https://github.com/posva/vim-vue.git
 [submodule "dot_vim/bundle/vim-colorschemes"]
-	path = dot_vim/bundle/vim-colorschemes
+	path = dot_vim/pack/lib/start/vim-colorschemes
 	url = https://github.com/chrispaterson/vim-colorschemes.git
