@@ -14,3 +14,7 @@ if [[ -d .oldenv ]]; then
 
   rm -r .oldenv
 fi
+
+if [[ -e .profile ]]; then
+  source .profile
+fi
