@@ -12,8 +12,6 @@ map <C-n> :NERDTreeToggle<CR>
 let NERDTreeShowHidden=1
 " close VIM when only nertree is open
 autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
-" move quickfix window to the bottom always
-au FileType qf wincmd J
 
 " FILETYPES
 au bufread,bufnewfile *.jade set filetype=jade
