@@ -4,10 +4,7 @@ filetype plugin indent on
 let g:jsx_ext_required = 0
 
 " nerdtree stuff
-" Run nerdtree automatically when openeing VIM
-autocmd vimenter * NERDTree
-" Move window focus to the right instead of on Nerdtree
-" when openeing
+" Move window focus to the right instead of on Nerdtree when openeing
 autocmd VimEnter * wincmd p
 " Toggle Nerd Tree on ctrl+n
 map <C-n> :NERDTreeToggle<CR>
@@ -15,6 +12,8 @@ map <C-n> :NERDTreeToggle<CR>
 let NERDTreeShowHidden=1
 " close VIM when only nertree is open
 autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
+" move quickfix window to the bottom always
+au FileType qf wincmd J
 
 " FILETYPES
 au bufread,bufnewfile *.jade set filetype=jade
@@ -54,14 +53,6 @@ function! FindConfig(prefix, what, where)
     let cfg = findfile(a:what, escape(a:where, ' ') . ';')
     return cfg !=# '' ? ' ' . a:prefix . ' ' . shellescape(cfg) : ''
 endfunction
-
-autocmd FileType javascript let b:syntastic_javascript_eslint_args =
-    \ get(g:, 'syntastic_javascript_jscs_args', '') .
-    \ FindConfig('-c', '.eslintrc', expand('<afile>:p:h', 1))
-
-autocmd FileType json let b:syntastic_json_eslint_args =
-    \ get(g:, 'syntastic_json_jscs_args', '') .
-    \ FindConfig('-c', '.eslintrc', expand('<afile>:p:h', 1))
 
 """""""""""""""""""""""""""""""
 " Ale (auto fixer)
