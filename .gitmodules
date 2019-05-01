@@ -34,6 +34,3 @@
 [submodule "dot_vim/pack/lib/start/syntastic"]
 	path = .vim/pack/lib/start/syntastic
 	url = https://github.com/vim-syntastic/syntastic.git
-[submodule ".vim/pack/lib/start/QFEnter"]
-	path = .vim/pack/lib/start/QFEnter
-	url = https://github.com/yssl/QFEnter.git
