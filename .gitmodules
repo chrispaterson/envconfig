@@ -34,3 +34,6 @@
 [submodule "dot_vim/pack/lib/start/syntastic"]
 	path = .vim/pack/lib/start/syntastic
 	url = https://github.com/vim-syntastic/syntastic.git
+[submodule ".vim/pack/lib/start/vim-surround"]
+	path = .vim/pack/lib/start/vim-surround
+	url = https://github.com/tpope/vim-surround.git
