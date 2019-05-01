@@ -1,9 +1,6 @@
 [submodule "dot_bash/git-aware-prompt"]
 	path = .bash/git-aware-prompt
 	url = https://github.com/chrispaterson/git-aware-prompt.git
-[submodule "dot_vim/bundle/auto-pairs"]
-	path = .vim/pack/lib/start/auto-pairs
-	url = git://github.com/jiangmiao/auto-pairs.git
 [submodule "dot_vim/bundle/nerdcommenter"]
 	path = .vim/pack/lib/start/nerdcommenter
 	url = https://github.com/scrooloose/nerdcommenter.git

@@ -24,15 +24,16 @@ au bufread,bufnewfile *.jsx set filetype=jsx
 au bufread,bufnewfile *.css set filetype=css
 au bufread,bufnewfile *.html set filetype=html
 
+
 """""""""""""""""""""""""""""""
 " Syntax Checker with Syntastic
 """""""""""""""""""""""""""""""
 set autoread
 
 let g:syntastic_always_populate_loc_list = 1
-let g:syntastic_auto_loc_list = 1
+let g:syntastic_auto_loc_list = 0
 let g:syntastic_check_on_open = 1
-let g:syntastic_check_on_wq = 1
+let g:syntastic_check_on_wq = 0
 let g:syntastic_aggregate_errors = 1
 
 let g:syntastic_javascript_checkers = ['eslint']
@@ -45,12 +46,6 @@ let g:syntastic_typescript_checkers = ['tslint', 'tsc']
  let g:syntastic_json_eslint_exec = './node_modules/.bin/eslint'
  let g:syntastic_typescript_tslint_exec = './node_modules/.bin/tslint'
 
-
-" Autofind config
-function! FindConfig(prefix, what, where)
-    let cfg = findfile(a:what, escape(a:where, ' ') . ';')
-    return cfg !=# '' ? ' ' . a:prefix . ' ' . shellescape(cfg) : ''
-endfunction
 
 """""""""""""""""""""""""""""""
 " Ale (auto fixer)
@@ -134,11 +129,8 @@ map <C-S-H> <C-w>h
 map <C-S-J> <C-w>j
 map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
-noremap <F4> :SyntasticCheck<CR>
+noremap <F4> :lnext<CR>
+noremap <F3> :lnext<CR>
 noremap <F5> :JsDoc<CR>
 set laststatus=2
 set statusline=%f "tail of the filename
-
-"" Highlight when it's over 80"
-highlight OverLength ctermbg=red ctermfg=white guibg=#592929
-match OverLength /\%81v.\+/
