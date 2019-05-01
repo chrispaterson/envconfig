@@ -37,3 +37,6 @@
 [submodule ".vim/pack/lib/start/vim-surround"]
 	path = .vim/pack/lib/start/vim-surround
 	url = https://github.com/tpope/vim-surround.git
+[submodule ".vim/pack/lib/start/vim-jsdoc"]
+	path = .vim/pack/lib/start/vim-jsdoc
+	url = https://github.com/heavenshell/vim-jsdoc.git
