@@ -12,11 +12,14 @@ mv .bash .oldenv/ 2>/dev/null
 mv .vim .oldenv/ 2>/dev/null
 mv .vimrc .oldenv/ 2>/dev/null
 mv .profile .oldenv/ 2>/dev/null
+mv .bashrc .oldenv/ 2>/dev/null
 
 ln -sf $DIR/.bash
 ln -sf $DIR/.vim
 ln -sf $DIR/.profile
+ln -sf $DIR/.bashrc
 ln -sf $DIR/.vimrc
+ln -sf $DIR/.nvmstuff
 
 source .profile
 
