@@ -1,20 +1,29 @@
 #!/bin/bash
 
 cd ~
-if [[ -d .oldenv ]]; then
 
+# only uninstall if we have a backup or have been actually installed
+if [[ -d .envbackup ]]; then
+
+  # remove everything we created
   rm .bash 2>/dev/null
-  mv .oldenv/.bash . 2>/dev/null
+  rm .vim 2>/dev/null
+  rm .profile 2>/dev/null
+  rm .bashrc 2>/dev/null
+  rm .vimrc 2>/dev/null
+  rm .nvmstuff 2>/dev/null
 
-  mv .oldenv/.vim . 2>/dev/null
+  # Move anything we saved
+  mv .envbackup/* ./ 2>/dev/null
 
-  mv .oldenv/.vimrc . 2>/dev/null
-
-  mv .oldenv/.profile . 2>/dev/null
-
-  rm -r .oldenv
+  # remove our backup
+  rm -r .envbackup
 fi
 
 if [[ -e .profile ]]; then
   source .profile
+elif [[ -e .bashrc ]]; then
+  source .bashrc
 fi
+
+echo "Should be as it was now"
