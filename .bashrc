@@ -2,8 +2,9 @@
 
 [[ $- == *i* ]] || return 0
 
-if ! [ $ENV_SOURCED ]; then
-  source ~/.env
+ENV_FILE=~/.env
+if [ -f "$ENV_FILE" ]; then
+  source "$ENV_FILE"
 fi
 
 # Command Prompt things with git
@@ -15,7 +16,7 @@ PS1="\n\[\$bldwht\]\w \[$txtrst\]\$git_branch \$git_dirty \$git_ahead_behind\n\[
 alias sp="source ~/.profile"
 alias ep="vi ~/.profile"
 alias ..="cd ../"
-alias ls='ls -G'
+alias ls='ls -G --color=auto'
 alias ll='ls -hla'
 alias l='ls -l'
 
