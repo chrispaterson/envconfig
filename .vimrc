@@ -38,13 +38,14 @@ let g:syntastic_aggregate_errors = 1
 
 let g:syntastic_javascript_checkers = ['eslint']
 let g:syntastic_json_checkers = ['eslint']
-let g:syntastic_typescript_checkers = ['eslint', 'tsc']
+#let g:syntastic_typescript_checkers = ['eslint', 'tsc']
+let g:syntastic_typescript_checkers = ['tsuquyomi']
 "let g:syntastic_html_checkers = ['/usr/local/Cellar/tidy-html5/5.4.0/bin/tidy']
 "
 " use the local version of eslint via the project
  let g:syntastic_javascript_eslint_exec = './node_modules/.bin/eslint'
  let g:syntastic_json_eslint_exec = './node_modules/.bin/eslint'
- let g:syntastic_typescript_eslint_exec = './node_modules/.bin/eslint'
+ #let g:syntastic_typescript_eslint_exec = './node_modules/.bin/eslint'
 
 
 """""""""""""""""""""""""""""""
