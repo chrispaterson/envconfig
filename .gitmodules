@@ -40,3 +40,7 @@
 [submodule ".vim/pack/lib/start/vim-jsdoc"]
 	path = .vim/pack/lib/start/vim-jsdoc
 	url = https://github.com/heavenshell/vim-jsdoc.git
+[submodule ".vim/pack/lib/start/tsuquoyomi"]
+	path = .vim/pack/lib/start/tsuquoyomi
+	url = https://github.com/Quramy/tsuquyomi.git
+	branch = master
