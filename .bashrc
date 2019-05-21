@@ -7,7 +7,8 @@ if ! [ $ENV_SOURCED ]; then
 fi
 
 # Command Prompt things with git
-. ~/.bash/git-aware-prompt/main.sh
+export GITAWAREPROMPT=~/.bash/git-aware-prompt
+source "${GITAWAREPROMPT}/main.sh"
 PS1="\n\[\$bldwht\]\w \[$txtrst\]\$git_branch \$git_dirty \$git_ahead_behind\n\[$txtpur\]↳ \[$txtrst\]"
 
 #Aliases for shortcut things
