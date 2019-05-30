@@ -132,8 +132,6 @@ map <C-S-J> <C-w>j
 map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
 noremap <F5> :JsDoc<CR>
-noremap <F4> :lnext<CR>
-noremap <F3> :lnext<CR>
 autocmd FileType typescript nmap <buffer> <F6> <Plug>(TsuquyomiRenameSymbolC)
 set laststatus=2
 set statusline=%f "tail of the filename
