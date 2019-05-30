@@ -2,6 +2,15 @@
 
 [[ $- == *i* ]] || return 0
 
+unameOut="$(uname -s)"
+case "${unameOut}" in
+    Linux*)     machine=Linux;;
+    Darwin*)    machine=Mac;;
+    CYGWIN*)    machine=Cygwin;;
+    MINGW*)     machine=MinGw;;
+    *)          machine="UNKNOWN:${unameOut}"
+esac
+
 ENV_FILE=~/.env
 if [ -f "$ENV_FILE" ]; then
   source "$ENV_FILE"
@@ -16,8 +25,14 @@ PS1="\n\[\$bldwht\]\w \[$txtrst\]\$git_branch \$git_dirty \$git_ahead_behind\n\[
 alias sp="source ~/.profile"
 alias ep="vi ~/.profile"
 alias ..="cd ../"
-alias ls='ls -G --color=auto'
-alias ll='ls -hla'
+
+if [[ $machine != Mac ]]; then
+
+  # This happens automatically on a Mac
+  alias ls='ls -G --color=auto'
+fi
+
+alias ll='ls -la'
 alias l='ls -l'
 
 source ~/.nvmstuff
