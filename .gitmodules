@@ -44,3 +44,6 @@
 	path = .vim/pack/lib/start/tsuquoyomi
 	url = https://github.com/Quramy/tsuquyomi.git
 	branch = master
+[submodule ".vim/pack/lib/start/vim-vue-syntastic"]
+	path = .vim/pack/lib/start/vim-vue-syntastic
+	url = https://github.com/sekel/vim-vue-syntastic.git

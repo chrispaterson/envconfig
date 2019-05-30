@@ -17,6 +17,7 @@ autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isT
 au bufread,bufnewfile *.jade set filetype=jade
 au bufread,bufnewfile *.js set filetype=javascript
 au bufread,bufnewfile *.ts set filetype=typescript
+au bufread,bufnewfile *.vue set filetype=vue
 au bufread,bufnewfile *.json set filetype=json
 au bufread,bufnewfile *.as set filetype=actionscript
 au bufread,bufnewfile *.java set filetype=java
@@ -41,13 +42,14 @@ let g:syntastic_json_checkers = ['eslint']
 "let g:syntastic_typescript_checkers = ['eslint', 'tsc']
 let g:tsuquyomi_disable_quickfix = 1
 let g:syntastic_typescript_checkers = ['tsuquyomi']
+let g:syntastic_vue_checkers = ['eslint']
 "let g:syntastic_html_checkers = ['/usr/local/Cellar/tidy-html5/5.4.0/bin/tidy']
-"
+
 " use the local version of eslint via the project
  let g:syntastic_javascript_eslint_exec = './node_modules/.bin/eslint'
  let g:syntastic_json_eslint_exec = './node_modules/.bin/eslint'
+ let g:syntastic_vue_eslint_exec = './node_modules/.bin/eslint'
  "let g:syntastic_typescript_eslint_exec = './node_modules/.bin/eslint'
-
 
 """""""""""""""""""""""""""""""
 " Ale (auto fixer)
