@@ -23,6 +23,8 @@ au bufread,bufnewfile *.as set filetype=actionscript
 au bufread,bufnewfile *.java set filetype=java
 au bufread,bufnewfile *.jsx set filetype=jsx
 au bufread,bufnewfile *.css set filetype=css
+au bufread,bufnewfile *.scss set filetype=sass
+au bufread,bufnewfile *.sass set filetype=sass
 au bufread,bufnewfile *.html set filetype=html
 
 
@@ -31,25 +33,20 @@ au bufread,bufnewfile *.html set filetype=html
 """""""""""""""""""""""""""""""
 set autoread
 
-let g:syntastic_always_populate_loc_list = 1
-let g:syntastic_auto_loc_list = 0
 let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
 let g:syntastic_aggregate_errors = 1
 
 let g:syntastic_javascript_checkers = ['eslint']
 let g:syntastic_json_checkers = ['eslint']
-"let g:syntastic_typescript_checkers = ['eslint', 'tsc']
-let g:tsuquyomi_disable_quickfix = 1
-let g:syntastic_typescript_checkers = ['tsuquyomi']
+"let g:syntastic_typescript_checkers = ['tsuquyomi']
 let g:syntastic_vue_checkers = ['eslint']
-"let g:syntastic_html_checkers = ['/usr/local/Cellar/tidy-html5/5.4.0/bin/tidy']
 
 " use the local version of eslint via the project
- let g:syntastic_javascript_eslint_exec = './node_modules/.bin/eslint'
- let g:syntastic_json_eslint_exec = './node_modules/.bin/eslint'
- let g:syntastic_vue_eslint_exec = './node_modules/.bin/eslint'
- "let g:syntastic_typescript_eslint_exec = './node_modules/.bin/eslint'
+ let g:syntastic_javascript_eslint_exec = 'npm run lint --'
+ let g:syntastic_json_eslint_exec = 'npm run lint --'
+ let g:syntastic_vue_eslint_exec = 'npm run lint --'
+"  let g:syntastic_typescript_eslint_exec = 'npm run lint --'
 
 """""""""""""""""""""""""""""""
 " Ale (auto fixer)
@@ -57,7 +54,9 @@ let g:syntastic_vue_checkers = ['eslint']
 let g:ale_fixers = {
 \   '*': ['remove_trailing_lines', 'trim_whitespace'],
 \   'javascript': ['eslint'],
-\   'json': ['eslint'],
+\   'typescript': ['eslint'],
+\   'vue': ['eslint'],
+\   'json': ['eslint']
 \}
 let g:ale_fix_on_save = 1
 
@@ -66,7 +65,7 @@ let g:ale_fix_on_save = 1
 """""""""""""""""""""""""""""""
 let g:jsdoc_enable_es6 = 1
 let g:jsdoc_return = 1
-let g:jsdoc_param_description_separator = ' - '
+let g:jsdoc_param_description_separator = '-'
 
 """""""""""""""""""""""""""""""
 " Colors.  Themes at http://vimcolors.com/
@@ -80,12 +79,12 @@ colorscheme Tomorrow-Night-Bright
 " filenames like *.xml, *.html, *.xhtml, ...
 " Then after you press <kbd>&gt;</kbd> in these files, this plugin will try to close the current tag.
 "
-let g:closetag_filenames = '*.html,*.xhtml,*.phtml'
+let g:closetag_filenames = '*.html,*.jsx,*.vue'
 
 " filenames like *.xml, *.xhtml, ...
 " This will make the list of non closing tags self closing in the specified files.
 "
-let g:closetag_xhtml_filenames = '*.xhtml,*.jsx'
+let g:closetag_xhtml_filenames = '*.xhtml,*.jsx,*.vue'
 
 " integer value [0|1]
 " This will make the list of non closing tags case sensitive (e.g. `<Link>` will be closed while `<link>` won't.)
@@ -104,7 +103,11 @@ let g:closetag_close_shortcut = '<leader>>'
 " NERDCommenter
 """"
 " Add your own custom formats or override the defaults
-let g:NERDCustomDelimiters = { 'javascript': { 'left': '/** ','right': '*/' } }
+let g:NERDCustomDelimiters = {
+\   'javascript': { 'left': '/** ','right': '*/' },
+\   'typescript': { 'left': '/** ','right': '*/' },
+\   'vue': { 'left': '/** ','right': '*/' }
+\}
 
 """"
 "general options
@@ -135,5 +138,6 @@ map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
 noremap <F5> :JsDoc<CR>
 autocmd FileType typescript nmap <buffer> <F6> <Plug>(TsuquyomiRenameSymbolC)
+autocmd FileType typescript nmap <buffer> <F7> <Plug>(TsuDefinition())
 set laststatus=2
 set statusline=%f "tail of the filename
