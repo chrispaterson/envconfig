@@ -17,7 +17,14 @@ alias sp="source ~/.profile"
 alias ep="vi ~/.profile"
 alias ..="cd ../"
 
+# only on linux -- OSX will throw an error if I pass the --color=auto
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+  alias ls='ls --color=auto'
+fi
 alias ll='ls -GlA'
 alias l='ls -Gl'
+
+#Add bin to path
+export PATH="$PATH:~/bin"
 
 source ~/.nvmstuff
