@@ -27,6 +27,15 @@ au bufread,bufnewfile *.scss set filetype=sass
 au bufread,bufnewfile *.sass set filetype=sass
 au bufread,bufnewfile *.html set filetype=html
 
+"""""""""""""""""""""""""""""""
+" TypeScript tsuquomi
+"""""""""""""""""""""""""""""""
+let g:tsuquyomi_disable_quickfix = 1
+let g:tsuquyomi_shortest_import_path = 1
+autocmd FileType typescript nmap <buffer> <Leader>e <Plug>(TsuquyomiRenameSymbol)
+autocmd FileType typescript nmap <buffer> <Leader>E <Plug>(TsuquyomiRenameSymbolC)
+autocmd FileType typescript nmap <buffer> <Leader>i <Plug>(TsuImport)
+autocmd FileType typescript nmap <buffer> <Leader>t : <C-u>echo tsuquyomi#hint()<CR>
 
 """""""""""""""""""""""""""""""
 " Syntax Checker with Syntastic
@@ -39,7 +48,7 @@ let g:syntastic_aggregate_errors = 1
 
 let g:syntastic_javascript_checkers = ['eslint']
 let g:syntastic_json_checkers = ['eslint']
-"let g:syntastic_typescript_checkers = ['tsuquyomi']
+let g:syntastic_typescript_checkers = ['tsuquyomi']
 let g:syntastic_vue_checkers = ['eslint']
 
 " use the local version of eslint via the project
