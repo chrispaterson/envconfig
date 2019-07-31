@@ -45,6 +45,7 @@ set autoread
 let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
 let g:syntastic_aggregate_errors = 1
+let g:syntastic_auto_jump = 3
 
 let g:syntastic_javascript_checkers = ['eslint']
 let g:syntastic_json_checkers = ['eslint']
@@ -55,7 +56,10 @@ let g:syntastic_vue_checkers = ['eslint']
  let g:syntastic_javascript_eslint_exec = 'npm run lint --'
  let g:syntastic_json_eslint_exec = 'npm run lint --'
  let g:syntastic_vue_eslint_exec = 'npm run lint --'
-"  let g:syntastic_typescript_eslint_exec = 'npm run lint --'
+
+set statusline+=%#warningmsg#
+set statusline+=%{SyntasticStatuslineFlag()}
+set statusline+=%*
 
 """""""""""""""""""""""""""""""
 " Ale (auto fixer)
@@ -145,8 +149,9 @@ map <C-S-H> <C-w>h
 map <C-S-J> <C-w>j
 map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
+
 noremap <F5> :JsDoc<CR>
 autocmd FileType typescript nmap <buffer> <F6> <Plug>(TsuquyomiRenameSymbolC)
 autocmd FileType typescript nmap <buffer> <F7> <Plug>(TsuDefinition())
-set laststatus=2
-set statusline=%f "tail of the filename
+noremap <F8> :lprevious<CR>
+noremap <F9> :lnext<CR>
