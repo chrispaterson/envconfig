@@ -1,32 +1,58 @@
 #!/bin/bash
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-
+PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 HOME_DIR=$(echo ~)
-DIR=./${DIR#"$HOME_DIR/"}
+RELATIVE_PROJECT_DIR=./${PROJECT_DIR#"$HOME_DIR/"}
 
-cd $HOME_DIR
+cd $PROJECT_DIR
 
-mkdir .envbackup 2>/dev/null
-mv .bash .envbackup/ 2>/dev/null
-mv .vim .envbackup/ 2>/dev/null
-mv .vimrc .envbackup/ 2>/dev/null
-mv .profile .envbackup/ 2>/dev/null
-mv .bashrc .envbackup/ 2>/dev/null
-mv .nvmstuff .envbackup/ 2>/dev/null
-
-ln -sf $DIR/.bash
-ln -sf $DIR/.vim
-ln -sf $DIR/.profile
-ln -sf $DIR/.bashrc
-ln -sf $DIR/.vimrc
-ln -sf $DIR/.nvmstuff
-
-source .profile
-
-cd $DIR
+# Back up any existing files
+if [[ ! -d .bak ]]; then
+  mkdir .bak
+fi
 
 git submodule init
 git submodule update
+
+cd $HOME_DIR
+
+for FILE in $(ls -A $PROJECT_DIR)
+do
+
+  if ! [[ $FILE =~ ".git" || $FILE == ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" || $FILE =~ ".DS_Store" ]]; then
+
+    # if the file exists and is not a symbolic link, if it is a symbolic link
+    # then we've been here before
+    if [[ -e $HOME_DIR/$FILE && ! -L $HOME_DIR/$FILE ]]; then
+
+      # Force override of old
+      mv -f $HOME_DIR/$FILE $PROJECT_DIR/.bak/
+
+    fi
+
+    # link
+    ln -sv $RELATIVE_PROJECT_DIR/$FILE
+
+  fi
+done
+
+# See if we need to cp any bin scripts back
+if [[ -d $PROJECT_DIR/.bak/bin ]]; then
+
+  # look at all the files that we copied over
+  for FILE in $(ls -A $PROJECT_DIR/.bak/bin/)
+  do
+
+    # if it's not in the bin, we copy back
+    if ! [[ -e $HOME_DIR/bin/$FILE ]]; then
+
+      cp -r $PROJECT_DIR/.bak/bin/$FILE $HOME_DIR/bin/
+
+    fi
+  done
+fi
+
+
+source .profile
 
 echo "All done, enjoy!"

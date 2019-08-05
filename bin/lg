@@ -1,0 +1,55 @@
+#!/bin/sh
+
+usage ()
+{
+  echo "Usage: $0 [-p] [-h]"
+}
+
+showhelp()
+{
+  echo "$0 - opens log file for today in VIM"
+  echo " "
+  usage
+  echo " "
+  echo "options:"
+  echo "-h, --help                show brief help"
+  echo "-p, --print               Prints today's log to stdout"
+}
+
+# There is no "Documents" on a
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+
+  echo "This utility only works on Mac OSX"
+  exit 1
+
+else
+
+  LOG=~/Documents/logs/$(date +'%F').md
+fi
+
+while getopts ":ph" opt; do
+  case $opt in
+    p | --print)
+      cat $LOG
+      exit;
+      ;;
+    h | -help)
+      showhelp
+      exit
+      ;;
+    \?)
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [[ ! -f $LOG ]]; then
+
+  echo $(date +'# %A, %B %d, %Y') > $LOG
+  echo "" >> $LOG
+
+fi
+
+echo " -  " >> $LOG
+vim "+normal G$" +startinsert $LOG

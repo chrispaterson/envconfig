@@ -1,24 +1,24 @@
 #!/bin/bash
 
-cd ~
+PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+HOME_DIR=$(echo ~)
 
-# only uninstall if we have a backup or have been actually installed
-if [[ -d .envbackup ]]; then
+for FILE in $(ls -A $PROJECT_DIR)
+do
 
-  # remove everything we created
-  rm .bash 2>/dev/null
-  rm .vim 2>/dev/null
-  rm .profile 2>/dev/null
-  rm .bashrc 2>/dev/null
-  rm .vimrc 2>/dev/null
-  rm .nvmstuff 2>/dev/null
+  if ! [[ $FILE =~ ".git" || $FILE == ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" ]]; then
 
-  # Move anything we saved
-  mv .envbackup/* ./ 2>/dev/null
+    # if the file exists and is not a symbolic link, if it is a symbolic link
+    # then we've been here before
+    if [[ -L $HOME_DIR/$FILE ]]; then
 
-  # remove our backup
-  rm -r .envbackup
-fi
+      rm $HOME_DIR/$FILE
+    fi
+
+  fi
+done
+
+mv $PROJECT_DIR/.bak/* $HOME_DIR/
 
 if [[ -e .profile ]]; then
   source .profile
@@ -26,4 +26,4 @@ elif [[ -e .bashrc ]]; then
   source .bashrc
 fi
 
-echo "Should be as it was now"
+echo "Should be returned to how you had it before..."
