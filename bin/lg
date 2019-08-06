@@ -22,10 +22,9 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
   echo "This utility only works on Mac OSX"
   exit 1
 
-else
-
-  LOG=~/Documents/logs/$(date +'%F').md
 fi
+
+LOG=~/Documents/logs/$(date +'%F').md
 
 while getopts ":ph" opt; do
   case $opt in
