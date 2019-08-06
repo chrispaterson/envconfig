@@ -24,7 +24,7 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
 
 fi
 
-LOG=~/Documents/logs/$(date +'%F').md
+LOG=~/Documents/personal_time_logs/$(date +'%F').md
 
 while getopts ":ph" opt; do
   case $opt in
