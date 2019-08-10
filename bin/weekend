@@ -1,0 +1,72 @@
+#!/bin/sh
+
+DOW=$(date +'%u')
+FORMAT='+%A, %B %d, %Y'
+
+# because day of the week 1 is Monday and we want it to be Sunday
+let "DOW = $DOW % 6 + 1"
+
+if [[ $DOW > 3 ]]; then
+
+  NEXT_WEEKEND=$(date -v "+$(expr 14 - $DOW)d" "$FORMAT")
+  LAST_WEEKEND=$(date -v "-$(expr $DOW)d" "$FORMAT")
+  THIS_WEEKEND=$(date -v "+$(expr 7 - $DOW)d" "$FORMAT")
+
+
+fi;
+
+if [[ $DOW == 7 ]]; then
+
+  THIS_UPCOMING_WEEKEND=$(date -v "+7d" "$FORMAT")
+
+else
+
+  THIS_UPCOMING_WEEKEND=$(date -v "+$(expr 7 - $DOW)d" "$FORMAT")
+
+fi
+
+if [[ $DOW == 1 ]]; then
+
+  THIS_PAST_WEEKEND=$(date -v "-8d" "$FORMAT");
+
+else
+
+  THIS_PAST_WEEKEND=$(date -v "-$(expr $DOW)d" "$FORMAT")
+
+fi
+
+echo
+echo "Today:                 $(date "$FORMAT")"
+echo "_________________________________________________"
+echo "Next Weekend:          $NEXT_WEEKEND"
+echo "Last Weekend:          $LAST_WEEKEND"
+echo "This Weekend:          $THIS_WEEKEND"
+echo "This Upcoming Weekend: $THIS_UPCOMING_WEEKEND"
+echo "This Past Weekend:     $THIS_PAST_WEEKEND"
+
+
+# office break room banter reply
+ALWAYS_ANSWER_WITH="Good"
+echo
+echo "Break room banter answer for \"How's it going?\": ";
+case $DOW in
+  2) # Monday
+    echo "$ALWAYS_ANSWER_WITH, except for it being $(date +%A)"
+    ;;
+  3) # Tuesday
+    # no reference to day of the week here...
+    echo "$ALWAYS_ANSWER_WITH... Thanks, and you?"
+    ;;
+  4) # Wednesday
+    echo "$ALWAYS_ANSWER_WITH, glad it's Humpday!"
+    ;;
+  5) # Thursday
+    echo "$ALWAYS_ANSWER_WITH, it's almost $(date -v +1d +%A)!"
+    ;;
+  6) # Friday
+    echo "$ALWAYS_ANSWER_WITH, At least it's $(date +%A)!"
+    ;;
+  *)
+    echo "$ALWAYS_ANSWER_WITH, but I wish I wasn't at work on a $(date +%A)"
+    ;;
+esac

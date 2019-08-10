@@ -57,9 +57,6 @@ let g:syntastic_vue_checkers = ['eslint']
  let g:syntastic_json_eslint_exec = 'npm run lint --'
  let g:syntastic_vue_eslint_exec = 'npm run lint --'
 
-set statusline+=%#warningmsg#
-set statusline+=%{SyntasticStatuslineFlag()}
-set statusline+=%*
 
 """""""""""""""""""""""""""""""
 " Ale (auto fixer)
@@ -125,6 +122,16 @@ let g:NERDCustomDelimiters = {
 """"
 "general options
 """"
+set statusline=
+set statusline+=%#todo#  "switch to todo highlight
+set statusline+=%f       "full filename
+set statusline+=%#error# "switch to error highlight
+set statusline+=%y       "filetype
+set statusline+=%*       "switch back to normal statusline highlight
+set statusline+=%l       "line number
+set statusline+=%#warningmsg#
+set statusline+=%{SyntasticStatuslineFlag()}
+set statusline+=%*
 
 let mapleader=","
 

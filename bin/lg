@@ -24,7 +24,8 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
 
 fi
 
-LOG=~/Documents/personal_time_logs/$(date +'%F').md
+DIR=~/Documents/personal_time_logs
+LOG=$DIR/$(date +'%F').md
 
 while getopts ":ph" opt; do
   case $opt in
@@ -45,6 +46,7 @@ done
 
 if [[ ! -f $LOG ]]; then
 
+  INDEX=$DIR/index.md
   echo $(date +'# %A, %B %d, %Y') > $LOG
   echo "" >> $LOG
 
