@@ -1,0 +1,7 @@
+#!/bin/sh
+
+EXTERNAL_DRIVES=$(diskutil list external | grep \/dev\/disk | cut -d " " -f1)
+for disk in $EXTERNAL_DRIVES
+do
+  diskutil unmountDisk $disk
+done
