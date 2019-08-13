@@ -18,8 +18,8 @@ if [[ $DOW > 3 ]]; then
 else
 
   NEXT_WEEKEND=$(date -v "+$(expr 7 - $DOW)d" "$FORMAT")
-  LAST_WEEKEND=$(date -v "-$(expr 14 -$DOW)d" "$FORMAT")
-  THIS_WEEKEND=$(date -v "-$(expr 7 - $DOW)d" "$FORMAT")
+  LAST_WEEKEND=$(date -v "-$(expr $DOW )d" "$FORMAT")
+  THIS_WEEKEND=$(date -v $LAST_WEEKEND
 
 
 fi;
