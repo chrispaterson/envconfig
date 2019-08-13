@@ -19,7 +19,7 @@ else
 
   NEXT_WEEKEND=$(date -v "+$(expr 7 - $DOW)d" "$FORMAT")
   LAST_WEEKEND=$(date -v "-$(expr $DOW )d" "$FORMAT")
-  THIS_WEEKEND=$(date -v $LAST_WEEKEND
+  THIS_WEEKEND=$LAST_WEEKEND
 
 
 fi;
