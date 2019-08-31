@@ -17,6 +17,9 @@ alias sp="source ~/.profile"
 alias ep="vi ~/.profile"
 alias ..="cd ../"
 
+#Aliased commands so I don't have to remember the details
+alias makeMDTOC="npx markdown-toc --no-firsth1"
+
 # only on linux -- OSX will throw an error if I pass the --color=auto
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
   alias ls='ls --color=auto'

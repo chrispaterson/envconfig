@@ -66,6 +66,7 @@ let g:ale_fixers = {
 \   'javascript': ['eslint'],
 \   'typescript': ['eslint'],
 \   'vue': ['eslint'],
+\   'html': ['prettier'],
 \   'json': ['eslint']
 \}
 let g:ale_fix_on_save = 1
@@ -122,17 +123,7 @@ let g:NERDCustomDelimiters = {
 """"
 "general options
 """"
-set statusline=
-set statusline+=%#todo#  "switch to todo highlight
-set statusline+=%f       "full filename
-set statusline+=%#error# "switch to error highlight
-set statusline+=%y       "filetype
-set statusline+=%*       "switch back to normal statusline highlight
-set statusline+=%l       "line number
-set statusline+=%#warningmsg#
-set statusline+=%{SyntasticStatuslineFlag()}
-set statusline+=%*
-
+set statusline=%l:%f
 let mapleader=","
 
 "indentation
@@ -157,6 +148,8 @@ map <C-S-J> <C-w>j
 map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
 
+map <F2> :.w !pbcopy<CR><CR>
+map <F3> :r !pbpaste<CR>
 noremap <F5> :JsDoc<CR>
 autocmd FileType typescript nmap <buffer> <F6> <Plug>(TsuquyomiRenameSymbolC)
 autocmd FileType typescript nmap <buffer> <F7> <Plug>(TsuDefinition())
