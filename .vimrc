@@ -36,6 +36,10 @@ autocmd FileType typescript nmap <buffer> <Leader>e <Plug>(TsuquyomiRenameSymbol
 autocmd FileType typescript nmap <buffer> <Leader>E <Plug>(TsuquyomiRenameSymbolC)
 autocmd FileType typescript nmap <buffer> <Leader>i <Plug>(TsuImport)
 autocmd FileType typescript nmap <buffer> <Leader>t : <C-u>echo tsuquyomi#hint()<CR>
+autocmd FileType vue nmap <buffer> <Leader>e <Plug>(TsuquyomiRenameSymbol)
+autocmd FileType vue nmap <buffer> <Leader>E <Plug>(TsuquyomiRenameSymbolC)
+autocmd FileType vue nmap <buffer> <Leader>i <Plug>(TsuImport)
+autocmd FileType vue nmap <buffer> <Leader>t : <C-u>echo tsuquyomi#hint()<CR>
 
 """""""""""""""""""""""""""""""
 " Syntax Checker with Syntastic
@@ -153,5 +157,7 @@ map <F3> :r !pbpaste<CR>
 noremap <F5> :JsDoc<CR>
 autocmd FileType typescript nmap <buffer> <F6> <Plug>(TsuquyomiRenameSymbolC)
 autocmd FileType typescript nmap <buffer> <F7> <Plug>(TsuDefinition())
+autocmd FileType vue nmap <buffer> <F6> <Plug>(TsuquyomiRenameSymbolC)
+autocmd FileType vue nmap <buffer> <F7> <Plug>(TsuDefinition())
 noremap <F8> :lprevious<CR>
 noremap <F9> :lnext<CR>
