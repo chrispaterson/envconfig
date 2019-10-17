@@ -30,6 +30,5 @@ alias l='ls -Gl'
 #Add bin to path
 export PATH="$PATH:~/bin"
 
-export DPE_QA="dtsjc00gdp01q.dc.dotomi.net"
-
 source ~/.nvmstuff
+source ~/.ruststuff

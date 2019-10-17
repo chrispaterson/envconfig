@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# if nvm isn't install, it should be...
+if [ ! -f ~/.cargo ]; then
+
+  curl https://sh.rustup.rs -sSf | sh
+
+fi
+
+#Add bin to path
+export PATH="$PATH:~/.cargo/bin"
