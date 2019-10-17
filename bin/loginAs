@@ -1,4 +1,6 @@
 #!/bin/sh
 
+HOME=$HOME
 sudo -H -E -u $1 bash --login
-source /home/cpaterson/.bashrc
+export HOME=$HOME
+cd ~
