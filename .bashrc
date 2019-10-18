@@ -21,6 +21,9 @@ fi
 alias ll='ls -GlA'
 alias l='ls -Gl'
 
+# Always open files in vertical split mode
+alias vi='vim -O'
+
 #Add bin to path
 export PATH="$HOME/bin:$PATH"
 

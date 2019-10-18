@@ -1,6 +1,4 @@
 #!/bin/sh
 
-HOME=$HOME
 sudo -H -E -u $1 bash --login
-export HOME=$HOME
-cd ~
+cd $HOME
