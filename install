@@ -52,7 +52,4 @@ if [[ -d $PROJECT_DIR/.bak/bin ]]; then
   done
 fi
 
-
-source .profile
-
-echo "All done, enjoy!"
+echo "Installed, but you must source ~/.profile for the env to take effect"
