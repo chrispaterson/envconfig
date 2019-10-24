@@ -54,12 +54,13 @@ let g:syntastic_auto_jump = 3
 let g:syntastic_javascript_checkers = ['eslint']
 let g:syntastic_json_checkers = ['eslint']
 let g:syntastic_typescript_checkers = ['tsuquyomi']
-let g:syntastic_vue_checkers = ['eslint']
+let g:syntastic_vue_checkers = ['tsuquyomi']
 
 " use the local version of eslint via the project
  let g:syntastic_javascript_eslint_exec = 'npm run lint --'
  let g:syntastic_json_eslint_exec = 'npm run lint --'
  let g:syntastic_vue_eslint_exec = 'npm run lint --'
+ let g:syntastic_typescript_eslint_exec = 'npm run lint --'
 
 
 """""""""""""""""""""""""""""""

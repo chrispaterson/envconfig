@@ -52,5 +52,5 @@ if [[ ! -f $LOG ]]; then
 
 fi
 
-echo " -  " >> $LOG
+echo "  -  " >> $LOG
 vim "+normal G$" +startinsert $LOG
