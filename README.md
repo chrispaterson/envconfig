@@ -1,2 +1,2 @@
 # To Install
-`git clone https://github.com/chrispaterson/envconfig.git && ./envconfig/install`
+`git clone https://github.com/chrispaterson/envconfig.git && ./envconfig/install && . ~/.profile`
