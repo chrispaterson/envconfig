@@ -32,10 +32,13 @@ au bufread,bufnewfile *.html set filetype=html
 """""""""""""""""""""""""""""""
 let g:tsuquyomi_disable_quickfix = 1
 let g:tsuquyomi_shortest_import_path = 1
+let g:tsuquyomi_completion_detail = 1
+autocmd FileType typescript setlocal completeopt+=menu,preview
 autocmd FileType typescript nmap <buffer> <Leader>e <Plug>(TsuquyomiRenameSymbol)
 autocmd FileType typescript nmap <buffer> <Leader>E <Plug>(TsuquyomiRenameSymbolC)
 autocmd FileType typescript nmap <buffer> <Leader>i <Plug>(TsuImport)
 autocmd FileType typescript nmap <buffer> <Leader>t : <C-u>echo tsuquyomi#hint()<CR>
+autocmd FileType vue setlocal completeopt+=menu,preview
 autocmd FileType vue nmap <buffer> <Leader>e <Plug>(TsuquyomiRenameSymbol)
 autocmd FileType vue nmap <buffer> <Leader>E <Plug>(TsuquyomiRenameSymbolC)
 autocmd FileType vue nmap <buffer> <Leader>i <Plug>(TsuImport)

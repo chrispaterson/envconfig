@@ -29,3 +29,10 @@ export PATH="$HOME/bin:$PATH"
 
 source $HOME/.nvmstuff
 source $HOME/.ruststuff
+
+# Ruby stuff
+export PATH="/usr/local/opt/ruby/bin:$HOME/.gem/ruby/2.6.0/bin:$PATH"
+export LDFLAGS="-L/usr/local/opt/ruby/lib"
+export CPPFLAGS="-I/usr/local/opt/ruby/include"
+export PKG_CONFIG_PATH="/usr/local/opt/ruby/lib/pkgconfig"
+eval "$(rbenv init -)"
