@@ -3,7 +3,7 @@
 [alias]
 	ac = !git add -A && git commit
 	alias = ! git config --get-regexp ^alias\\. | sed -e s/^alias\\.// -e s/\\ /\\ =\\ /
-	amend = git add -A && git commit --amend --no-edit
+	amend = !git add -A && git commit --amend --no-edit
 	d = difftool
 [diff]
 	tool = vimdiff
@@ -14,3 +14,5 @@
 	conflictstyle = diff3
 [mergetool]
 	prompt = false
+[user]
+	name = Chris Paterson

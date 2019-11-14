@@ -32,7 +32,13 @@ au bufread,bufnewfile *.html set filetype=html
 """""""""""""""""""""""""""""""
 let g:tsuquyomi_disable_quickfix = 1
 let g:tsuquyomi_shortest_import_path = 1
+let g:tsuquyomi_single_quote_import = 1
+let g:tsuquyomi_semicolon_import = 1
+let g:tsuquyomi_case_sensitive_imports = 1
 let g:tsuquyomi_completion_detail = 1
+let g:tsuquyomi_completion_case_sensitive = 1
+" open in vsplit
+let g:tsuquyomi_definition_split = 2
 autocmd FileType typescript setlocal completeopt+=menu,preview
 autocmd FileType typescript nmap <buffer> <Leader>e <Plug>(TsuquyomiRenameSymbol)
 autocmd FileType typescript nmap <buffer> <Leader>E <Plug>(TsuquyomiRenameSymbolC)
@@ -160,8 +166,10 @@ map <F2> :.w !pbcopy<CR><CR>
 map <F3> :r !pbpaste<CR>
 noremap <F5> :JsDoc<CR>
 autocmd FileType typescript nmap <buffer> <F6> <Plug>(TsuquyomiRenameSymbolC)
-autocmd FileType typescript nmap <buffer> <F7> <Plug>(TsuDefinition())
+autocmd FileType typescript nmap <buffer> <F7> <Plug>(TsuquyomiTypeDefinition)
+autocmd FileType typescript  nmap <buffer> <F10> <Plug>(TsuquyomiImport)
 autocmd FileType vue nmap <buffer> <F6> <Plug>(TsuquyomiRenameSymbolC)
-autocmd FileType vue nmap <buffer> <F7> <Plug>(TsuDefinition())
+autocmd FileType vue nmap <buffer> <F7> <Plug>(TsuquyomiTypeDefinition)
+autocmd FileType vue nmap <buffer> <F10> <Plug>(TsuquyomiImport)
 noremap <F8> :lprevious<CR>
 noremap <F9> :lnext<CR>
