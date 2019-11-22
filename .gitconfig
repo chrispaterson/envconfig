@@ -16,3 +16,5 @@
 	prompt = false
 [user]
 	name = Chris Paterson
+[credential]
+	helper = store
