@@ -66,10 +66,11 @@ let g:syntastic_typescript_checkers = ['tsuquyomi']
 let g:syntastic_vue_checkers = ['tsuquyomi']
 
 " use the local version of eslint via the project
- let g:syntastic_javascript_eslint_exec = 'npm run lint --'
- let g:syntastic_json_eslint_exec = 'npm run lint --'
- let g:syntastic_vue_eslint_exec = 'npm run lint --'
- let g:syntastic_typescript_eslint_exec = 'npm run lint --'
+let g:syntastic_javascript_eslint_exec = 'npm run lint --'
+let g:syntastic_json_eslint_exec = 'npm run lint --'
+let g:syntastic_vue_eslint_exec = 'npm run lint --'
+let g:syntastic_typescript_eslint_exec = 'npm run lint --'
+
 
 
 """""""""""""""""""""""""""""""
@@ -97,6 +98,7 @@ let g:jsdoc_param_description_separator = '-'
 """""""""""""""""""""""""""""""
 set background=dark
 colorscheme Tomorrow-Night-Bright
+
 
 """""""""""""""""""""""""""""""
 " Close Tag
@@ -173,3 +175,11 @@ autocmd FileType vue nmap <buffer> <F7> <Plug>(TsuquyomiTypeDefinition)
 autocmd FileType vue nmap <buffer> <F10> <Plug>(TsuquyomiImport)
 noremap <F8> :lprevious<CR>
 noremap <F9> :lnext<CR>
+
+" Use underline instead of reversing for errors and warnings
+hi clear SpellBad
+hi SpellBad cterm=bold,underline ctermfg=Red ctermbg=Black
+hi clear SpellCap
+hi SpellCap cterm=bold,underline ctermfg=Yellow ctermbg=Black
+" Keeps left column even if there are no errors
+set signcolumn=yes
