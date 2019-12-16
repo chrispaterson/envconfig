@@ -24,18 +24,6 @@ alias l='ls -Gl'
 # Always open files in vertical split mode
 alias vi='vim -O'
 
-npm() {
-  if [[ $1 == "install" ]]; then
-    if [[ -z $2 ]]; then
-      command yarn install
-    else
-      command yarn add $2
-    fi
-  else
-    command npm "$@"
-  fi
-}
-
 #Add bin to path
 export PATH="$HOME/bin:$PATH"
 
