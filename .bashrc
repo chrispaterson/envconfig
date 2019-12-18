@@ -14,9 +14,20 @@ PS1="\n\[\$bldwht\]\w \[$txtrst\]\$git_branch \$git_dirty \$git_ahead_behind\n\[
 
 #Aliases for shortcut things
 alias ..="cd ../"
+
 # only on linux -- OSX will throw an error if I pass the --color=auto
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
-  alias ls='ls --color=auto'
+
+  # Linux
+
+  source .linux
+
+else
+
+  # Mac OSX
+
+  source .macosx
+
 fi
 alias ll='ls -GlA'
 alias l='ls -Gl'
@@ -28,11 +39,3 @@ alias vi='vim -O'
 export PATH="$HOME/bin:$PATH"
 
 source $HOME/.nvmstuff
-source $HOME/.ruststuff
-
-# Ruby stuff
-export PATH="/usr/local/opt/ruby/bin:$HOME/.gem/ruby/2.6.0/bin:$PATH"
-export LDFLAGS="-L/usr/local/opt/ruby/lib"
-export CPPFLAGS="-I/usr/local/opt/ruby/include"
-export PKG_CONFIG_PATH="/usr/local/opt/ruby/lib/pkgconfig"
-eval "$(rbenv init -)"
