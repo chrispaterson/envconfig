@@ -10,7 +10,6 @@ usage ()
 
 mkfile()
 {
-  echo "creating: $1/$INDEX"
   cd $1
   if [[ -f $INDEX ]]; then
     rm $INDEX
