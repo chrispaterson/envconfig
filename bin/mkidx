@@ -1,0 +1,44 @@
+#!/bin/bash
+
+DIR=${1%/}
+INDEX=index.ts
+
+usage ()
+{
+  echo "Usage: $0 DIRECTORY"
+}
+
+mkfile()
+{
+  echo "creating: $1/$INDEX"
+  cd $1
+  if [[ -f $INDEX ]]; then
+    rm $INDEX
+  fi
+  for FILE in ./*; do
+
+    if [ -d $FILE ]; then
+
+      # recur into directory
+      mkfile $FILE
+
+    elif [[ ${FILE: -3} == ".ts" && ! ${FILE: -5} == ".d.ts" ]]; then
+
+      # Build index.ts
+      echo "export * from '${FILE%.ts}';" >> $INDEX
+
+    fi
+
+  done
+  if [[ $DIR != $1 ]]; then
+    cd - 1>/dev/null
+  fi
+}
+
+if [ ! -d $DIR ]; then
+  echo "$DIR is not a directory"
+  usage
+  exit 1
+fi
+
+mkfile $DIR

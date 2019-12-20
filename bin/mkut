@@ -1,0 +1,123 @@
+#!/bin/bash
+
+usage ()
+{
+  echo "Usage: $0 [DIRECTORY]"
+}
+
+if [[ ! -z $1 ]]; then
+  if [ ! -d $1 ]; then
+    cd $1
+  else
+    echo "$1 is not a directory"
+    usage
+    exit 1
+  fi
+fi
+
+BASE=$(pwd)
+SRC=src
+TEST=test
+
+create_stub_file()
+{
+  TEST_FILE=$1
+  SRC_FILE=$2
+  CLASS_NAME=$3
+  if [[ ! -f $TEST_FILE ]]; then
+
+      echo "import {$CLASS_NAME} from '$SRC_PATH$CLASS_NAME';" >> $TEST_FILE
+      echo "import {expect} from 'chai';" >> $TEST_FILE
+      echo '' >> $TEST_FILE
+      echo "describe('$CLASS_NAME', (): void => {" >> $TEST_FILE
+      echo '' >> $TEST_FILE
+      echo "  it('basically works', (done: () => void): void => {" >> $TEST_FILE
+      echo '' >> $TEST_FILE
+      echo "    expect(true).to.be.true;" >> $TEST_FILE
+      echo "    done();" >> $TEST_FILE
+      echo '' >> $TEST_FILE
+      echo '  });' >> $TEST_FILE
+      echo '' >> $TEST_FILE
+      echo '});' >> $TEST_FILE
+
+  else
+    echo "Test already exists for $CLASS_NAME"
+  fi
+}
+walk()
+{
+
+  cd $1
+  SUBDIR=${PWD#"$BASE"}
+  NUM_SUB_DIRS=$(echo $SUBDIR | grep -o "\/" | wc -l)
+  UPS=$(printf '../%.0s' `jot $NUM_SUB_DIRS`)
+  TEST_DIR=$UPS
+  TEST_DIR+=${SUBDIR/$SRC/test}
+  TEST_DIR=${TEST_DIR/\/\//\/}
+  SRC_PATH=$UPS
+  SRC_PATH+=$SUBDIR
+  SRC_PATH=${SRC_PATH/\/\//\/}
+  SRC_PATH+='/'
+
+  if [[ ! -d $TEST_DIR ]]; then
+
+    mkdir -p $TEST_DIR
+    #echo "No directory at $TEST_DIR"
+  fi
+
+  for FILE in ./*; do
+
+    if [ -d $FILE ]; then
+
+      # recur into directory
+      walk $FILE
+
+    elif [[ $FILE != './index.ts' && ${FILE: -3} == ".ts" && ! ${FILE: -5} == ".d.ts" ]]; then
+
+      # Build index.ts
+      FILE=${FILE#./}
+      CLASS_NAME=${FILE%.ts}
+      TEST_FILE=$TEST_DIR
+      TEST_FILE+='/'
+      TEST_FILE+=$CLASS_NAME
+      TEST_FILE+='.test.ts'
+      SRC_FILE=$SRC_PATH
+      SRC_FILE+=$FILE
+
+      create_stub_file $TEST_FILE $SRC_FILE $CLASS_NAME
+
+
+
+      #echo "import {$CLASS_NAME} from '$SRC_PATH';"
+      #echo "import {expect} from 'chai';"
+      #echo ''
+      #echo "describe('$CLASS_NAME', (): void => {"
+      #echo ''
+      #echo "  it('basically works', (done:() => void): void => {"
+      #echo ''
+      #echo "    expect(true).to.be.true;"
+      #echo "    done();"
+      #echo ''
+      #echo '  });'
+      #echo '});'
+      #echo "create file: $BASE/${DIR/$SRC/$TEST}/$FILE.test.ts"
+
+    fi
+
+  done
+  if [[ $SRC != $1 ]]; then
+    cd - 1>/dev/null
+  fi
+}
+
+if [[ ! -d $SRC ]]; then
+    echo "no src directory detected"
+    usage
+    exit 1
+fi
+
+if [ ! -d $TEST ]; then
+  mkdir $TEST
+fi
+
+walk $SRC

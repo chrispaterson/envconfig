@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 EXTERNAL_DRIVES=$(diskutil list external | grep \/dev\/disk | cut -d " " -f1)
 for disk in $EXTERNAL_DRIVES
