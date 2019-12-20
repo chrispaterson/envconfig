@@ -21,17 +21,25 @@ TEST=test
 
 create_stub_file()
 {
+
   TEST_FILE=$1
   SRC_FILE=$2
   CLASS_NAME=$3
+  SUBDIR=$4
+  echo $SUBDIR
+
   if [[ ! -f $TEST_FILE ]]; then
 
       echo "import {$CLASS_NAME} from '$SRC_PATH$CLASS_NAME';" >> $TEST_FILE
       echo "import {expect} from 'chai';" >> $TEST_FILE
       echo '' >> $TEST_FILE
-      echo "describe('$CLASS_NAME', (): void => {" >> $TEST_FILE
+      if [ -z $SUBDIR ]; then
+        echo "describe('$CLASS_NAME', (): void => {" >> $TEST_FILE
+      else
+        echo "describe('$SUBDIR/$CLASS_NAME', (): void => {" >> $TEST_FILE
+      fi
       echo '' >> $TEST_FILE
-      echo "  it('basically works', (done: () => void): void => {" >> $TEST_FILE
+      echo "  it('has a stub unit test', (done: () => void): void => {" >> $TEST_FILE
       echo '' >> $TEST_FILE
       echo "    expect(true).to.be.true;" >> $TEST_FILE
       echo "    done();" >> $TEST_FILE
@@ -40,9 +48,8 @@ create_stub_file()
       echo '' >> $TEST_FILE
       echo '});' >> $TEST_FILE
 
-  else
-    echo "Test already exists for $CLASS_NAME"
   fi
+
 }
 walk()
 {
@@ -54,6 +61,9 @@ walk()
   TEST_DIR=$UPS
   TEST_DIR+=${SUBDIR/$SRC/test}
   TEST_DIR=${TEST_DIR/\/\//\/}
+  TEST_SUBDIR=${SUBDIR/\//''}
+  TEST_SUBDIR=${TEST_SUBDIR/$SRC/''}
+  TEST_SUBDIR=${TEST_SUBDIR/\//''}
   SRC_PATH=$UPS
   SRC_PATH+=$SUBDIR
   SRC_PATH=${SRC_PATH/\/\//\/}
@@ -84,7 +94,7 @@ walk()
       SRC_FILE=$SRC_PATH
       SRC_FILE+=$FILE
 
-      create_stub_file $TEST_FILE $SRC_FILE $CLASS_NAME
+      create_stub_file $TEST_FILE $SRC_FILE $CLASS_NAME $TEST_SUBDIR
 
 
 
