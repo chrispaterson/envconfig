@@ -19,6 +19,7 @@ mkfile()
 
     if [ -d $FILE ]; then
 
+      echo "export * from '${FILE}';" >> $INDEX
       # recur into directory
       mkfile $FILE
 
