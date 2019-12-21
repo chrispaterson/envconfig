@@ -1,0 +1,11 @@
+{
+  "name": "node_bin",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Chris Paterson",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "create-ts-index": "^1.12.0"
+  }
+}

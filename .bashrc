@@ -36,6 +36,6 @@ alias l='ls -Gl'
 alias vi='vim -O'
 
 #Add bin to path
-export PATH="$HOME/bin:$PATH"
+export PATH="$HOME/bin:$HOME/node_bin/node_modules/.bin:$PATH"
 
 source $HOME/.nvmstuff

@@ -6,7 +6,7 @@ usage ()
 }
 
 if [[ ! -z $1 ]]; then
-  if [ ! -d $1 ]; then
+  if [ -d $1 ]; then
     cd $1
   else
     echo "$1 is not a directory"
@@ -95,22 +95,6 @@ walk()
       SRC_FILE+=$FILE
 
       create_stub_file $TEST_FILE $SRC_FILE $CLASS_NAME $TEST_SUBDIR
-
-
-
-      #echo "import {$CLASS_NAME} from '$SRC_PATH';"
-      #echo "import {expect} from 'chai';"
-      #echo ''
-      #echo "describe('$CLASS_NAME', (): void => {"
-      #echo ''
-      #echo "  it('basically works', (done:() => void): void => {"
-      #echo ''
-      #echo "    expect(true).to.be.true;"
-      #echo "    done();"
-      #echo ''
-      #echo '  });'
-      #echo '});'
-      #echo "create file: $BASE/${DIR/$SRC/$TEST}/$FILE.test.ts"
 
     fi
 
