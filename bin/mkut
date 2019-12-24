@@ -36,7 +36,7 @@ create_stub_file()
       if [ -z $SUBDIR ]; then
         echo "describe('$CLASS_NAME', (): void => {" >> $TEST_FILE
       else
-        echo "describe('$SUBDIR/$CLASS_NAME', (): void => {" >> $TEST_FILE
+        echo "describe('$SUBDIR->$CLASS_NAME', (): void => {" >> $TEST_FILE
       fi
       echo '' >> $TEST_FILE
       echo "  it('has a stub unit test', (done: () => void): void => {" >> $TEST_FILE
