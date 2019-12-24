@@ -39,7 +39,7 @@ create_stub_file()
         echo "describe('$SUBDIR->$CLASS_NAME', (): void => {" >> $TEST_FILE
       fi
       echo '' >> $TEST_FILE
-      echo "  it('has a stub unit test', (done: () => void): void => {" >> $TEST_FILE
+      echo "  it('\x1b[36mNeeds Unit Tests\x1b[0m', (done: () => void): void => {" >> $TEST_FILE
       echo '' >> $TEST_FILE
       echo "    expect(true).to.be.true;" >> $TEST_FILE
       echo "    done();" >> $TEST_FILE
