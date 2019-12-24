@@ -76,11 +76,13 @@ let g:syntastic_vue_checkers = ['tsuquyomi']
 """""""""""""""""""""""""""""""
 " Ale (auto fixer)
 """""""""""""""""""""""""""""""
+let g:ale_fixers = { }
 let g:ale_fixers = {
 \   '*': ['remove_trailing_lines', 'trim_whitespace'],
 \   'javascript': ['eslint'],
 \   'typescript': ['eslint'],
 \   'vue': ['eslint'],
+\   'java': ['google_java_format'],
 \   'html': ['prettier'],
 \   'json': ['eslint']
 \}
