@@ -11,17 +11,20 @@ if [[ ! -d .bak ]]; then
   mkdir .bak
 fi
 
+# initialize submodules
 git submodule init
 git submodule update
 
+#Initialize fonts
 cd node_bin && yarn
+cd ../fonts/ && ./install.sh
 
 cd $HOME_DIR
 
 for FILE in $(ls -A $PROJECT_DIR)
 do
 
-  if ! [[ $FILE == ".git" || $FILE == ".gitignore" || $FILE == ".gitmodules" || $FILE =~ ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" || $FILE =~ ".DS_Store" ]]; then
+  if ! [[ $FILE == ".git" || $FILE == ".gitignore" || $FILE == ".gitmodules" || $FILE =~ ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" || $FILE =~ ".DS_Store" || $FILE =~ "fonts" ]]; then
 
     # if the file exists and is not a symbolic link, if it is a symbolic link
     # then we've been here before
@@ -53,5 +56,6 @@ if [[ -d $PROJECT_DIR/.bak/bin ]]; then
     fi
   done
 fi
+
 
 echo "Installed, but you must source ~/.profile for the env to take effect"
