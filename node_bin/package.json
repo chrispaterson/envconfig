@@ -6,6 +6,7 @@
   "license": "MIT",
   "private": true,
   "dependencies": {
-    "create-ts-index": "^1.12.0"
+    "create-ts-index": "^1.12.0",
+    "markserv": "^1.17.4"
   }
 }
