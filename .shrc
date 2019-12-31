@@ -1,0 +1,36 @@
+#!/bin/sh
+
+alias ..="cd ../"
+
+alias ll='ls -GlA'
+alias l='ls -Gl'
+
+# Always open files in vertical split mode
+alias vi='vim -O'
+
+# only on linux -- OSX will throw an error if I pass the --color=auto
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+
+  # Linux
+  alias ls='ls --color=auto'
+
+fi
+
+#Add bin to path
+export PATH="$HOME/bin:$HOME/node_bin/node_modules/.bin:$PATH"
+
+# if nvm isn't installed, it should be...
+if [ ! -f ~/.nvm/nvm.sh ]; then
+
+  git clone https://github.com/nvm-sh/nvm.git ~/.nvm
+  source ~/.nvm/nvm.sh
+  nvm install 10.15.3
+  nvm alias default 10.15.3
+else
+  source ~/.nvm/nvm.sh
+fi
+
+ENV_FILE=$HOME/.env
+if [ -f "$ENV_FILE" ]; then
+  source "$ENV_FILE"
+fi
