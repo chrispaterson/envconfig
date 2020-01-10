@@ -31,24 +31,16 @@ au bufread,bufnewfile *.html set filetype=html
 " TypeScript tsuquomi
 """""""""""""""""""""""""""""""
 let g:tsuquyomi_disable_quickfix = 1
-let g:tsuquyomi_shortest_import_path = 1
-let g:tsuquyomi_single_quote_import = 1
-let g:tsuquyomi_semicolon_import = 1
-let g:tsuquyomi_case_sensitive_imports = 1
-let g:tsuquyomi_completion_detail = 1
-let g:tsuquyomi_completion_case_sensitive = 1
-" open in vsplit
 let g:tsuquyomi_definition_split = 2
+let g:tsuquyomi_javascript_support = 1
+let g:tsuquyomi_case_sensitive_imports = 1
+let g:tsuquyomi_single_quote_import = 1
+let g:tsuquyomi_save_onrename = 1
+let g:tsuquyomi_completion_preview = 1
+let g:tsuquyomi_completion_case_sensitive = 1
+let g:tsuquyomi_completion_detail = 1
+
 autocmd FileType typescript setlocal completeopt+=menu,preview
-autocmd FileType typescript nmap <buffer> <Leader>e <Plug>(TsuquyomiRenameSymbol)
-autocmd FileType typescript nmap <buffer> <Leader>E <Plug>(TsuquyomiRenameSymbolC)
-autocmd FileType typescript nmap <buffer> <Leader>i <Plug>(TsuImport)
-autocmd FileType typescript nmap <buffer> <Leader>t : <C-u>echo tsuquyomi#hint()<CR>
-autocmd FileType vue setlocal completeopt+=menu,preview
-autocmd FileType vue nmap <buffer> <Leader>e <Plug>(TsuquyomiRenameSymbol)
-autocmd FileType vue nmap <buffer> <Leader>E <Plug>(TsuquyomiRenameSymbolC)
-autocmd FileType vue nmap <buffer> <Leader>i <Plug>(TsuImport)
-autocmd FileType vue nmap <buffer> <Leader>t : <C-u>echo tsuquyomi#hint()<CR>
 
 """""""""""""""""""""""""""""""
 " Syntax Checker with Syntastic
@@ -65,14 +57,6 @@ let g:syntastic_json_checkers = ['eslint']
 let g:syntastic_typescript_checkers = ['tsuquyomi']
 let g:syntastic_vue_checkers = ['tsuquyomi']
 
-" use the local version of eslint via the project
-"let g:syntastic_javascript_eslint_exec = 'npm run lint --'
-"let g:syntastic_json_eslint_exec = 'npm run lint --'
-"let g:syntastic_vue_eslint_exec = 'npm run lint --'
-"let g:syntastic_typescript_eslint_exec = 'npm run lint --'
-
-
-
 """""""""""""""""""""""""""""""
 " Ale (auto fixer)
 """""""""""""""""""""""""""""""
@@ -87,6 +71,8 @@ let g:ale_fixers = {
 \   'json': ['eslint']
 \}
 let g:ale_fix_on_save = 1
+let g:ale_sign_error = '💥'
+let g:ale_sign_warning = '⚠️'
 
 """""""""""""""""""""""""""""""
 " JsDoc
@@ -166,22 +152,28 @@ map <C-S-J> <C-w>j
 map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
 
-map <F2> :.w !pbcopy<CR><CR>
-map <F3> :r !pbpaste<CR>
-noremap <F5> :JsDoc<CR>
-autocmd FileType typescript nmap <buffer> <F6> <Plug>(TsuquyomiRenameSymbolC)
-autocmd FileType typescript nmap <buffer> <F7> <Plug>(TsuquyomiTypeDefinition)
-autocmd FileType typescript  nmap <buffer> <F10> <Plug>(TsuquyomiImport)
-autocmd FileType vue nmap <buffer> <F6> <Plug>(TsuquyomiRenameSymbolC)
-autocmd FileType vue nmap <buffer> <F7> <Plug>(TsuquyomiTypeDefinition)
-autocmd FileType vue nmap <buffer> <F10> <Plug>(TsuquyomiImport)
+autocmd FileType javascript noremap <leader>d :JsDoc<CR>
+
+autocmd FileType typescript noremap <leader>d :JsDoc<CR>
+autocmd FileType typescript nmap <buffer> <leader>tsr <Plug>(TsuquyomiRenameSymbolC)
+autocmd FileType typescript nmap <buffer> <leader>tsd <Plug>(TsuquyomiTypeDefinition)
+autocmd FileType typescript nmap <buffer> <leader>tsi <Plug>(TsuquyomiImport)
+autocmd FileType typescript nmap <buffer> <leader>tsl <Plug>(TsuquyomiImplementation)
+autocmd FileType typescript nmap <buffer> <leader>tsa <Plug>(TsuquyomiReferences)
+autocmd FileType typescript nmap <buffer> <Leader>t : <C-u>echo tsuquyomi#hint()<CR>
+
+
+inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
 noremap <F8> :lprevious<CR>
 noremap <F9> :lnext<CR>
+nmap <silent> <C-k> <Plug>(ale_previous_wrap)
+nmap <silent> <C-j> <Plug>(ale_next_wrap)
 
 " Use underline instead of reversing for errors and warnings
 hi clear SpellBad
 hi SpellBad cterm=bold,underline ctermfg=Red ctermbg=Black
 hi clear SpellCap
 hi SpellCap cterm=bold,underline ctermfg=Yellow ctermbg=Black
+hi Error ctermbg=black
 " Keeps left column even if there are no errors
 set signcolumn=yes

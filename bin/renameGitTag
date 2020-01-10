@@ -1,0 +1,25 @@
+#!/bin/sh
+
+if [[ -z $1 || -z $2 ]]; then
+  echo "Please pass old name and new name"
+  exit 1
+fi
+
+NEW_NAME=$2
+OLD_NAME=$1
+
+COMMIT=$(git rev-parse $OLD_NAME);
+MSG=$(git tag -l --format='%(contents)' $OLD_NAME)
+
+if [[ -z $1 || -z $2 ]]; then
+  echo "Unable to find that tag"
+  exit 1
+fi
+
+echo "new name: $NEW_NAME"
+echo "old name: $OLD_NAME"
+echo "commit: $COMMIT"
+echo "message: $MSG"
+
+git tag -d $OLD_NAME
+git tag -a $NEW_NAME -m "$MSG" $COMMIT
