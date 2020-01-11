@@ -60,19 +60,28 @@ let g:syntastic_vue_checkers = ['tsuquyomi']
 """""""""""""""""""""""""""""""
 " Ale (auto fixer)
 """""""""""""""""""""""""""""""
-let g:ale_fixers = { }
+let g:ale_linters = {
+\   'typescript': ['eslint'],
+\   'javascript': ['eslint'],
+\   'vue': ['eslint'],
+\   'json': ['eslint']
+\}
+let g:ale_linters_explicit = 1
 let g:ale_fixers = {
 \   '*': ['remove_trailing_lines', 'trim_whitespace'],
-\   'javascript': ['eslint'],
 \   'typescript': ['eslint'],
+\   'javascript': ['eslint'],
 \   'vue': ['eslint'],
+\   'json': ['eslint'],
 \   'java': ['google_java_format'],
-\   'html': ['prettier'],
-\   'json': ['eslint']
+\   'html': ['prettier']
 \}
 let g:ale_fix_on_save = 1
 let g:ale_sign_error = '💥'
 let g:ale_sign_warning = '⚠️'
+
+highlight clear ALEErrorSign
+highlight clear ALEWarningSign
 
 """""""""""""""""""""""""""""""
 " JsDoc
@@ -174,6 +183,4 @@ hi clear SpellBad
 hi SpellBad cterm=bold,underline ctermfg=Red ctermbg=Black
 hi clear SpellCap
 hi SpellCap cterm=bold,underline ctermfg=Yellow ctermbg=Black
-hi Error ctermbg=black
-" Keeps left column even if there are no errors
 set signcolumn=yes
