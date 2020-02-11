@@ -16,7 +16,15 @@ git submodule init
 git submodule update
 
 #Initialize fonts
-cd ../fonts/ && ./install.sh
+cd fonts && ./install.sh
+
+$YARN_EXISTS=$(command -v yarn)
+
+if [[ -z $YARN_EXISTS ]]; then
+
+  npm install -g yarn
+
+fi
 
 cd $HOME_DIR
 
