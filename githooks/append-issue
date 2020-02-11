@@ -1,0 +1,23 @@
+#!/bin/sh
+
+PATH="$PATH:$(git rev-parse --show-toplevel)/node_modules/.bin"
+BRANCH_NAME=$(git branch 2>/dev/null | grep -e ^* | tr -d ' *')
+BRANCH_TYPE=$(echo $BRANCH_NAME | cut -d'/' -f1)
+
+if [[ $BRANCH_TYPE == "feature" || $BRANCH_TYPE == "bugfix" ]]; then
+
+  # issue will be after branch type separated by /
+  ISSUE=$(echo $BRANCH_NAME | cut -d'/' -f2)
+
+  # Project is designated by the issue project key before the -
+  PROJECT=$(echo $ISSUE | cut -d'-' -f1)
+
+fi
+
+# if we have an issue and the key isn't already in the message
+if [[ ! -z $ISSUE && $1 != *"$ISSUE"*  ]]; then
+
+  # Add Jira issue key to the commit
+  echo "$ISSUE $(cat $1)" > $1
+
+fi

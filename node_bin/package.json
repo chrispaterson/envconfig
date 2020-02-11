@@ -8,6 +8,8 @@
   "dependencies": {
     "@iabtcf/cli": "^1.0.0-beta.2",
     "create-ts-index": "^1.12.0",
-    "markserv": "^1.17.4"
+    "markdown-to-html": "^0.0.13",
+    "markserv": "^1.17.4",
+    "ndb": "^1.1.5"
   }
 }

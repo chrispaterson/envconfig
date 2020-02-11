@@ -1,8 +1,10 @@
 let g:netrw_dirhistmax  =10
-let g:netrw_dirhist_cnt =6
+let g:netrw_dirhist_cnt =8
 let g:netrw_dirhist_1='/Users/cpaterson/projects/dpe/iab/iabtcf/modules/core/test/support'
 let g:netrw_dirhist_2='/Users/cpaterson/projects/dpe/gdpr-cmp/packages'
 let g:netrw_dirhist_3='/Users/cpaterson/projects/dpe/gdpr-cmp/modules/bootstrap/src/consent-renewal'
 let g:netrw_dirhist_4='/Users/cpaterson/projects/dpe/gdpr-cmp/modules/bootstrap/src/debug'
 let g:netrw_dirhist_5='/Users/cpaterson/projects/iab/lib/es/modules/cmpapi/src/command/commands'
 let g:netrw_dirhist_6='/Users/cpaterson/projects/iab/lib/es/modules/cmpapi/src/command/queues'
+let g:netrw_dirhist_7='/Users/cpaterson/projects/iab/lib/site'
+let g:netrw_dirhist_8='/Users/cpaterson/projects/dpe/cmp-pubui-config/src/pubui'

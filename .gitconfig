@@ -19,3 +19,5 @@
 	email = 1268493+chrispaterson@users.noreply.github.com
 [credential]
 	helper = store
+[core]
+	ignorecase = false

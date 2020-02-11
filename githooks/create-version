@@ -1,0 +1,36 @@
+#!/bin/sh
+
+PATH="$PATH:$(git rev-parse --show-toplevel)/node_modules/.bin"
+BRANCH_NAME=$(git branch 2>/dev/null | grep -e ^* | tr -d ' *')
+BRANCH_TYPE=$(echo $BRANCH_NAME | cut -d'/' -f1)
+
+if [[ $BRANCH_TYPE == "feature" || $BRANCH_TYPE == "bugfix" ]]; then
+
+  # issue will be after branch type separated by /
+  ISSUE=$(echo $BRANCH_NAME | cut -d'/' -f2)
+
+  # Project is designated by the issue project key before the -
+  PROJECT=$(echo $ISSUE | cut -d'-' -f1)
+
+fi
+
+VERSION=$1
+
+# Increment the version to the new one
+echo "incrementing package.json to version $VERSION"
+json -I -f package.json -e "this.version=\"$VERSION\""
+
+if [[ ! -z $(json -f package.json | json scripts | json docs) ]]; then
+  echo "Running docs: npm run docs"
+  npm run docs
+fi
+
+# add commit of changes
+echo "commiting"
+git commit -a -m "Bumping to version $VERSION"
+
+# update the upstream
+echo "setting upstream origin"
+git branch --set-upstream-to=origin/$BRANCH_NAME $BRANCH_NAME
+echo "pushing"
+git push -u
