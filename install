@@ -15,9 +15,6 @@ fi
 git submodule init
 git submodule update
 
-# Build node modules
-cd node_bin && npm install
-
 #Initialize fonts
 cd ../fonts/ && ./install.sh
 
@@ -26,7 +23,7 @@ cd $HOME_DIR
 for FILE in $(ls -A $PROJECT_DIR)
 do
 
-  if ! [[ $FILE == ".git" || $FILE == ".gitignore" || $FILE == ".gitmodules" || $FILE =~ ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" || $FILE =~ ".DS_Store" || $FILE =~ "fonts" ]]; then
+  if ! [[ $FILE == ".git" || $FILE == ".gitignore" || $FILE == ".gitmodules" || $FILE =~ ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" || $FILE =~ ".DS_Store" || $FILE =~ "fonts" || $FILE =~ ".txt" ]]; then
 
     # if the file exists and is not a symbolic link, if it is a symbolic link
     # then we've been here before
@@ -62,5 +59,12 @@ if [[ -d $PROJECT_DIR/.bak/bin ]]; then
   done
 fi
 
+for MODULE in $(cat $PROJECT_DIR/global_node_modules.txt); do
+
+  yarn global add $MODULE
+
+done
+
+git config --global core.hooksPath ~/githooks
 
 echo "Installed, but you must source ~/.profile for the env to take effect"

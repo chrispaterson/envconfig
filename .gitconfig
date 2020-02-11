@@ -21,3 +21,4 @@
 	helper = store
 [core]
 	ignorecase = false
+	hooksPath = /Users/cpaterson/githooks
