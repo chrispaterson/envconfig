@@ -36,11 +36,6 @@ let g:tsuquyomi_javascript_support = 1
 let g:tsuquyomi_case_sensitive_imports = 1
 let g:tsuquyomi_single_quote_import = 1
 let g:tsuquyomi_save_onrename = 1
-let g:tsuquyomi_completion_preview = 1
-let g:tsuquyomi_completion_case_sensitive = 1
-let g:tsuquyomi_completion_detail = 1
-
-autocmd FileType typescript setlocal completeopt+=menu,preview
 
 """""""""""""""""""""""""""""""
 " Syntax Checker with Syntastic
@@ -73,7 +68,6 @@ let g:ale_fixers = {
 \   'javascript': ['eslint'],
 \   'vue': ['eslint'],
 \   'json': ['eslint'],
-\   'java': ['google_java_format'],
 \   'html': ['prettier']
 \}
 let g:ale_fix_on_save = 1
@@ -132,6 +126,9 @@ let g:NERDCustomDelimiters = {
 \   'typescript': { 'left': '/** ','right': '*/' },
 \   'vue': { 'left': '/** ','right': '*/' }
 \}
+let g:NERDCommentEmptyLines = 1
+let g:NERDSpaceDelims = 1
+let g:NERDCompactSexyComs = 1
 
 """"
 "general options
@@ -162,8 +159,9 @@ map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
 
 autocmd FileType javascript noremap <leader>d :JsDoc<CR>
-
 autocmd FileType typescript noremap <leader>d :JsDoc<CR>
+autocmd FileType javascript noremap <leader>ci :NERDCommenterInsert<CR>
+autocmd FileType typescript noremap <leader>ci :NERDCommenterInsert<CR>
 autocmd FileType typescript nmap <buffer> <leader>tsr <Plug>(TsuquyomiRenameSymbolC)
 autocmd FileType typescript nmap <buffer> <leader>tsd <Plug>(TsuquyomiTypeDefinition)
 autocmd FileType typescript nmap <buffer> <leader>tsi <Plug>(TsuquyomiImport)
