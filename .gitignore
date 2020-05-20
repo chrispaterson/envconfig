@@ -1,5 +1,6 @@
 *.swp
 *.swo
 .bak
+.netrwhist
 node_modules
 .DS_Store
