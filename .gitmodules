@@ -40,19 +40,12 @@
 [submodule ".vim/pack/lib/start/vim-jsdoc"]
 	path = .vim/pack/lib/start/vim-jsdoc
 	url = https://github.com/heavenshell/vim-jsdoc.git
-[submodule ".vim/pack/lib/start/tsuquoyomi"]
-	path = .vim/pack/lib/start/tsuquoyomi
-	url = https://github.com/Quramy/tsuquyomi.git
-	branch = master
 [submodule ".vim/pack/lib/start/vim-vue-syntastic"]
 	path = .vim/pack/lib/start/vim-vue-syntastic
 	url = https://github.com/sekel/vim-vue-syntastic.git
 [submodule ".vim/pack/lib/start/supertab"]
 	path = .vim/pack/lib/start/supertab
 	url = https://github.com/ervandew/supertab.git
-[submodule ".vim/pack/lib/start/tsuquyomi-vue"]
-	path = .vim/pack/lib/start/tsuquyomi-vue
-	url = https://github.com/Quramy/tsuquyomi-vue.git
 [submodule ".vim/pack/lib/start/rust-lang"]
 	path = .vim/pack/lib/start/rust-lang
 	url = https://github.com/rust-lang/rust.vim

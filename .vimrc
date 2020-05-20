@@ -28,16 +28,6 @@ au bufread,bufnewfile *.sass set filetype=sass
 au bufread,bufnewfile *.html set filetype=html
 
 """""""""""""""""""""""""""""""
-" TypeScript tsuquomi
-"""""""""""""""""""""""""""""""
-let g:tsuquyomi_disable_quickfix = 1
-let g:tsuquyomi_definition_split = 2
-let g:tsuquyomi_javascript_support = 1
-let g:tsuquyomi_case_sensitive_imports = 1
-let g:tsuquyomi_single_quote_import = 1
-let g:tsuquyomi_save_onrename = 1
-
-"""""""""""""""""""""""""""""""
 " Syntax Checker with Syntastic
 """""""""""""""""""""""""""""""
 set autoread
@@ -49,8 +39,8 @@ let g:syntastic_auto_jump = 3
 
 let g:syntastic_javascript_checkers = ['eslint']
 let g:syntastic_json_checkers = ['eslint']
-let g:syntastic_typescript_checkers = ['tsuquyomi']
-let g:syntastic_vue_checkers = ['tsuquyomi']
+let g:syntastic_typescript_checkers = ['eslint']
+let g:syntastic_vue_checkers = ['eslint']
 
 """""""""""""""""""""""""""""""
 " Ale (auto fixer)
@@ -157,13 +147,6 @@ autocmd FileType javascript noremap <leader>d :JsDoc<CR>
 autocmd FileType typescript noremap <leader>d :JsDoc<CR>
 autocmd FileType javascript noremap <leader>ci :NERDCommenterInsert<CR>
 autocmd FileType typescript noremap <leader>ci :NERDCommenterInsert<CR>
-autocmd FileType typescript nmap <buffer> <leader>tsr <Plug>(TsuquyomiRenameSymbolC)
-autocmd FileType typescript nmap <buffer> <leader>tsd <Plug>(TsuquyomiTypeDefinition)
-autocmd FileType typescript nmap <buffer> <leader>tsi <Plug>(TsuquyomiImport)
-autocmd FileType typescript nmap <buffer> <leader>tsl <Plug>(TsuquyomiImplementation)
-autocmd FileType typescript nmap <buffer> <leader>tsa <Plug>(TsuquyomiReferences)
-autocmd FileType typescript nmap <buffer> <Leader>t : <C-u>echo tsuquyomi#hint()<CR>
-
 
 inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
 noremap <F8> :lprevious<CR>
