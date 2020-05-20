@@ -46,7 +46,7 @@ let g:syntastic_vue_checkers = ['eslint']
 " Ale (auto fixer)
 """""""""""""""""""""""""""""""
 let g:ale_linters = {
-\   'typescript': ['eslint'],
+\   'typescript': ['tsserver','eslint'],
 \   'javascript': ['eslint'],
 \   'vue': ['eslint'],
 \   'json': ['eslint']
