@@ -49,6 +49,3 @@
 [submodule ".vim/pack/lib/start/rust-lang"]
 	path = .vim/pack/lib/start/rust-lang
 	url = https://github.com/rust-lang/rust.vim
-[submodule "fonts"]
-	path = fonts
-	url = https://github.com/powerline/fonts.git

@@ -2,7 +2,7 @@
 	default = simple
 [alias]
 	ac = !git add -A && git commit
-	alias = ! git config --get-regexp ^alias\\. | sed -e s/^alias\\.// -e s/\\ /\\ =\\ /
+	root = !cd $(git rev-parse --show-toplevel)
 	amend = !git add -A && git commit --amend --no-edit
 	d = difftool
 [diff]
