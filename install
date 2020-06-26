@@ -73,6 +73,4 @@ for MODULE in $(cat $PROJECT_DIR/global_node_modules.txt); do
 
 done
 
-git config --global core.hooksPath ~/githooks
-
 echo "Installed, but you must source ~/.profile for the env to take effect"

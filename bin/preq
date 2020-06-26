@@ -1,0 +1,120 @@
+#!/bin/bash
+
+# Make sure changes are committed first
+if [ ! -z "$(git status --porcelain)" ]; then
+
+  echo "[ERROR] Please commit your changes first"
+  exit 1
+fi
+
+# gotta have that access token or nothing will happen...
+if [[ -z $BB_PA_TOKEN ]]; then
+
+  echo "[ERROR] Please export your Bitbucket Personal Acess Token in your environment as BB_PA_TOKEN"
+  exit 1
+fi
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# Make sure the branch follows the feature stucture for bitbucket
+if ! [[ $BRANCH =~ ^[A-Z]*-[0-9]*$ ]]; then
+  echo "[ERROR] Can't pull request from this branch"
+  exit 1
+fi
+
+ORIGIN_URL=$(git --git-dir=/$(git rev-parse --show-toplevel)/.git remote get-url origin)
+HOST=$(sed -E -e 's_.*://([^/@]*@)?([^/:]+).*_\2_' <<< $ORIGIN_URL)
+
+# maybe not going into develop? it happens sometimes
+if [[ ! -z $1 ]]; then
+
+  TO_BRANCH="$1"
+
+else
+
+  TO_BRANCH="develop"
+
+fi
+
+# Get Project from branch name will be the first part of ABC-123
+IFS='-' read -ra PROJECT <<< "$BRANCH"
+
+BASE_URL="https://$HOST/rest/api/1.0/projects/$PROJECT"
+
+# create remote branch on origin
+git push --set-upstream origin $BRANCH
+
+SLUG=$(basename -s .git $ORIGIN_URL)
+
+# depends on json global utility – should be added on install, but just in case
+if hash json 2>/dev/null; then
+
+  # Build the JSON
+  JSON=$(cat ~/bin/base-pr-body.json)
+
+  JSON=$(echo $JSON | json -e "this.title=\"$BRANCH\"")
+
+  JSON=$(echo $JSON | json -e "this.fromRef.id=\"refs/heads/$BRANCH\"")
+  JSON=$(echo $JSON | json -e "this.fromRef.repository.slug=\"$SLUG\"")
+  JSON=$(echo $JSON | json -e "this.fromRef.repository.name=\"$SLUG\"")
+  JSON=$(echo $JSON | json -e "this.fromRef.repository.project.key=\"$PROJECT\"")
+
+  JSON=$(echo $JSON | json -e "this.toRef.id=\"$TO_BRANCH\"")
+  JSON=$(echo $JSON | json -e "this.toRef.repository.slug=\"$SLUG\"")
+  JSON=$(echo $JSON | json -e "this.toRef.repository.name=\"$SLUG\"")
+  JSON=$(echo $JSON | json -e "this.toRef.repository.project.key=\"$PROJECT\"")
+
+
+  # add all participants to code review who are active and not me
+  NAMES=$(curl \
+    -H "Authorization: Bearer $BB_PA_TOKEN" \
+    $BASE_URL/repos/gdpr-cmp/participants \
+    | json values \
+    | json -c 'this.active' \
+    | json -c "this.name !== \"$(whoami)\"" \
+    | json -a name\
+  )
+
+  for name in $NAMES
+  do
+
+    JSON=$(echo $JSON | json -e "this.reviewers.push({user:{name:\"$name\"}})")
+
+  done
+
+  # POST the create pull-request... request.
+  RESPONSE=$(curl -s \
+    -H "Authorization: Bearer $BB_PA_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$JSON" \
+    -X POST \
+    $BASE_URL/repos/$SLUG/pull-requests)
+
+  LINK=$(echo $RESPONSE | json links | json self | json -a href)
+
+  # if a link is not returned, then something went wrong
+  if [[ -z $LINK ]]; then
+
+    ERROR=$(echo $RESPONSE | json -a errors | json -a message)
+
+    echo "[ERROR] Unable to create pull request $BRANCH -> develop"
+    echo "        $ERROR"
+    exit 1
+
+  else
+
+    echo "Pull request created $BRANCH -> develop"
+    echo $LINK
+    exit
+  fi
+
+else
+    echo "[ERROR] Unable to complete request without json utility installed."
+    echo "        Please run either"
+    echo "            yarn global add json"
+    echo "        OR"
+    echo "            npm -g install json"
+    echo "        OR"
+    echo "            re-install envconfig utility"
+    exit 1
+fi

@@ -1,0 +1,34 @@
+{
+    "title": "",
+    "description": "",
+    "state": "OPEN",
+    "open": true,
+    "closed": false,
+    "fromRef": {
+        "id": "refs/heads/feature",
+        "repository": {
+            "slug": "my-repo",
+            "name": null,
+            "project": {
+                "key": "GDPR"
+            }
+        }
+    },
+    "toRef": {
+        "id": "refs/heads/develop",
+        "repository": {
+            "slug": "my-repo",
+            "name": null,
+            "project": {
+                "key": "GDPR"
+            }
+        }
+    },
+    "locked": false,
+    "reviewers": [],
+    "links": {
+        "self": [
+            null
+        ]
+    }
+}
