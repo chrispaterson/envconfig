@@ -1,19 +1,9 @@
 syntax on
 filetype plugin indent on
 
-let g:jsx_ext_required = 0
-
-" nerdtree stuff
-" Move window focus to the right instead of on Nerdtree when openeing
-autocmd VimEnter * wincmd p
-" Toggle Nerd Tree on ctrl+n
-map <C-n> :NERDTreeToggle<CR>
-" show hidden files and folders in NerdTree
-let NERDTreeShowHidden=1
-" close VIM when only nertree is open
-autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
-
-" FILETYPES
+"""""""""""""""""""""""""""""""
+" File Types
+"""""""""""""""""""""""""""""""
 au bufread,bufnewfile *.jade set filetype=jade
 au bufread,bufnewfile *.js set filetype=javascript
 au bufread,bufnewfile *.ts set filetype=typescript
@@ -26,6 +16,13 @@ au bufread,bufnewfile *.css set filetype=css
 au bufread,bufnewfile *.scss set filetype=sass
 au bufread,bufnewfile *.sass set filetype=sass
 au bufread,bufnewfile *.html set filetype=html
+
+
+"""""""""""""""""""""""""""""""
+" Set split locations
+"""""""""""""""""""""""""""""""
+set splitbelow
+set splitright
 
 """""""""""""""""""""""""""""""
 " Syntax Checker with Syntastic
@@ -48,6 +45,7 @@ let g:syntastic_vue_checkers = ['eslint']
 let g:ale_completion_tsserver_autoimport = 1
 let g:ale_completion_enabled = 1
 let g:ale_fix_on_save = 1
+let g:ale_set_balloons = 1
 let g:ale_linters = {
 \   'typescript': ['tsserver','eslint'],
 \   'javascript': ['eslint'],
@@ -63,6 +61,19 @@ let g:ale_fixers = {
 \   'json': ['eslint'],
 \   'html': ['prettier']
 \}
+set omnifunc=ale#completion#OmniFunc
+
+"""""""""""""""""""""""""""""""
+" NERDTree
+"""""""""""""""""""""""""""""""
+" Move window focus to the right instead of on Nerdtree when openeing
+autocmd VimEnter * wincmd p
+" Toggle Nerd Tree on ctrl+n
+map <C-n> :NERDTreeToggle<CR>
+" show hidden files and folders in NerdTree
+let NERDTreeShowHidden=1
+" close VIM when only nertree is open
+autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
 
 """""""""""""""""""""""""""""""
 " JsDoc
@@ -151,11 +162,11 @@ autocmd FileType typescript noremap <leader>d :JsDoc<CR>
 autocmd FileType javascript noremap <leader>ci :NERDCommenterInsert<CR>
 autocmd FileType typescript noremap <leader>ci :NERDCommenterInsert<CR>
 
-inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
-noremap <F8> :lprevious<CR>
-noremap <F9> :lnext<CR>
 nmap <silent> <C-k> <Plug>(ale_previous_wrap)
 nmap <silent> <C-j> <Plug>(ale_next_wrap)
+
+inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
+silent! call repeat#set("\<Plug>MyWonderfulMap", v:count)
 
 " Use underline instead of reversing for errors and warnings
 hi clear SpellBad

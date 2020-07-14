@@ -49,3 +49,9 @@
 [submodule ".vim/pack/lib/start/rust-lang"]
 	path = .vim/pack/lib/start/rust-lang
 	url = https://github.com/rust-lang/rust.vim
+[submodule ".vim/pack/lib/start/repeat"]
+	path = .vim/pack/lib/start/repeat
+	url = https://tpope.io/vim/repeat.git
+[submodule ".vim/pack/lib/start/vim-autoclose"]
+	path = .vim/pack/lib/start/vim-autoclose
+	url = https://github.com/Townk/vim-autoclose.git
