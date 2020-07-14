@@ -1,5 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 
+PRINT_LAST_LOGS=5
 usage ()
 {
   echo "Usage: $0 [-p] [-h]"
@@ -13,7 +14,7 @@ showhelp()
   echo " "
   echo "options:"
   echo "-h, --help                show brief help"
-  echo "-p, --print               Prints today's log to stdout"
+  echo "-p, --print               Prints the last $PRINT_LAST_LOGS days of logs to stdout"
 }
 
 # There is no "Documents" on a
@@ -24,13 +25,23 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
 
 fi
 
-DIR=~/Documents/personal_time_logs
+DIR=~/personal_time_logs
+
+if [ ! -d $DIR ]; then
+  mkdir $DIR
+fi
+
 LOG=$DIR/$(date +'%F').md
 
-while getopts ":ph" opt; do
+
+while getopts "ph" opt; do
   case $opt in
     p | --print)
-      cat $LOG
+      #
+      ls -d $DIR/*.md \
+        | sort -h -r \
+        | head -n $PRINT_LAST_LOGS \
+        | while read log; do cat $log; echo''; done
       exit;
       ;;
     h | -help)
@@ -46,7 +57,6 @@ done
 
 if [[ ! -f $LOG ]]; then
 
-  INDEX=$DIR/index.md
   echo $(date +'# %A, %B %d, %Y') > $LOG
   echo "" >> $LOG
 

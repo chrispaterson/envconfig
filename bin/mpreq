@@ -105,8 +105,6 @@ if hash json 2>/dev/null; then
 
     echo "Pull request created $BRANCH -> develop"
     echo $LINK
-    echo $RESPONSE
-    echo ''
     exit
   fi
 

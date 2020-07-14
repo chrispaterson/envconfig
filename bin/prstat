@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# gotta have that access token or nothing will happen...
+if [[ -z $BB_PA_TOKEN ]]; then
+
+  echo "[ERROR] Please export your Bitbucket Personal Acess Token in your environment as BB_PA_TOKEN"
+  exit 1
+fi
+
+ORIGIN_URL=$(git --git-dir=/$(git rev-parse --show-toplevel)/.git remote get-url origin)
+SLUG=$(basename -s .git $ORIGIN_URL)
+HOST=$(sed -E -e 's_.*://([^/@]*@)?([^/:]+).*_\2_' <<< $ORIGIN_URL)
+PROJECT=$(echo $ORIGIN_URL | cut -d'/' -f4)
+BASE_URL="https://$HOST/rest/api/1.0/projects/$PROJECT"
+echo "ORIGIN: $ORIGIN_URL"
+echo "SLUG: $SLUG"
+echo "HOST: $HOST"
+echo "PROJECT: $PROJECT"
+echo "BASE_URL: $BASE_URL"
+
+# depends on json global utility – should be added on install, but just in case
+if hash json 2>/dev/null; then
+
+  # POST the create pull-request... request.
+  RESPONSE=$(curl -s \
+    -H "Authorization: Bearer $BB_PA_TOKEN" \
+    -H "Content-Type: application/json" \
+    $BASE_URL/repos/$SLUG/pull-requests)
+
+  echo $RESPONSE | json
+
+
+else
+    echo "[ERROR] Unable to complete request without json utility installed."
+    echo "        Please run either"
+    echo "            yarn global add json"
+    echo "        OR"
+    echo "            npm -g install json"
+    echo "        OR"
+    echo "            re-install envconfig utility"
+    exit 1
+fi

@@ -45,10 +45,13 @@ let g:syntastic_vue_checkers = ['eslint']
 """""""""""""""""""""""""""""""
 " Ale (auto fixer)
 """""""""""""""""""""""""""""""
+let g:ale_completion_tsserver_autoimport = 1
+let g:ale_completion_enabled = 1
+let g:ale_fix_on_save = 1
 let g:ale_linters = {
 \   'typescript': ['tsserver','eslint'],
 \   'javascript': ['eslint'],
-\   'vue': ['eslint'],
+\   'vue': ['tsserver', 'eslint'],
 \   'json': ['eslint']
 \}
 let g:ale_linters_explicit = 1
@@ -60,7 +63,6 @@ let g:ale_fixers = {
 \   'json': ['eslint'],
 \   'html': ['prettier']
 \}
-let g:ale_fix_on_save = 1
 
 """""""""""""""""""""""""""""""
 " JsDoc
@@ -75,7 +77,6 @@ let g:jsdoc_param_description_separator = '-'
 set background=dark
 colorscheme Tomorrow-Night-Bright
 
-
 """""""""""""""""""""""""""""""
 " Close Tag
 """""""""""""""""""""""""""""""
@@ -87,7 +88,12 @@ let g:closetag_filenames = '*.html,*.jsx,*.vue'
 " filenames like *.xml, *.xhtml, ...
 " This will make the list of non closing tags self closing in the specified files.
 "
-let g:closetag_xhtml_filenames = '*.xhtml,*.jsx,*.vue'
+let g:closetag_xhtml_filenames = '*.xhtml'
+
+" filetypes like xml, html, xhtml, ...
+" These are the file types where this plugin is enabled.
+"
+let g:closetag_filetypes = 'html,vue,jsx,tsx,xhtml,phtml'
 
 " integer value [0|1]
 " This will make the list of non closing tags case sensitive (e.g. `<Link>` will be closed while `<link>` won't.)
@@ -96,11 +102,8 @@ let g:closetag_emptyTags_caseSensitive = 1
 
 " Shortcut for closing tags, default is '>'
 "
-let g:closetag_shortcut = '>'
+let g:closetag_shortcut = '<C->>'
 
-" Add > at current position without closing the current tag, default is ''
-"
-let g:closetag_close_shortcut = '<leader>>'
 
 """"
 " NERDCommenter
@@ -160,3 +163,10 @@ hi SpellBad cterm=bold,underline ctermfg=Red ctermbg=Black
 hi clear SpellCap
 hi SpellCap cterm=bold,underline ctermfg=Yellow ctermbg=Black
 set signcolumn=yes
+
+" Load all plugins now.
+" Plugins need to be added to runtimepath before helptags can be generated.
+packloadall
+" Load all of the helptags now, after plugins have been loaded.
+" All messages and errors will be ignored.
+silent! helptags ALL
