@@ -1,9 +1,11 @@
 [push]
 	default = simple
 [alias]
-	ac = !git add -A && git commit
-	root = !cd $(git rev-parse --show-toplevel)
-	amend = !git add -A && git commit --amend --no-edit
+	ac = ! git add -A && git commit
+	root = rev-parse --show-toplevel
+	cdroot = !cd $(git root)
+	amend = ac --amend --no-edit
+    smd = "!f() { MOD=.vim/pack/lib/start/$1; git submodule deinit -f -- $MOD; rm -rf $(git root)/$MOD $(git root)/.git/modules/$MOD; }; f"
 	d = difftool
 [diff]
 	tool = vimdiff

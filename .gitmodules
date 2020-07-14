@@ -55,3 +55,6 @@
 [submodule ".vim/pack/lib/start/vim-autoclose"]
 	path = .vim/pack/lib/start/vim-autoclose
 	url = https://github.com/Townk/vim-autoclose.git
+[submodule ".vim/pack/lib/start/delimitMate"]
+	path = .vim/pack/lib/start/delimitMate
+	url = https://github.com/Raimondi/delimitMate.git
