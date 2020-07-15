@@ -46,13 +46,13 @@ let g:ale_completion_tsserver_autoimport = 1
 let g:ale_completion_enabled = 1
 let g:ale_fix_on_save = 1
 let g:ale_set_balloons = 1
+let g:ale_linters_explicit = 1
 let g:ale_linters = {
 \   'typescript': ['tsserver','eslint'],
 \   'javascript': ['eslint'],
-\   'vue': ['tsserver', 'eslint'],
+\   'vue': ['eslint', 'vls'],
 \   'json': ['eslint']
 \}
-let g:ale_linters_explicit = 1
 let g:ale_fixers = {
 \   '*': ['remove_trailing_lines', 'trim_whitespace'],
 \   'typescript': ['eslint'],
@@ -61,6 +61,7 @@ let g:ale_fixers = {
 \   'json': ['eslint'],
 \   'html': ['prettier']
 \}
+let g:ale_linter_aliases = {'vue': ['vue', 'typescript']}
 set omnifunc=ale#completion#OmniFunc
 
 """""""""""""""""""""""""""""""
