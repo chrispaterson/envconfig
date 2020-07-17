@@ -1,5 +1,22 @@
 #!/bin/bash
 
+usage ()
+{
+  echo "Usage: $0 [-h] [-b to_branch]"
+}
+
+showhelp()
+{
+  echo "$0 - creates pull request"
+  echo " "
+  usage
+  echo " "
+  echo "options:"
+  echo "-h, --help                      show brief help"
+  echo "-b, --branch [target branch]    which branch to create a pull request against for the current branch. develop is default."
+  echo "-m, --merge                     merge pull request"
+}
+
 # Make sure changes are committed first
 if [ ! -z "$(git status --porcelain)" ]; then
 
@@ -14,6 +31,17 @@ if [[ -z $BB_PA_TOKEN ]]; then
   exit 1
 fi
 
+if ! hash json 2>/dev/null ; then
+    echo "[ERROR] Unable to complete request without json utility installed."
+    echo "        Please run either"
+    echo "            yarn global add json"
+    echo "        OR"
+    echo "            npm -g install json"
+    echo "        OR"
+    echo "            re-install envconfig utility"
+    exit 1
+fi
+
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 # Make sure the branch follows the feature stucture for bitbucket
@@ -22,32 +50,108 @@ if ! [[ $BRANCH =~ ^[A-Z]*-[0-9]*$ ]]; then
   exit 1
 fi
 
+while getopts 'hb:m' OPTION; do
+  case "$OPTION" in
+    h | -help)
+      showhelp
+      exit
+      ;;
+    b | -branch)
+      TO_BRANCH=$OPTARG
+      ;;
+    m | -merge)
+      MERGE=true
+      ;;
+  esac
+done
+shift "$(($OPTIND -1))"
+
 ORIGIN_URL=$(git --git-dir=/$(git rev-parse --show-toplevel)/.git remote get-url origin)
 HOST=$(sed -E -e 's_.*://([^/@]*@)?([^/:]+).*_\2_' <<< $ORIGIN_URL)
+SLUG=$(basename -s .git $ORIGIN_URL)
+USERNAME=$(whoami)
+# Get Project from branch name will be the first part of ABC-123
+IFS='-' read -ra PROJECT <<< "$BRANCH"
+BASE_URL="https://$HOST/rest/api/1.0/projects/$PROJECT/repos/$SLUG/pull-requests"
 
-# maybe not going into develop? it happens sometimes
-if [[ ! -z $1 ]]; then
+getPullRequest()
+{
+  # GET the pullrequests.
+  curl -s \
+    -H "Authorization: Bearer $BB_PA_TOKEN" \
+    -H "Content-Type: application/json" \
+    $BASE_URL \
+    | json values \
+    | json -c "this.title === \"$BRANCH\"" \
+    | json 0
+}
 
-  TO_BRANCH="$1"
+if ! [ -z $MERGE ]; then
+
+  PR=$(getPullRequest)
+  PRID=$(echo $PR | json id)
+  PRVERSION=$(echo $PR | json version)
+  IS_OPEN=$(echo $PR | json open)
+
+  if [[ $IS_OPEN == 'true' ]]; then
+
+    # Pull Request is open
+
+    CAN_MERGE=$(curl -s \
+      -H "Authorization: Bearer $BB_PA_TOKEN" \
+      -H "Content-Type: application/json" \
+      $BASE_URL/$PRID/merge \
+      | json canMerge)
+
+    if [[ $CAN_MERGE == 'true' ]]; then
+
+      # Do the actual merge
+      NEW_STATE=$(curl -s \
+        -H "Authorization: Bearer $BB_PA_TOKEN" \
+        -H "Content-Type: application/json" \
+        -X POST \
+        "$BASE_URL/$PRID/merge?version=$PRVERSION" \
+        | json state)
+
+      if [[ $NEW_STATE == "MERGED" ]]; then
+
+        git checkout $TO_BRANCH
+        git pull
+        git flow feature finish $BRANCH
+        git push
+        echo "Sucessful merge of pull request #$PRID for $BRANCH"
+
+      else
+
+        echo "Unsuccessful merge of pull request #$PRID for $BRANCH"
+        exit 1
+
+      fi
+
+    else
+      echo "Unable to merge pull request #$PRID on branch $BRANCH..."
+      exit 1
+    fi
+
+  else
+
+    echo "Unable to merge pull request #$PRID on branch $BRANCH because it is $(echo $PR | json state)"
+    exit 1
+  fi
 
 else
 
-  TO_BRANCH="develop"
+  if [ -z $TO_BRANCH ]; then
 
-fi
+    TO_BRANCH="develop"
 
-# Get Project from branch name will be the first part of ABC-123
-IFS='-' read -ra PROJECT <<< "$BRANCH"
+  fi
 
-BASE_URL="https://$HOST/rest/api/1.0/projects/$PROJECT"
 
-# create remote branch on origin
-git push --set-upstream origin $BRANCH
+  # create remote branch on origin
+  git push --set-upstream origin $BRANCH
 
-SLUG=$(basename -s .git $ORIGIN_URL)
-
-# depends on json global utility – should be added on install, but just in case
-if hash json 2>/dev/null; then
+  # depends on json global utility – should be added on install, but just in case
 
   # Build the JSON
   JSON=$(cat ~/bin/json-templates/base-pr-body.json)
@@ -68,10 +172,11 @@ if hash json 2>/dev/null; then
   # add all participants to code review who are active and not me
   NAMES=$(curl \
     -H "Authorization: Bearer $BB_PA_TOKEN" \
-    $BASE_URL/repos/gdpr-cmp/participants \
+    -H "Content-Type: application/json" \
+    $BASE_URL/participants \
     | json values \
     | json -c 'this.active' \
-    | json -c "this.name !== \"$(whoami)\"" \
+    | json -c "this.name !== \"$USERNAME\"" \
     | json -a name\
   )
 
@@ -88,7 +193,7 @@ if hash json 2>/dev/null; then
     -H "Content-Type: application/json" \
     -d "$JSON" \
     -X POST \
-    $BASE_URL/repos/$SLUG/pull-requests)
+    $BASE_URL)
 
   LINK=$(echo $RESPONSE | json links | json self | json -a href)
 
@@ -97,26 +202,16 @@ if hash json 2>/dev/null; then
 
     ERROR=$(echo $RESPONSE | json -a errors | json -a message)
 
-    echo "[ERROR] Unable to create pull request $BRANCH -> develop"
+    echo "[ERROR] Unable to create pull request $BRANCH -> $TO_BRANCH"
     echo "        $ERROR"
     exit 1
 
   else
 
-    echo "Pull request created $BRANCH -> develop"
+    echo "Pull request created $BRANCH -> $TO_BRANCH"
     echo $LINK
-    echo $RESPONSE
     echo ''
     exit
   fi
 
-else
-    echo "[ERROR] Unable to complete request without json utility installed."
-    echo "        Please run either"
-    echo "            yarn global add json"
-    echo "        OR"
-    echo "            npm -g install json"
-    echo "        OR"
-    echo "            re-install envconfig utility"
-    exit 1
 fi
