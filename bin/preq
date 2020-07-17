@@ -2,7 +2,7 @@
 
 usage ()
 {
-  echo "Usage: $0 [-h] [-b to_branch]"
+  echo "Usage: $0 [-h | --help] [-m | --merge] [-b | --branch to_branch]"
 }
 
 showhelp()
