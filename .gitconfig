@@ -20,11 +20,8 @@
 	conflictstyle = diff3
 [mergetool]
 	prompt = false
-[user]
-	name = Chris Paterson
-	email = 1268493+chrispaterson@users.noreply.github.com
 [credential]
 	helper = store
 [core]
 	ignorecase = false
-	hooksPath = /Users/cpaterson/githooks
+	hooksPath = ~/githooks
