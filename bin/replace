@@ -28,4 +28,5 @@ else
 
 fi
 
+echo "Finding \"$SEARCH\" and replacing with \"$REPLACE\" in every .$EXTENSION file in $DIR"
 sed -i.bak "s/$SEARCH/$REPLACE/g" `find $DIR -name "*.$EXTENSION"` && rm -r `find $DIR -name "*.bak"`
