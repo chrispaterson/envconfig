@@ -27,15 +27,24 @@ set splitright
 set autoread
 
 """""""""""""""""""""""""""""""
+" QFEnter [Quick Fix Enter]
+"""""""""""""""""""""""""""""""
+let g:qfenter_keymap = {}
+let g:qfenter_keymap.vopen = ['<CR>']
+
+"""""""""""""""""""""""""""""""
 " Ale
 """""""""""""""""""""""""""""""
 let g:ale_completion_tsserver_autoimport = 1
 let g:ale_completion_enabled = 1
+let g:ale_vue_vls_use_global = 1
+let g:ale_list_vertical = 1
 let g:ale_fix_on_save = 1
+let g:ale_open_list = 1
+let g:ale_keep_list_window_open = 1
 let g:ale_set_quickfix = 1
-let g:ale_hover_to_preview = 1
-let g:ale_cursor_detail = 1
-let g:ale_default_navigation = "vsplit"
+let g:ale_set_loclist = 0
+let g:ale_cursor_detail = 0
 let g:ale_linters_explicit = 1
 let g:ale_fixers = {'*': ['remove_trailing_lines', 'trim_whitespace']}
 set omnifunc=ale#completion#OmniFunc
