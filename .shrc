@@ -4,8 +4,6 @@ alias ..="cd ../"
 
 alias ll='ls -GlA'
 alias l='ls -Gl'
-alias st="git flow feature start $1"
-alias ft="git flow feature finish $1"
 
 # Always open files in vertical split mode
 alias vi='vim -O'
