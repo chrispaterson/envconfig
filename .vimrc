@@ -18,10 +18,14 @@ au bufread,bufnewfile *.sass set filetype=sass
 au bufread,bufnewfile *.html set filetype=html
 
 """""""""""""""""""""""""""""""
-" Quick Fix Window things
+" Quick Fix Window
 """""""""""""""""""""""""""""""
 
-autocmd VimEnter * botright copen
+" closes quickfix if it's the only buffer open
+aug QFClose
+  au!
+  au WinEnter * if winnr('$') == 1 && &buftype == "quickfix"|q|endif
+aug END
 
 """""""""""""""""""""""""""""""
 " Set split locations
