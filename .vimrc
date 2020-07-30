@@ -17,13 +17,17 @@ au bufread,bufnewfile *.scss set filetype=sass
 au bufread,bufnewfile *.sass set filetype=sass
 au bufread,bufnewfile *.html set filetype=html
 
+"""""""""""""""""""""""""""""""
+" Quick Fix Window things
+"""""""""""""""""""""""""""""""
+
+autocmd VimEnter * botright copen
 
 """""""""""""""""""""""""""""""
 " Set split locations
 """""""""""""""""""""""""""""""
 set splitbelow
 set splitright
-
 set autoread
 
 """""""""""""""""""""""""""""""
