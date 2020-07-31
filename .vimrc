@@ -18,27 +18,11 @@ au bufread,bufnewfile *.sass set filetype=sass
 au bufread,bufnewfile *.html set filetype=html
 
 """""""""""""""""""""""""""""""
-" Quick Fix Window
-"""""""""""""""""""""""""""""""
-
-" closes quickfix if it's the only buffer open
-aug QFClose
-  au!
-  au WinEnter * if winnr('$') == 1 && &buftype == "quickfix"|q|endif
-aug END
-
-"""""""""""""""""""""""""""""""
 " Set split locations
 """""""""""""""""""""""""""""""
 set splitbelow
 set splitright
 set autoread
-
-"""""""""""""""""""""""""""""""
-" QFEnter [Quick Fix Enter]
-"""""""""""""""""""""""""""""""
-let g:qfenter_keymap = {}
-let g:qfenter_keymap.vopen = ['<CR>']
 
 """""""""""""""""""""""""""""""
 " Ale
@@ -52,7 +36,6 @@ let g:ale_open_list = 1
 let g:ale_keep_list_window_open = 1
 let g:ale_set_quickfix = 1
 let g:ale_set_loclist = 0
-let g:ale_cursor_detail = 0
 let g:ale_linters_explicit = 1
 let g:ale_fixers = {'*': ['remove_trailing_lines', 'trim_whitespace']}
 set omnifunc=ale#completion#OmniFunc
