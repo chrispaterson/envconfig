@@ -29,8 +29,13 @@ set autoread
 """""""""""""""""""""""""""""""
 let g:ale_completion_tsserver_autoimport = 1
 let g:ale_completion_enabled = 1
+let g:ale_set_balloons = 1
+let g:ale_cursor_detail = 1
+let g:ale_completion_enabled = 1
+let g:ale_default_navigation = 'vert'
 let g:ale_vue_vls_use_global = 1
 let g:ale_list_vertical = 1
+let g:ale_list_window_size = 100
 let g:ale_fix_on_save = 1
 let g:ale_open_list = 1
 let g:ale_keep_list_window_open = 1
@@ -38,6 +43,34 @@ let g:ale_set_quickfix = 1
 let g:ale_set_loclist = 0
 let g:ale_linters_explicit = 1
 let g:ale_fixers = {'*': ['remove_trailing_lines', 'trim_whitespace']}
+let g:ale_completion_symbols = {
+\ 'text': '',
+\ 'method': '',
+\ 'function': '',
+\ 'constructor': '',
+\ 'field': '',
+\ 'variable': '',
+\ 'class': '',
+\ 'interface': '',
+\ 'module': '',
+\ 'property': '',
+\ 'unit': 'v',
+\ 'value': 'v',
+\ 'enum': 't',
+\ 'keyword': 'v',
+\ 'snippet': 'v',
+\ 'color': 'v',
+\ 'file': 'v',
+\ 'reference': 'v',
+\ 'folder': 'v',
+\ 'enum_member': 'm',
+\ 'constant': 'm',
+\ 'struct': 't',
+\ 'event': 'v',
+\ 'operator': 'f',
+\ 'type_parameter': 'p',
+\ '<default>': 'v'
+\ }
 set omnifunc=ale#completion#OmniFunc
 
 """""""""""""""""""""""""""""""
@@ -133,11 +166,6 @@ map <C-S-H> <C-w>h
 map <C-S-J> <C-w>j
 map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
-
-autocmd FileType javascript noremap <leader>d :JsDoc<CR>
-autocmd FileType typescript noremap <leader>d :JsDoc<CR>
-autocmd FileType javascript noremap <leader>ci :NERDCommenterInsert<CR>
-autocmd FileType typescript noremap <leader>ci :NERDCommenterInsert<CR>
 
 nmap <silent> <C-k> <Plug>(ale_previous_wrap)
 nmap <silent> <C-j> <Plug>(ale_next_wrap)
