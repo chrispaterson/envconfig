@@ -1,0 +1,40 @@
+#!/bin/bash
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [[ $BRANCH =~ ^[0-9]*$ ]]; then
+
+
+  ISSUE=$BRANCH
+  IS_GITHUB=1
+
+  elif [[ $BRANCH =~ ^[A-Z]*-[0-9]*$ ]]; then
+
+  ISSUE=$BRANCH
+  IS_BITBUCKET=1
+
+fi
+
+REMOTE=$(git remote get-url origin | cut -d "@" -f2)
+REMOTE=${REMOTE%.*}
+
+
+if [[ $IS_GITHUB == 1 ]]; then
+
+  DOMAIN=$(echo $REMOTE | cut -d ":" -f1)
+
+  echo "opening $DOMAIN issue #$ISSUE"
+  open "https://$DOMAIN/$(echo $REMOTE | cut -d ":" -f2)/issues/$ISSUE"
+
+elif [[ $IS_BITBUCKET == 1 ]]; then
+
+  REMOTE=${REMOTE#'git.'}
+  DOMAIN="jira.$(echo $REMOTE | cut -d ":" -f1)"
+  echo "opening $DOMAIN issue #$ISSUE"
+  open "https://$DOMAIN/browse/$ISSUE"
+else
+
+  echo "Don't know how to open that..."
+  exit 1
+
+fi
