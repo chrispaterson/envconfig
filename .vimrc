@@ -118,7 +118,6 @@ let g:closetag_emptyTags_caseSensitive = 1
 "
 let g:closetag_shortcut = '<C->>'
 
-
 """"
 " NERDCommenter
 """"
@@ -136,7 +135,8 @@ let g:NERDCompactSexyComs = 1
 "general options
 """"
 set statusline=%l:%f
-let mapleader=","
+nnoremap <SPACE> <Nop>
+let mapleader=" "
 
 "indentation
 set tabstop=4 softtabstop=0 expandtab shiftwidth=2 smarttab
@@ -160,11 +160,18 @@ map <C-S-J> <C-w>j
 map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
 
-nmap <silent> <C-k> <Plug>(ale_previous_wrap)
-nmap <silent> <C-j> <Plug>(ale_next_wrap)
+map <leader>d :ALEGoToDefinitionInVSplit<enter>
+map <leader>o :ALEOrganizeImports<enter>
+map <leader>r :ALERename<enter>
+map <leader>i :ALEHover<enter>
+
+nmap <silent> <leader>b <Plug>(ale_previous_wrap)
+nmap <silent> <leader>n <Plug>(ale_next_wrap)
 
 inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
 silent! call repeat#set("\<Plug>MyWonderfulMap", v:count)
+
+tnoremap : <C-W><C-P>
 
 " Use underline instead of reversing for errors and warnings
 hi clear SpellBad

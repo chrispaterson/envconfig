@@ -12,8 +12,9 @@ showhelp()
   usage
   echo " "
   echo "options:"
-  echo "-h, --help                      show brief help"
   echo "-b, --branch [target branch]    which branch to create a pull request against for the current branch. develop is default."
+  echo "-d, --debug                     prints debug information."
+  echo "-h, --help                      show brief help"
   echo "-m, --merge                     merge pull request"
 }
 
@@ -50,7 +51,7 @@ if ! [[ $BRANCH =~ ^[A-Z]*-[0-9]*$ ]]; then
   exit 1
 fi
 
-while getopts 'hb:m' OPTION; do
+while getopts 'hdb:m' OPTION; do
   case "$OPTION" in
     h | -help)
       showhelp
@@ -58,6 +59,9 @@ while getopts 'hb:m' OPTION; do
       ;;
     b | -branch)
       TO_BRANCH=$OPTARG
+      ;;
+    d | -debug)
+      DEBUG=true
       ;;
     m | -merge)
       MERGE=true
@@ -168,6 +172,13 @@ else
   JSON=$(echo $JSON | json -e "this.toRef.repository.name=\"$SLUG\"")
   JSON=$(echo $JSON | json -e "this.toRef.repository.project.key=\"$PROJECT\"")
 
+  if ! [[ -z $DEBUG ]]; then
+    echo "Request (before adding participants):"
+    echo $JSON
+    echo
+    echo "Getting participants from $BASE_URL/participants"
+  fi
+
 
   # add all participants to code review who are active and not me
   NAMES=$(curl \
@@ -187,6 +198,14 @@ else
 
   done
 
+  if ! [[ -z $DEBUG ]]; then
+    echo
+    echo "Request (after adding participants):"
+    echo $JSON
+    echo
+    echo "Posting to URL: $BASE_URL"
+  fi
+
   # POST the create pull-request... request.
   RESPONSE=$(curl -s \
     -H "Authorization: Bearer $BB_PA_TOKEN" \
@@ -194,6 +213,11 @@ else
     -d "$JSON" \
     -X POST \
     $BASE_URL)
+
+  if ! [[ -z $DEBUG ]]; then
+    echo "Response:"
+    echo $RESPONSE
+  fi
 
   LINK=$(echo $RESPONSE | json links | json self | json -a href)
 
