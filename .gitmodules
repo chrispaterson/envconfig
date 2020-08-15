@@ -1,0 +1,60 @@
+[submodule ".bash/git-aware-prompt"]
+	path = .bash/git-aware-prompt
+	url = https://github.com/chrispaterson/git-aware-prompt.git
+[submodule ".vim/bundle/nerdcommenter"]
+	path = .vim/pack/lib/start/nerdcommenter
+	url = https://github.com/scrooloose/nerdcommenter.git
+[submodule ".vim/bundle/nerdtree-git-plugin"]
+	path = .vim/pack/lib/start/nerdtree-git-plugin
+	url = https://github.com/Xuyuanp/nerdtree-git-plugin.git
+[submodule ".vim/bundle/nerdtree"]
+	path = .vim/pack/lib/start/nerdtree
+	url = https://github.com/scrooloose/nerdtree.git
+[submodule ".vim/bundle/typescript-vim"]
+	path = .vim/pack/lib/start/typescript-vim
+	url = https://github.com/leafgarland/typescript-vim.git
+[submodule ".vim/bundle/vim-closetag"]
+	path = .vim/pack/lib/start/vim-closetag
+	url = https://github.com/alvan/vim-closetag.git
+[submodule ".vim/bundle/vim-javascript"]
+	path = .vim/pack/lib/start/vim-javascript
+	url = https://github.com/pangloss/vim-javascript.git
+[submodule ".vim/bundle/vim-jsx"]
+	path = .vim/pack/lib/start/vim-jsx
+	url = https://github.com/mxw/vim-jsx.git
+[submodule ".vim/bundle/vim-vue"]
+	path = .vim/pack/lib/start/vim-vue
+	url = https://github.com/posva/vim-vue.git
+[submodule ".vim/bundle/vim-colorschemes"]
+	path = .vim/pack/lib/start/vim-colorschemes
+	url = https://github.com/chrispaterson/vim-colorschemes.git
+[submodule ".vim/pack/lib/start/ale"]
+	path = .vim/pack/lib/start/ale
+	url = https://github.com/w0rp/ale.git
+[submodule ".vim/pack/lib/start/syntastic"]
+	path = .vim/pack/lib/start/syntastic
+	url = https://github.com/vim-syntastic/syntastic.git
+[submodule ".vim/pack/lib/start/vim-surround"]
+	path = .vim/pack/lib/start/vim-surround
+	url = https://github.com/tpope/vim-surround.git
+[submodule ".vim/pack/lib/start/vim-jsdoc"]
+	path = .vim/pack/lib/start/vim-jsdoc
+	url = https://github.com/heavenshell/vim-jsdoc.git
+[submodule ".vim/pack/lib/start/vim-vue-syntastic"]
+	path = .vim/pack/lib/start/vim-vue-syntastic
+	url = https://github.com/sekel/vim-vue-syntastic.git
+[submodule ".vim/pack/lib/start/supertab"]
+	path = .vim/pack/lib/start/supertab
+	url = https://github.com/ervandew/supertab.git
+[submodule ".vim/pack/lib/start/rust-lang"]
+	path = .vim/pack/lib/start/rust-lang
+	url = https://github.com/rust-lang/rust.vim
+[submodule ".vim/pack/lib/start/repeat"]
+	path = .vim/pack/lib/start/repeat
+	url = https://tpope.io/vim/repeat.git
+[submodule ".vim/pack/lib/start/vim-autoclose"]
+	path = .vim/pack/lib/start/vim-autoclose
+	url = https://github.com/Townk/vim-autoclose.git
+[submodule ".vim/pack/lib/start/delimitMate"]
+	path = .vim/pack/lib/start/delimitMate
+	url = https://github.com/Raimondi/delimitMate.git
