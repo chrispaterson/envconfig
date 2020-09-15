@@ -1,37 +1,48 @@
 #!/bin/bash
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
+GIT_PROVIDER=$(git_provider)
 
-if [[ $BRANCH =~ ^[0-9]*$ ]]; then
+if [[ $GIT_PROVIDER == 'bitbucket' || $GIT_PROVIDER == 'github' ]]; then
+
+  if [[ -z $1 ]]; then
+    if [[ $BRANCH =~ ^[0-9]*$ ]]; then
+
+      ISSUE=$BRANCH
+
+      elif [[ $BRANCH =~ ^[A-Z]*-[0-9]*$ ]]; then
+
+      ISSUE=$BRANCH
+
+    fi
+  else
+    ISSUE=$1
+  fi
 
 
-  ISSUE=$BRANCH
-  IS_GITHUB=1
-
-  elif [[ $BRANCH =~ ^[A-Z]*-[0-9]*$ ]]; then
-
-  ISSUE=$BRANCH
-  IS_BITBUCKET=1
-
-fi
-
-REMOTE=$(git remote get-url origin | cut -d "@" -f2)
-REMOTE=${REMOTE%.*}
+  REMOTE=$(git remote get-url origin | cut -d "@" -f2)
+  REMOTE=${REMOTE%.*}
 
 
-if [[ $IS_GITHUB == 1 ]]; then
+  if [[ $GIT_PROVIDER == 'github' ]]; then
 
-  DOMAIN=$(echo $REMOTE | cut -d ":" -f1)
+    DOMAIN=$(echo $REMOTE | cut -d ":" -f1)
 
-  echo "opening $DOMAIN issue #$ISSUE"
-  open "https://$DOMAIN/$(echo $REMOTE | cut -d ":" -f2)/issues/$ISSUE"
+    echo "opening $DOMAIN issue #$ISSUE"
+    open "https://$DOMAIN/$(echo $REMOTE | cut -d ":" -f2)/issues/$ISSUE"
 
-elif [[ $IS_BITBUCKET == 1 ]]; then
+  elif [[ $GIT_PROVIDER == 'bitbucket' ]]; then
 
-  REMOTE=${REMOTE#'git.'}
-  DOMAIN="jira.$(echo $REMOTE | cut -d ":" -f1)"
-  echo "opening $DOMAIN issue #$ISSUE"
-  open "https://$DOMAIN/browse/$ISSUE"
+    REMOTE=${REMOTE#'git.'}
+    DOMAIN="jira.$(echo $REMOTE | cut -d ":" -f1)"
+    echo "opening $DOMAIN issue #$ISSUE"
+    open "https://$DOMAIN/browse/$ISSUE"
+  else
+
+    echo "Don't know how to open that..."
+    exit 1
+
+  fi
 else
 
   echo "Don't know how to open that..."

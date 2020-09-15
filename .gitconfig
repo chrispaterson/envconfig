@@ -9,6 +9,7 @@
     sma = "!f() { FILE=${1##*/}; NAME=${FILE%.*}; DESTINATION=.vim/pack/lib/start/$NAME; git submodule add -f -- $1 $DESTINATION; }; f"
     release = flow release
     issue = flow feature
+    i = flow feature
     hotfix = flow hotfix
 	d = difftool
 [diff]

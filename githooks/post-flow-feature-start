@@ -1,0 +1,20 @@
+#!/bin/bash
+
+ISSUE=$1
+
+# create remote branch on origin
+git push --set-upstream origin $ISSUE
+
+# if it's a bitbuket issue
+if [[ $ISSUE =~ ^[A-Z]*-[0-9]*$ ]]; then
+
+  if ! hash jira 2>/dev/null ; then
+    echo 'no jira-cl installed'
+    echo 'to automatically transition issues please run'
+    echo 'yarn global add jira-cl'
+  else
+    jira i $ISSUE -t "In Progress"
+  fi
+
+
+fi

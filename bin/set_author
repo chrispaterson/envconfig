@@ -1,0 +1,18 @@
+#!/bin/bash
+
+source ~/.env
+
+GIT_PROVIDER=$(git_provider)
+
+git config user.name "$MY_NAME"
+
+if [[ $GIT_PROVIDER == 'github' ]]; then
+
+    git config user.email $GITHUB_ANON_EMAIL
+
+elif [[ $GIT_PROVIDER == 'bitbucket' ]]; then
+
+    git config user.email $WORK_EMAIL
+
+fi
+git commit --amend --reset-author --no-edit

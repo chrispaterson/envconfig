@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -z $1 ]; then
+if [[ -z $1 ]]; then
   echo 'you must at least search for something'
   exit 1
 fi
@@ -8,7 +8,7 @@ fi
 SEARCH=$1
 REPLACE=$2
 
-if [ -z $3 ]; then
+if [[ -z $3 ]]; then
 
   DIR='.'
 

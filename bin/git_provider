@@ -1,0 +1,11 @@
+#!/bin/bash
+
+REMOTE=$(git remote get-url origin)
+
+if [[ $REMOTE =~ 'cnvr' ]]; then
+  echo 'bitbucket'
+elif [[ $REMOTE =~ 'github' ]]; then
+  echo 'github'
+else
+  echo 'unknown'
+fi

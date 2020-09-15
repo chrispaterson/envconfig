@@ -51,7 +51,7 @@ if ! [[ $BRANCH =~ ^[A-Z]*-[0-9]*$ ]]; then
   exit 1
 fi
 
-while getopts 'hdb:m' OPTION; do
+while getopts 'hdob:m' OPTION; do
   case "$OPTION" in
     h | -help)
       showhelp
@@ -59,6 +59,9 @@ while getopts 'hdb:m' OPTION; do
       ;;
     b | -branch)
       TO_BRANCH=$OPTARG
+      ;;
+    o | -open)
+      OPEN=true
       ;;
     d | -debug)
       DEBUG=true
@@ -90,6 +93,13 @@ getPullRequest()
     | json 0
 }
 
+if [ -z $TO_BRANCH ]; then
+
+  TO_BRANCH="develop"
+
+fi
+
+
 if ! [ -z $MERGE ]; then
 
   PR=$(getPullRequest)
@@ -100,7 +110,6 @@ if ! [ -z $MERGE ]; then
   if [[ $IS_OPEN == 'true' ]]; then
 
     # Pull Request is open
-
     CAN_MERGE=$(curl -s \
       -H "Authorization: Bearer $BB_PA_TOKEN" \
       -H "Content-Type: application/json" \
@@ -121,8 +130,11 @@ if ! [ -z $MERGE ]; then
 
         git checkout $TO_BRANCH
         git pull
+
         git flow feature finish $BRANCH
-        git push
+
+        jira i $BRANCH -t "Ready for Build"
+
         echo "Sucessful merge of pull request #$PRID for $BRANCH"
 
       else
@@ -145,12 +157,6 @@ if ! [ -z $MERGE ]; then
 
 else
 
-  if [ -z $TO_BRANCH ]; then
-
-    TO_BRANCH="develop"
-
-  fi
-
 
   # create remote branch on origin
   git push --set-upstream origin $BRANCH
@@ -172,40 +178,6 @@ else
   JSON=$(echo $JSON | json -e "this.toRef.repository.name=\"$SLUG\"")
   JSON=$(echo $JSON | json -e "this.toRef.repository.project.key=\"$PROJECT\"")
 
-  if ! [[ -z $DEBUG ]]; then
-    echo "Request (before adding participants):"
-    echo $JSON
-    echo
-    echo "Getting participants from $BASE_URL/participants"
-  fi
-
-
-  # add all participants to code review who are active and not me
-  NAMES=$(curl \
-    -H "Authorization: Bearer $BB_PA_TOKEN" \
-    -H "Content-Type: application/json" \
-    $BASE_URL/participants \
-    | json values \
-    | json -c 'this.active' \
-    | json -c "this.name !== \"$USERNAME\"" \
-    | json -a name\
-  )
-
-  for name in $NAMES
-  do
-
-    JSON=$(echo $JSON | json -e "this.reviewers.push({user:{name:\"$name\"}})")
-
-  done
-
-  if ! [[ -z $DEBUG ]]; then
-    echo
-    echo "Request (after adding participants):"
-    echo $JSON
-    echo
-    echo "Posting to URL: $BASE_URL"
-  fi
-
   # POST the create pull-request... request.
   RESPONSE=$(curl -s \
     -H "Authorization: Bearer $BB_PA_TOKEN" \
@@ -217,6 +189,14 @@ else
   if ! [[ -z $DEBUG ]]; then
     echo "Response:"
     echo $RESPONSE
+  fi
+
+  if ! hash jira 2>/dev/null ; then
+    echo 'no jira-cl installed'
+    echo 'to automatically transition issues please run'
+    echo 'yarn global add jira-cl'
+  else
+    jira i $BRANCH -t "Code Review"
   fi
 
   LINK=$(echo $RESPONSE | json links | json self | json -a href)
@@ -235,6 +215,9 @@ else
     echo "Pull request created $BRANCH -> $TO_BRANCH"
     echo $LINK
     echo ''
+    if [[ ! -z $OPEN ]]; then
+      open $LINK
+    fi
     exit
   fi
 
