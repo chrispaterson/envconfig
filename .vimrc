@@ -12,6 +12,7 @@ au bufread,bufnewfile *.json set filetype=json
 au bufread,bufnewfile *.as set filetype=actionscript
 au bufread,bufnewfile *.java set filetype=java
 au bufread,bufnewfile *.jsx set filetype=jsx
+au bufread,bufnewfile *.tsx set filetype=tsx
 au bufread,bufnewfile *.css set filetype=css
 au bufread,bufnewfile *.scss set filetype=sass
 au bufread,bufnewfile *.sass set filetype=sass
