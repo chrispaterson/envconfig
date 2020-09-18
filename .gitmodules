@@ -58,3 +58,6 @@
 [submodule ".vim/pack/lib/start/delimitMate"]
 	path = .vim/pack/lib/start/delimitMate
 	url = https://github.com/Raimondi/delimitMate.git
+[submodule ".vim/pack/lib/start/vim-jsx-typescript"]
+	path = .vim/pack/lib/start/vim-jsx-typescript
+	url = https://github.com/peitalin/vim-jsx-typescript.git
