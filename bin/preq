@@ -29,15 +29,8 @@ fi
 if [[ -z $BB_PA_TOKEN ]]; then
 
   echo "[ERROR] Please export your Bitbucket Personal Acess Token in your environment as BB_PA_TOKEN"
+  echo "   For more information please visit https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html"
   exit 1
-fi
-
-yarn test
-
-if [[ $? != "0" ]]; then
-
-  exit 1
-
 fi
 
 if ! hash json 2>/dev/null ; then
@@ -52,6 +45,8 @@ if ! hash json 2>/dev/null ; then
 fi
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+yarn run docs
 
 # Make sure the branch follows the feature stucture for bitbucket
 if ! [[ $BRANCH =~ ^[A-Z]*-[0-9]*$ ]]; then
@@ -81,12 +76,12 @@ while getopts 'hdob:m' OPTION; do
 done
 shift "$(($OPTIND -1))"
 
+GIT_ROOT=$(git rev-parse --show-toplevel)
 ORIGIN_URL=$(git --git-dir=/$(git rev-parse --show-toplevel)/.git remote get-url origin)
 HOST=$(sed -E -e 's_.*://([^/@]*@)?([^/:]+).*_\2_' <<< $ORIGIN_URL)
+PROJECT=$(sed -E -e 's_.*:[0-9]*/([A-z]*)/.*_\1_' <<< $ORIGIN_URL)
 SLUG=$(basename -s .git $ORIGIN_URL)
 USERNAME=$(whoami)
-# Get Project from branch name will be the first part of ABC-123
-IFS='-' read -ra PROJECT <<< "$BRANCH"
 BASE_URL="https://$HOST/rest/api/1.0/projects/$PROJECT/repos/$SLUG/pull-requests"
 
 getPullRequest()
@@ -100,6 +95,12 @@ getPullRequest()
     | json -c "this.title === \"$BRANCH\"" \
     | json 0
 }
+
+if [ -z $TO_BRANCH ]; then
+
+  TO_BRANCH=$(git config "gitflow.branch.$BRANCH.base")
+
+fi
 
 if [ -z $TO_BRANCH ]; then
 
@@ -165,16 +166,37 @@ if ! [ -z $MERGE ]; then
 
 else
 
-
   # create remote branch on origin
   git push --set-upstream origin $BRANCH
-
-  # depends on json global utility – should be added on install, but just in case
 
   # Build the JSON
   JSON=$(cat ~/bin/json-templates/base-pr-body.json)
 
+  if [[ -f "$GIT_ROOT/.pr_reviewers" ]]; then
+
+   NAMES=$(cat "$GIT_ROOT/.pr_reviewers")
+
+   for name in $NAMES
+   do
+
+     if [[ $name != $USERNAME ]]; then
+
+       # don't want to add ourselves
+       JSON=$(echo $JSON | json -e "this.reviewers.push({user:{name:\"$name\"}})")
+
+     fi
+
+   done
+
+  else
+
+    echo "To add default reviewers to pull requests, add a file named .pr_reviewers to the root of this project.  List the usernames, each on their own lines"
+
+  fi
+
+
   JSON=$(echo $JSON | json -e "this.title=\"$BRANCH\"")
+  JSON=$(echo $JSON | json -e "this.description=\"$(git log -1 --pretty=%B)\"")
 
   JSON=$(echo $JSON | json -e "this.fromRef.id=\"refs/heads/$BRANCH\"")
   JSON=$(echo $JSON | json -e "this.fromRef.repository.slug=\"$SLUG\"")
@@ -186,7 +208,7 @@ else
   JSON=$(echo $JSON | json -e "this.toRef.repository.name=\"$SLUG\"")
   JSON=$(echo $JSON | json -e "this.toRef.repository.project.key=\"$PROJECT\"")
 
-  # POST the create pull-request... request.
+  # POST the create pull-request... umm... request.
   RESPONSE=$(curl -s \
     -H "Authorization: Bearer $BB_PA_TOKEN" \
     -H "Content-Type: application/json" \
@@ -204,7 +226,7 @@ else
     echo 'to automatically transition issues please run'
     echo 'yarn global add jira-cl'
   else
-    jira i $BRANCH -t "Code Review"
+    jira i $BRANCH --transition="Code Review"
   fi
 
   LINK=$(echo $RESPONSE | json links | json self | json -a href)
@@ -222,8 +244,7 @@ else
 
     echo "Pull request created $BRANCH -> $TO_BRANCH"
     echo $LINK
-    echo ''
-    if [[ ! -z $OPEN ]]; then
+    if [[ $OPEN == 'true' ]]
       open $LINK
     fi
     exit
