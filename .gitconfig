@@ -9,7 +9,7 @@
     sma = "!f() { FILE=${1##*/}; NAME=${FILE%.*}; DESTINATION=.vim/pack/lib/start/$NAME; git submodule add -f -- $1 $DESTINATION; }; f"
     release = flow release
     issue = flow feature
-    i = "!f() { git flow feature $1 $2; jira i $2 -a $(whoami); jira i $2 -t $( if [[ $1 == 'start' ]]; then echo 'In Progress'; else echo 'Ready for Build'; fi ); }; f"
+    i = "!f() { git flow feature $1 $2 && jira i $2 -a $(whoami) && jira i $2 -t $( if [[ $1 == 'start' ]] && then echo 'In Progress' && else echo 'Ready for Build'; fi ); }; f"
     hotfix = flow hotfix
 	d = difftool
 [diff]

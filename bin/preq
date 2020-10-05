@@ -46,8 +46,6 @@ fi
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
-yarn run docs
-
 # Make sure the branch follows the feature stucture for bitbucket
 if ! [[ $BRANCH =~ ^[A-Z]*-[0-9]*$ ]]; then
   echo "[ERROR] Can't pull request from this branch"
@@ -244,7 +242,7 @@ else
 
     echo "Pull request created $BRANCH -> $TO_BRANCH"
     echo $LINK
-    if [[ $OPEN == 'true' ]]
+    if [[ $OPEN == 'true' ]]; then
       open $LINK
     fi
     exit
