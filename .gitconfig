@@ -8,9 +8,11 @@
     smd = "!f() { MOD=.vim/pack/lib/start/$1; git submodule deinit -f -- $MOD; sed \"/$1/d\" \"$(git root).gitmodules\" > \"$(git root).gitmodules\"; rm -rf $(git root)/$MOD $(git root)/.git/modules/$MOD; }; f"
     sma = "!f() { FILE=${1##*/}; NAME=${FILE%.*}; DESTINATION=.vim/pack/lib/start/$NAME; git submodule add -f -- $1 $DESTINATION; }; f"
     release = flow release
+    r = flow release
     issue = flow feature
-    i = "!f() { git flow feature $1 $2 && jira i $2 -a $(whoami) && jira i $2 -t }; f"
+    i = flow feature
     hotfix = flow hotfix
+    h = flow hotfix
 	d = difftool
 [diff]
 	tool = vimdiff
