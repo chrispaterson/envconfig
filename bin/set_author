@@ -10,7 +10,7 @@ if [[ $GIT_PROVIDER == 'github' ]]; then
 
     git config user.email $GITHUB_ANON_EMAIL
 
-elif [[ $GIT_PROVIDER == 'bitbucket' ]]; then
+else
 
     git config user.email $WORK_EMAIL
 

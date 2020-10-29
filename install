@@ -15,17 +15,6 @@ fi
 git submodule init
 git submodule update
 
-#Initialize fonts
-cd font && ./install.sh
-
-$YARN_EXISTS=$(command -v yarn)
-
-if [[ -z $YARN_EXISTS ]]; then
-
-  npm install -g yarn
-
-fi
-
 cd $HOME_DIR
 
 for FILE in $(ls -A $PROJECT_DIR)
@@ -65,6 +54,16 @@ if [[ -d $PROJECT_DIR/.bak/bin ]]; then
 
     fi
   done
+fi
+
+source ~/.shrc
+
+YARN_EXISTS=$(command -v yarn)
+
+if [[ -z $YARN_EXISTS ]]; then
+
+  npm install -g yarn
+
 fi
 
 for MODULE in $(cat $PROJECT_DIR/global_node_modules.txt); do
