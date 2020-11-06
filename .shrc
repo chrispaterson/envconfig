@@ -15,15 +15,6 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
   # only on linux -- OSX will throw an error if I pass the --color=auto
   alias ls='ls --color=auto'
 
-elif [[ "$OSTYPE" =~ "darwin" ]]; then
-
-  #MacOS
-
-  if ! command -v brew &> /dev/null
-  then
-
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-  fi
 fi
 
 #Add bin to path

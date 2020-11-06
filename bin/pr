@@ -1,0 +1,19 @@
+#!/bin/bash
+
+username=$(git config user.email | cut -d"@" -f 1 )
+reviewers=$(yaml2json "$(git rev-parse --show-toplevel)/.owners" | json groups.all | json -c "this != \"$username\"" | json -a )
+
+git fetch upstream
+git merge upstream/master $(git branch --show-current) --no-edit
+
+git push origin $cur_branch
+
+function join {
+  local d=$1;
+  shift;
+  local f=$1;
+  shift;
+  printf %s "$f" "${@/#/$d}";
+}
+
+gh pr create --reviewer $(join , $reviewers)

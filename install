@@ -56,7 +56,25 @@ if [[ -d $PROJECT_DIR/.bak/bin ]]; then
   done
 fi
 
-source ~/.shrc
+# If we're on MacOS, then we'll install brew if it's not there
+if [[ "$OSTYPE" =~ "darwin" ]]; then
+
+  if ! command -v brew &> /dev/null
+  then
+
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+  fi
+fi
+
+
+# All the system level apps that I install with brew
+for APP in $(cat $PROJECT_DIR/brew_apps.txt); do
+
+  if ! command -v $APP &> /dev/null
+  then
+    brew install $APP
+  fi
+done
 
 YARN_EXISTS=$(command -v yarn)
 
