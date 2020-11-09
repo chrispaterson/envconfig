@@ -4,18 +4,19 @@ filetype plugin indent on
 """""""""""""""""""""""""""""""
 " File Types
 """""""""""""""""""""""""""""""
-au bufread,bufnewfile *.jade set filetype=jade
-au bufread,bufnewfile *.js set filetype=javascript
-au bufread,bufnewfile *.ts set filetype=typescript
-au bufread,bufnewfile *.vue set filetype=vue
-au bufread,bufnewfile *.json set filetype=json
 au bufread,bufnewfile *.as set filetype=actionscript
-au bufread,bufnewfile *.java set filetype=java
-au bufread,bufnewfile *.tsx,*.jsx set filetype=typescript.tsx
 au bufread,bufnewfile *.css set filetype=css
-au bufread,bufnewfile *.scss set filetype=sass
-au bufread,bufnewfile *.sass set filetype=sass
 au bufread,bufnewfile *.html set filetype=html
+au bufread,bufnewfile *.jade set filetype=jade
+au bufread,bufnewfile *.java set filetype=java
+au bufread,bufnewfile *.js set filetype=javascript
+au bufread,bufnewfile *.jsx set filetype=jsx
+au bufread,bufnewfile *.json set filetype=json
+au bufread,bufnewfile *.sass set filetype=sass
+au bufread,bufnewfile *.scss set filetype=sass
+au bufread,bufnewfile *.ts set filetype=typescript
+au bufread,bufnewfile *.tsx set filetype=tsx
+au bufread,bufnewfile *.vue set filetype=vue
 
 """""""""""""""""""""""""""""""
 " Set split locations
@@ -121,11 +122,16 @@ let g:closetag_shortcut = '<C->>'
 """"
 " NERDCommenter
 """"
+let s:NERDBlockCommentDelimiters = {
+\   'left': '/** ','right': '*/'
+\}
 " Add your own custom formats or override the defaults
 let g:NERDCustomDelimiters = {
-\   'javascript': { 'left': '/** ','right': '*/' },
-\   'typescript': { 'left': '/** ','right': '*/' },
-\   'vue': { 'left': '/** ','right': '*/' }
+\   'javascript': s:NERDBlockCommentDelimiters,
+\   'jsx': s:NERDBlockCommentDelimiters,
+\   'typescript': s:NERDBlockCommentDelimiters,
+\   'tsx': s:NERDBlockCommentDelimiters,
+\   'vue': s:NERDBlockCommentDelimiters
 \}
 let g:NERDCommentEmptyLines = 1
 let g:NERDSpaceDelims = 1
