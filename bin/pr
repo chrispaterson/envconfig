@@ -1,12 +1,22 @@
 #!/bin/bash
 
-username=$(git config user.email | cut -d"@" -f 1 )
-reviewers=$(yaml2json "$(git rev-parse --show-toplevel)/.owners" | json groups.all | json -c "this != \"$username\"" | json -a )
-
 git fetch upstream
-git merge upstream/master $(git branch --show-current) --no-edit
 
-git push origin $cur_branch
+if [[ $? != 0 ]]; then
+  echo "Unable to fetch upstream, perhaps there is no remote named upstream?"
+  exit 1
+fi
+
+username=$(git config user.email | cut -d"@" -f 1 )
+cur_branch=$(git branch --show-current)
+reviewers=$(git config --get-all pr.reviewers)
+
+git checkout master
+git pull --rebase upstream master
+git push origin master
+
+git checkout $cur_branch
+git pull --rebase upstream master
 
 function join {
   local d=$1;
@@ -16,4 +26,18 @@ function join {
   printf %s "$f" "${@/#/$d}";
 }
 
-gh pr create --reviewer $(join , $reviewers)
+BODY="$(git log -1 --pretty=%B)"
+
+if [[ ! -z $JIRA_URL ]]; then
+  BODY="$BODY\n\n$JIRA_URL/browse/$cur_branch"
+fi
+
+if [ -z $reviewers ]; then
+
+  gh pr create -t $cur_branch -b $BODY -w
+
+else
+
+  gh pr create -t $cur_branch -b $BODY --reviewer $(join , $reviewers)
+
+fi

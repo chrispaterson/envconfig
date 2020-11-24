@@ -1,14 +1,13 @@
 [push]
 	default = simple
 [alias]
-	ac = ! git add -A && git commit
-	root = rev-parse --show-toplevel
-	cd = ! cd $(git root)
-	amend = ac --amend --no-edit
-    smd = "!f() { MOD=.vim/pack/lib/start/$1; git submodule deinit -f -- $MOD; sed \"/$1/d\" \"$(git root).gitmodules\" > \"$(git root).gitmodules\"; rm -rf $(git root)/$MOD $(git root)/.git/modules/$MOD; }; f"
-    sma = "!f() { FILE=${1##*/}; NAME=${FILE%.*}; DESTINATION=.vim/pack/lib/start/$NAME; git submodule add -f -- $1 $DESTINATION; }; f"
-    login = ! gh auth login --hostname git.corp.adobe.com 
-	d = difftool
+	ac = ! $HOME/bin/git/ac
+	root = ! $HOME/bin/git/root
+    squash = ! $HOME/bin/git/squash
+	amend = ! $HOME/bin/git/amend
+	provider = ! $HOME/bin/git/provider
+	rename-tag = ! $HOME/bin/git/rename-tag
+	set-author = ! $HOME/bin/git/set-author
 [checkout]
     defaultRemote = origin
 [diff]

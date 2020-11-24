@@ -9,13 +9,10 @@ au bufread,bufnewfile *.css set filetype=css
 au bufread,bufnewfile *.html set filetype=html
 au bufread,bufnewfile *.jade set filetype=jade
 au bufread,bufnewfile *.java set filetype=java
-au bufread,bufnewfile *.js set filetype=javascript
-au bufread,bufnewfile *.jsx set filetype=jsx
+au bufread,bufnewfile *.js,*.jsx set filetype=javascript
 au bufread,bufnewfile *.json set filetype=json
-au bufread,bufnewfile *.sass set filetype=sass
-au bufread,bufnewfile *.scss set filetype=sass
-au bufread,bufnewfile *.ts set filetype=typescript
-au bufread,bufnewfile *.tsx set filetype=tsx
+au bufread,bufnewfile *.sass,*.scss set filetype=sass
+au bufread,bufnewfile *.ts,*.tsx set filetype=typescript
 au bufread,bufnewfile *.vue set filetype=vue
 
 """""""""""""""""""""""""""""""
@@ -98,17 +95,17 @@ colorscheme Tomorrow-Night-Bright
 " filenames like *.xml, *.html, *.xhtml, ...
 " Then after you press <kbd>&gt;</kbd> in these files, this plugin will try to close the current tag.
 "
-let g:closetag_filenames = '*.html,*.jsx,*.vue'
+let g:closetag_filenames = '*.html,*.vue,*.jsx,*.tsx'
 
 " filenames like *.xml, *.xhtml, ...
 " This will make the list of non closing tags self closing in the specified files.
 "
-let g:closetag_xhtml_filenames = '*.xhtml'
+let g:closetag_xhtml_filenames = '*.xhtml,*.jsx,*.tsx'
 
 " filetypes like xml, html, xhtml, ...
 " These are the file types where this plugin is enabled.
 "
-let g:closetag_filetypes = 'html,vue,jsx,tsx,xhtml,phtml'
+let g:closetag_filetypes = 'html,vue,typescript.tsx,javascript.jsx,jsx,tsx,xhtml,phtml'
 
 " integer value [0|1]
 " This will make the list of non closing tags case sensitive (e.g. `<Link>` will be closed while `<link>` won't.)
@@ -117,7 +114,11 @@ let g:closetag_emptyTags_caseSensitive = 1
 
 " Shortcut for closing tags, default is '>'
 "
-let g:closetag_shortcut = '<C->>'
+let g:closetag_shortcut = '>>'
+
+" Add > at current position without closing the current tag, default is ''
+"
+let g:closetag_close_shortcut = '<leader>>'
 
 """"
 " NERDCommenter

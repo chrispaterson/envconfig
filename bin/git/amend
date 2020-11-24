@@ -1,0 +1,4 @@
+#!/bin/bash
+
+. $HOME/.shrc
+git ac --amend --no-edit
