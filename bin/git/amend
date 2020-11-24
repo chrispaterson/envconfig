@@ -1,4 +1,4 @@
 #!/bin/bash
 
-. $HOME/.shrc
-git ac --amend --no-edit
+git add -A
+git commit --amend --no-edit

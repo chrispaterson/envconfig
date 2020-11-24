@@ -1,9 +1,17 @@
 #!/bin/bash
 
-. $HOME/.shrc
+cd $(git root)
 
 BRANCH=$(git branch --show-current)
 TO_BRANCH='master' && [[ $# > 0 ]] && TO_BRANCH=$1
+
+if [[ $TO_BRANCH == $BRANCH ]]; then
+  echo "Can not squash from $BRANCH to $TO_BRANCH because they are the same"
+  exit 1
+fi
+
 COMMON_COMMIT=$(git merge-base $TO_BRANCH $BRANCH)
+
 git reset $COMMON_COMMIT
-git ac
+git add -A
+git commit
