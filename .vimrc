@@ -167,11 +167,6 @@ map <C-S-J> <C-w>j
 map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
 
-map <leader>d :ALEGoToDefinitionInVSplit<enter>
-map <leader>o :ALEOrganizeImports<enter>
-map <leader>r :ALERename<enter>
-map <leader>i :ALEHover<enter>
-
 nmap <silent> <leader>b <Plug>(ale_previous_wrap)
 nmap <silent> <leader>n <Plug>(ale_next_wrap)
 

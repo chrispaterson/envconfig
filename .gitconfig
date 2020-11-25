@@ -2,12 +2,13 @@
 	default = simple
 [alias]
 	ac = ! $HOME/bin/git/ac
-	root = ! $HOME/bin/git/root
-    squash = ! $HOME/bin/git/squash
 	amend = ! $HOME/bin/git/amend
 	provider = ! $HOME/bin/git/provider
 	rename-tag = ! $HOME/bin/git/rename-tag
+	root = ! $HOME/bin/git/root
 	set-author = ! $HOME/bin/git/set-author
+	start = ! $HOME/bin/git/start
+    squash = ! $HOME/bin/git/squash
 [checkout]
     defaultRemote = origin
 [diff]
