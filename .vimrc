@@ -26,6 +26,7 @@ set autoread
 " Ale
 """""""""""""""""""""""""""""""
 let g:ale_completion_tsserver_autoimport = 1
+let g:ale_completion_delay = 1000
 let g:ale_set_balloons = 1
 let g:ale_completion_enabled = 1
 let g:ale_cursor_detail = 0

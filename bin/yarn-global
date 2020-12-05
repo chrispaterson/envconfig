@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [[ -z $(command -v yarn) ]]; then
+
+  npm install -g yarn
+
+fi
+
+MODULES='create-ts-index markdown-to-html markserv ndb json vls jira-cl yamljs'
+
+yarn global add $MODULES

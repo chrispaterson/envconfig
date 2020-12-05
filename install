@@ -76,18 +76,6 @@ for APP in $(cat $PROJECT_DIR/brew_apps.txt); do
   fi
 done
 
-YARN_EXISTS=$(command -v yarn)
-
-if [[ -z $YARN_EXISTS ]]; then
-
-  npm install -g yarn
-
-fi
-
-for MODULE in $(cat $PROJECT_DIR/global_node_modules.txt); do
-
-  yarn global add $MODULE
-
-done
+$PROJECT_DIR/bin/yarn-global
 
 echo "Installed, but you must source ~/.profile for the env to take effect"

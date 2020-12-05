@@ -29,15 +29,17 @@ function join {
 BODY="$(git log -1 --pretty=%B)"
 
 if [[ ! -z $JIRA_URL ]]; then
-  BODY="$BODY\n\n$JIRA_URL/browse/$cur_branch"
+  BODY="$BODY
+
+  $JIRA_URL/browse/$cur_branch"
 fi
 
-if [ -z $reviewers ]; then
+if [[ -z "$reviewers" ]]; then
 
-  gh pr create -t $cur_branch -b $BODY -w
+  gh pr create -t $cur_branch -b "$BODY" -w
 
 else
 
-  gh pr create -t $cur_branch -b $BODY --reviewer $(join , $reviewers)
+  gh pr create -t $cur_branch -b "$BODY" --reviewer $(join , $reviewers)
 
 fi
