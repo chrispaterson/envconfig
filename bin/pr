@@ -1,45 +1,85 @@
 #!/bin/bash
 
-git fetch upstream
+PATH="$HOME/bin:$HOME/node_bin/node_modules/.bin:$PATH"
+NO_CURRENT_PR=$(gh pr view)
 
-if [[ $? != 0 ]]; then
-  echo "Unable to fetch upstream, perhaps there is no remote named upstream?"
-  exit 1
-fi
+if [[ $? == 1 ]]; then
+  git fetch upstream
 
-username=$(git config user.email | cut -d"@" -f 1 )
-cur_branch=$(git branch --show-current)
-reviewers=$(git config --get-all pr.reviewers)
+  if [[ $? != 0 ]]; then
+    echo "Unable to fetch upstream, perhaps there is no remote named upstream?"
+    exit 1
+  fi
 
-git checkout master
-git pull --rebase upstream master
-git push origin master
+  username=$(git config user.email | cut -d"@" -f 1 )
+  cur_branch=$(git branch --show-current)
+  reviewers=$(git config --get-all pr.reviewers)
 
-git checkout $cur_branch
-git pull --rebase upstream master
+  if [[ $cur_branch != "master" ]]; then
+    git checkout master
+    git pull upstream master
+    git push origin master
+    git checkout $cur_branch
+  fi
 
-function join {
-  local d=$1;
-  shift;
-  local f=$1;
-  shift;
-  printf %s "$f" "${@/#/$d}";
-}
+  git pull upstream master
 
-BODY="$(git log -1 --pretty=%B)"
+  function join {
+    local d=$1;
+    shift;
+    local f=$1;
+    shift;
+    printf %s "$f" "${@/#/$d}";
+  }
 
-if [[ ! -z $JIRA_URL ]]; then
-  BODY="$BODY
+  issue_key=$(issue)
 
-  $JIRA_URL/browse/$cur_branch"
-fi
+  echo ""
+  echo "Please enter a title for your pull request"
+  read pr_title
 
-if [[ -z "$reviewers" ]]; then
+  if [[ ! -z "$issue_key" ]]; then
 
-  gh pr create -t $cur_branch -b "$BODY" -w
+    pr_title="$issue_key $pr_title"
+  fi
 
+  if [ -z "$pr_title" ]; then
+
+    echo "ERROR: Title required"
+    exit 1
+  fi
+
+  echo ""
+  echo "Please enter the body for your pull request"
+  read pr_body
+
+  common_commit=$(git merge-base upstream/master $cur_branch)
+  commits=$(git log --pretty=format:" * %B" $common_commit..HEAD | grep -v '#')
+
+  pr_body="$pr_body
+
+  $commits"
+
+  jira_cli_config_path="$HOME/.jira-cli.json"
+
+  if [[ ! -z $issue_key && -f $jira_cli_config_path ]]; then
+
+    jira_host=$(cat $jira_cli_config_path | json host)
+
+    pr_body="$pr_body
+
+    https://$jira_host/browse/$issue_key"
+  fi
+
+  if [[ -z "$reviewers" ]]; then
+
+    gh pr create -t "$pr_title" -b "$pr_body" -w
+
+  else
+
+    gh pr create -t "$pr_title" -b "$pr_body" --reviewer $(join , $reviewers)
+
+  fi
 else
-
-  gh pr create -t $cur_branch -b "$BODY" --reviewer $(join , $reviewers)
-
+  gh pr view --web
 fi

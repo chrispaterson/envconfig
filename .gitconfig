@@ -2,6 +2,7 @@
 	default = simple
 [alias]
 	ac = ! $HOME/bin/git/ac
+	c = ! $HOME/bin/git/c
 	amend = ! $HOME/bin/git/amend
 	provider = ! $HOME/bin/git/provider
 	rename-tag = ! $HOME/bin/git/rename-tag
@@ -9,19 +10,26 @@
 	set-author = ! $HOME/bin/git/set-author
 	start = ! $HOME/bin/git/start
     squash = ! $HOME/bin/git/squash
+	d = difftool
+	m = c
 [checkout]
     defaultRemote = origin
 [diff]
 	tool = vimdiff
 [difftool]
+    cmd = vim -f -c MergetoolStart "$MERGED" "$BASE" "$LOCAL" "$REMOTE"
 	prompt = false
 [merge]
-	tool = vimdiff
+	tool = vim_mergetool
 	conflictstyle = diff3
 [mergetool]
+    keepBackup=false
 	prompt = false
+[mergetool "vim_mergetool"]
+    cmd = vim -f -c MergetoolStart "$MERGED" "$BASE" "$LOCAL" "$REMOTE"
+    trustExitCode=true
 [credential]
 	helper = store
 [core]
 	ignorecase = false
-	hooksPath = ~/githooks
+	hooksPath = 

@@ -61,3 +61,6 @@
 [submodule ".vim/pack/lib/start/vim-jsx-typescript"]
 	path = .vim/pack/lib/start/vim-jsx-typescript
 	url = https://github.com/peitalin/vim-jsx-typescript.git
+[submodule ".vim/pack/lib/start/vim-mergetool"]
+	path = .vim/pack/lib/start/vim-mergetool
+	url = git@github.com:samoshkin/vim-mergetool.git

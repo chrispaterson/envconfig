@@ -171,6 +171,8 @@ map <C-S-L> <C-w>l
 nmap <silent> <leader>b <Plug>(ale_previous_wrap)
 nmap <silent> <leader>n <Plug>(ale_next_wrap)
 
+nmap <silent> <leader>g <Plug>(diffget)
+
 inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
 silent! call repeat#set("\<Plug>MyWonderfulMap", v:count)
 

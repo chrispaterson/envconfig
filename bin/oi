@@ -3,7 +3,6 @@
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 GIT_PROVIDER=$(git_provider)
 
-
 if [[ -z $1 ]]; then
   if [[ $BRANCH =~ ^[0-9]*$ ]]; then
 
@@ -20,10 +19,8 @@ else
 
 fi
 
-
 REMOTE=$(git remote get-url origin | cut -d "@" -f2)
 REMOTE=${REMOTE%.*}
-
 
 if [[ $GIT_PROVIDER == 'github' ]]; then
 
