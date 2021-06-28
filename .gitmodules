@@ -61,3 +61,6 @@
 [submodule ".vim/pack/lib/start/vim-mergetool"]
 	path = .vim/pack/lib/start/vim-mergetool
 	url = git@github.com:samoshkin/vim-mergetool.git
+[submodule ".vim/pack/lib/start/vim-styled-components"]
+	path = .vim/pack/lib/start/vim-styled-components
+	url = https://github.com/styled-components/vim-styled-components/
