@@ -25,10 +25,15 @@ set autoread
 """""""""""""""""""""""""""""""
 " Ale
 """""""""""""""""""""""""""""""
-let g:ale_completion_tsserver_autoimport = 1
+let g:ale_typescript_eslint_executable = 'eslint_d'
+let g:ale_typescript_eslint_use_global = 1
+let g:ale_tsx_eslint_executable = 'eslint_d'
+let g:ale_tsx_eslint_use_global = 1
+let g:ale_completion_autoimport = 0
 let g:ale_completion_delay = 1000
 let g:ale_set_balloons = 1
 let g:ale_completion_enabled = 1
+let g:ale_default_navigation = 'vsplit'
 let g:ale_cursor_detail = 0
 let g:ale_vue_vls_use_global = 1
 let g:ale_list_window_size = 100
@@ -65,6 +70,22 @@ let g:ale_completion_symbols = {
 \ }
 set omnifunc=ale#completion#OmniFunc
 
+map <leader>d :ALEGoToDefinition<enter>
+map <leader>t :ALEGoToTypeDefinition<enter>
+map <leader>o :ALEOrganizeImports<enter>
+map <leader>r :ALERename<enter>
+noremap <leader>i :NERDCommenterInsert<CR>
+
+
+"""""""""""""""""""""""""""""""
+" JSDoc
+"""""""""""""""""""""""""""""""
+let g:jsdoc_enable_es6 = 1
+let g:jsdoc_return = 1
+let g:jsdoc_param_description_separator = '-'
+noremap <leader>c :JsDoc<CR>
+
+
 """""""""""""""""""""""""""""""
 " NERDTree
 """""""""""""""""""""""""""""""
@@ -77,12 +98,6 @@ let NERDTreeShowHidden=1
 " close VIM when only nertree is open
 autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
 
-"""""""""""""""""""""""""""""""
-" JsDoc
-"""""""""""""""""""""""""""""""
-let g:jsdoc_enable_es6 = 1
-let g:jsdoc_return = 1
-let g:jsdoc_param_description_separator = '-'
 
 """""""""""""""""""""""""""""""
 " Colors.  Themes at http://vimcolors.com/

@@ -2,7 +2,7 @@
 
 source ~/.env
 
-GIT_PROVIDER=$(git_provider)
+GIT_PROVIDER=$(git provider)
 
 git config user.name "$MY_NAME"
 

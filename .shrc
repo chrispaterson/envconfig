@@ -19,6 +19,7 @@ fi
 
 #Add bin to path
 export PATH="$HOME/bin:$HOME/node_bin/node_modules/.bin:$PATH"
+export EDITOR="vim"
 
 ENV_FILE=$HOME/.env
 
