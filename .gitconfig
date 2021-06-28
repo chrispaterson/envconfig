@@ -2,7 +2,6 @@
 	default = simple
 [alias]
 	ac = ! $HOME/bin/git/ac
-	c = ! $HOME/bin/git/c
 	amend = ! $HOME/bin/git/amend
 	provider = ! $HOME/bin/git/provider
 	rename-tag = ! $HOME/bin/git/rename-tag
@@ -10,8 +9,7 @@
 	set-author = ! $HOME/bin/git/set-author
 	start = ! $HOME/bin/git/start
     squash = ! $HOME/bin/git/squash
-	d = difftool
-	m = c
+	dt = difftool
 [checkout]
     defaultRemote = origin
 [diff]
@@ -32,4 +30,4 @@
 	helper = store
 [core]
 	ignorecase = false
-	hooksPath = 
+	hooksPath =
