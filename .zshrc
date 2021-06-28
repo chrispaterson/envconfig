@@ -32,7 +32,7 @@ POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status root_indicator background_jobs)
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 # turn on tab auto complete
-autoload -Uz compinit && compinit
+autoload -Uz compinit && compinit -u
 
 # Automatically use nvm if an nvmrc is detected
 autoload -U add-zsh-hook
