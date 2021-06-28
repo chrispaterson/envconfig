@@ -63,4 +63,15 @@ if [[ ! -f $LOG ]]; then
 fi
 
 echo "  -  " >> $LOG
-vim "+normal G$" +startinsert $LOG
+
+if [[ $EDITOR =~ "vim" ]]; then
+
+  vim "+normal G$" +startinsert $LOG
+
+elif [[ $EDITOR =~ "emacs" ]]; then
+
+  emacs $LOG --eval "(goto-char (point-max))"
+else
+
+  open $LOG
+fi
