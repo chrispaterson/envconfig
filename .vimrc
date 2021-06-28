@@ -55,6 +55,7 @@ Plug 'tpope/vim-surround'
 Plug 'posva/vim-vue'
 Plug 'sekel/vim-vue-syntastic'
 Plug 'styled-components/vim-styled-components'
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
 " Initialize plugin system
 call plug#end()
