@@ -61,6 +61,28 @@ Plug 'neoclide/coc.nvim', {'branch': 'release'}
 call plug#end()
 
 """""""""""""""""""""""""""""""
+" CoC
+"""""""""""""""""""""""""""""""
+let g:coc_global_extensions = [
+  \ 'coc-tsserver',
+  \ 'coc-eslint',
+  \ 'coc-prettier'
+  \ ]
+
+function! ShowDocIfNoDiagnostic(timer_id)
+  if (coc#util#has_float() == 0)
+    silent call CocActionAsync('doHover')
+  endif
+endfunction
+
+function! s:show_hover_doc()
+  call timer_start(500, 'ShowDocIfNoDiagnostic')
+endfunction
+
+autocmd CursorHoldI * :call <SID>show_hover_doc()
+autocmd CursorHold * :call <SID>show_hover_doc()
+
+"""""""""""""""""""""""""""""""
 " JSDoc
 """""""""""""""""""""""""""""""
 let g:jsdoc_enable_es6 = 1
@@ -165,6 +187,15 @@ map <C-S-H> <C-w>h
 map <C-S-J> <C-w>j
 map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
+
+" Coc maps
+nmap <silent> gd <Plug>(coc-definition)
+nmap <silent> gt <Plug>(coc-type-definition)
+nmap <silent> gr <Plug>(coc-references)
+nmap <leader>rn <Plug>(coc-rename)
+nmap <leader>do <Plug>(coc-codeaction)
+nmap <silent> [g <Plug>(coc-diagnostic-prev)
+nmap <silent> ]g <Plug>(coc-diagnostic-next)
 
 nmap <silent> <leader>g <Plug>(diffget)
 
