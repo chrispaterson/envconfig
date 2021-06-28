@@ -22,58 +22,6 @@ set splitbelow
 set splitright
 set autoread
 
-"""""""""""""""""""""""""""""""
-" Ale
-"""""""""""""""""""""""""""""""
-let g:ale_typescript_eslint_executable = 'eslint_d'
-let g:ale_typescript_eslint_use_global = 1
-let g:ale_tsx_eslint_executable = 'eslint_d'
-let g:ale_tsx_eslint_use_global = 1
-let g:ale_completion_autoimport = 0
-let g:ale_completion_delay = 1000
-let g:ale_set_balloons = 1
-let g:ale_completion_enabled = 1
-let g:ale_default_navigation = 'vsplit'
-let g:ale_cursor_detail = 0
-let g:ale_vue_vls_use_global = 1
-let g:ale_list_window_size = 100
-let g:ale_fix_on_save = 1
-let g:ale_linters_explicit = 1
-let g:ale_fixers = {'*': ['remove_trailing_lines', 'trim_whitespace']}
-let g:ale_completion_symbols = {
-\ 'text': '',
-\ 'method': '',
-\ 'function': '',
-\ 'constructor': '',
-\ 'field': '',
-\ 'variable': '',
-\ 'class': '',
-\ 'interface': '',
-\ 'module': '',
-\ 'property': '',
-\ 'unit': 'v',
-\ 'value': 'v',
-\ 'enum': 't',
-\ 'keyword': 'v',
-\ 'snippet': 'v',
-\ 'color': 'v',
-\ 'file': 'v',
-\ 'reference': 'v',
-\ 'folder': 'v',
-\ 'enum_member': 'm',
-\ 'constant': 'm',
-\ 'struct': 't',
-\ 'event': 'v',
-\ 'operator': 'f',
-\ 'type_parameter': 'p',
-\ '<default>': 'v'
-\ }
-set omnifunc=ale#completion#OmniFunc
-
-map <leader>d :ALEGoToDefinition<enter>
-map <leader>t :ALEGoToTypeDefinition<enter>
-map <leader>o :ALEOrganizeImports<enter>
-map <leader>r :ALERename<enter>
 noremap <leader>i :NERDCommenterInsert<CR>
 
 
@@ -182,9 +130,6 @@ map <C-S-H> <C-w>h
 map <C-S-J> <C-w>j
 map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
-
-nmap <silent> <leader>b <Plug>(ale_previous_wrap)
-nmap <silent> <leader>n <Plug>(ale_next_wrap)
 
 nmap <silent> <leader>g <Plug>(diffget)
 
