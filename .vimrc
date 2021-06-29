@@ -56,6 +56,7 @@ Plug 'posva/vim-vue'
 Plug 'sekel/vim-vue-syntastic'
 Plug 'styled-components/vim-styled-components'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
+Plug 'jonsmithers/vim-html-template-literals'
 
 " Initialize plugin system
 call plug#end()
@@ -68,19 +69,6 @@ let g:coc_global_extensions = [
   \ 'coc-eslint',
   \ 'coc-prettier'
   \ ]
-
-function! ShowDocIfNoDiagnostic(timer_id)
-  if (coc#util#has_float() == 0)
-    silent call CocActionAsync('doHover')
-  endif
-endfunction
-
-function! s:show_hover_doc()
-  call timer_start(500, 'ShowDocIfNoDiagnostic')
-endfunction
-
-autocmd CursorHoldI * :call <SID>show_hover_doc()
-autocmd CursorHold * :call <SID>show_hover_doc()
 
 """""""""""""""""""""""""""""""
 " JSDoc
@@ -141,6 +129,13 @@ let g:closetag_shortcut = '>>'
 "
 let g:closetag_close_shortcut = '<leader>>'
 
+let g:closetag_regions = {
+      \ 'typescript.tsx': 'jsxRegion,tsxRegion,litHtmlRegion',
+      \ 'javascript.jsx': 'jsxRegion,litHtmlRegion',
+      \ 'javascript':     'litHtmlRegion',
+      \ 'typescript':     'litHtmlRegion',
+      \ }
+
 """"
 " NERDCommenter
 """"
@@ -189,17 +184,16 @@ map <C-S-K> <C-w>k
 map <C-S-L> <C-w>l
 
 " Coc maps
-nmap <silent> gd <Plug>(coc-definition)
-nmap <silent> gt <Plug>(coc-type-definition)
-nmap <silent> gr <Plug>(coc-references)
-nmap <leader>rn <Plug>(coc-rename)
-nmap <leader>do <Plug>(coc-codeaction)
-nmap <silent> [g <Plug>(coc-diagnostic-prev)
-nmap <silent> ]g <Plug>(coc-diagnostic-next)
+nmap <leader>d <Plug>(coc-definition)
+nmap <leader>t <Plug>(coc-type-definition)
+nmap <leader>i :call CocAction('doHover')<CR>
+nmap <leader>f <Plug>(coc-references)
+nmap <leader>r <Plug>(coc-rename)
+nmap <leader>g <Plug>(diffget)
+nmap <silent>[g <Plug>(coc-diagnostic-prev)
+nmap <silent>]g <Plug>(coc-diagnostic-next)
 
-nmap <silent> <leader>g <Plug>(diffget)
-
-inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
+inoremap <expr> <CR> pumvisible() ? "\<C-y>" <esc> "\<C-g>u\<CR>"
 silent! call repeat#set("\<Plug>MyWonderfulMap", v:count)
 
 tnoremap : <C-W><C-P>
