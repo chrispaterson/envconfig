@@ -57,6 +57,8 @@ load-nvmrc() {
   fi
 }
 
+bindkey -v
+
 add-zsh-hook chpwd load-nvmrc
 
 load-nvmrc

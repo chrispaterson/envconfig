@@ -1,3 +1,4 @@
 nvm
 gh
 kdiff3
+tmux

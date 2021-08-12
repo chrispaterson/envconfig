@@ -68,17 +68,17 @@ if [[ "$OSTYPE" =~ "darwin" ]]; then
 
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
   fi
+
+  # All the system level apps that I install with brew
+  for APP in $(cat $PROJECT_DIR/brew_apps.txt); do
+
+    if ! command -v $APP &> /dev/null
+    then
+      brew install $APP
+    fi
+  done
+
 fi
-
-
-# All the system level apps that I install with brew
-for APP in $(cat $PROJECT_DIR/brew_apps.txt); do
-
-  if ! command -v $APP &> /dev/null
-  then
-    brew install $APP
-  fi
-done
 
 $PROJECT_DIR/bin/yarn-global
 
