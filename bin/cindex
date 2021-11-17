@@ -1,0 +1,25 @@
+#!/bin/bash
+
+START_PATH='.'
+
+if ! [ -z $1 ]; then
+  START_PATH=$1
+fi
+
+if ! [ -d $START_PATH ]; then
+  echo 'invalid path name'
+  exit 1
+fi
+
+cd $START_PATH
+FILES=$(ls)
+echo -n > 'index.ts'
+for FILE in $FILES; do 
+  if [[ $FILE != 'index.ts' ]]; then 
+    if [ -d $FILE ]; then
+      echo "export * from './$FILE';" >> 'index.ts'
+    elif [[ ${FILE##*.} == 'ts' ]]; then
+      echo "export * from './${FILE%.*}';" >> 'index.ts'
+    fi
+  fi
+done

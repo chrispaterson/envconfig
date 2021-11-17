@@ -1,13 +1,12 @@
 {
   "eslint.autoFixOnSave": true,
-  "eslint.filetypes": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
-  "coc.preferences.formatOnSaveFiletypes": [
-    "javascript",
-    "javascriptreact",
-    "typescript",
-    "typescriptreact"
-  ],
-  "tsserver.formatOnType": true,
+  "eslint.run": "onSave",
+  "stylelintplus.autoFixOnFormat": true,
+  "stylelintplus.autoFixOnSave": true,
+  "stylelintplus.validateOnSave": true,
+  "stylelintplus.filetypes": ["css", "sass"],
+  "stylelintplus.cssInJs": true,
+  "tsserver.formatOnType": false,
   "coc.preferences.formatOnType": true,
   "coc.preferences.jumpCommand": "vsplit",
   "prettier.disableSuccessMessage": true

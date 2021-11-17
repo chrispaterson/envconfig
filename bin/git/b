@@ -1,0 +1,6 @@
+#!/bin/bash
+
+. ~/.env
+BRANCH_NAME="$USERNAME/$1"
+git checkout -b $BRANCH_NAME
+git push --set-upstream origin $BRANCH_NAME

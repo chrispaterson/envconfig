@@ -31,6 +31,38 @@ set splitright
 set autoread
 
 """""""""""""""""""""""""""""""
+"general options
+"""""""""""""""""""""""""""""""
+set statusline=%l:%f
+set encoding=utf-8
+set cmdheight=2
+set updatetime=300
+set shortmess+=c
+set hidden
+
+" Always show the signcolumn, otherwise it would shift the text each time
+" diagnostics appear/become resolved.
+if has("patch-8.1.1564")
+  " Recently vim can merge signcolumn and number column into one
+  set signcolumn=number
+else
+  set signcolumn=yes
+endif
+
+"line number
+set number
+set ruler
+
+"smarter search
+set showmatch
+set incsearch
+set hlsearch
+
+"other options
+set showcmd
+set noautochdir
+
+"""""""""""""""""""""""""""""""
 " vim-plug
 """""""""""""""""""""""""""""""
 let data_dir = has('nvim') ? stdpath('data') . '/site' : '~/.vim'
@@ -47,7 +79,6 @@ call plug#begin('~/.vim/plugged')
 Plug 'Xuyuanp/nerdtree-git-plugin'
 Plug 'alvan/vim-closetag'
 Plug 'chrispaterson/vim-colorschemes'
-Plug 'chrispaterson/vim-colorschemes'
 Plug 'editorconfig/editorconfig-vim'
 Plug 'heavenshell/vim-jsdoc'
 Plug 'https://tpope.io/vim/repeat.git'
@@ -63,6 +94,7 @@ Plug 'scrooloose/nerdtree'
 Plug 'sekel/vim-vue-syntastic'
 Plug 'styled-components/vim-styled-components'
 Plug 'tpope/vim-surround'
+Plug 'tpope/vim-markdown'
 Plug 'christoomey/vim-tmux-navigator'
 
 " Initialize plugin system
@@ -74,7 +106,10 @@ call plug#end()
 let g:coc_global_extensions = [
   \ 'coc-tsserver',
   \ 'coc-eslint',
-  \ 'coc-prettier'
+  \ 'coc-stylelintplus',
+  \ 'coc-json',
+  \ 'coc-prettier',
+  \ 'coc-markdownlint'
   \ ]
 
 augroup mygroup
@@ -85,6 +120,10 @@ augroup mygroup
   autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 augroup end
 
+"""""""""""""""""""""""""""""""
+" Markdown Lint
+"""""""""""""""""""""""""""""""
+let g:markdown_fenced_languages = ['javascript', 'typescript', 'html']
 
 """""""""""""""""""""""""""""""
 " JSDoc
@@ -170,40 +209,11 @@ let g:NERDCommentEmptyLines = 1
 let g:NERDSpaceDelims = 1
 let g:NERDCompactSexyComs = 1
 
-""""
-"general options
-""""
-set statusline=%l:%f
-nnoremap <SPACE> <Nop>
-let mapleader=" "
-set encoding=utf-8
-set cmdheight=2
-set updatetime=300
-set shortmess+=c
-
-" Always show the signcolumn, otherwise it would shift the text each time
-" diagnostics appear/become resolved.
-if has("patch-8.1.1564")
-  " Recently vim can merge signcolumn and number column into one
-  set signcolumn=number
-else
-  set signcolumn=yes
-endif
-
-"line number
-set number
-set ruler
-
-"smarter search
-set showmatch
-set incsearch
-set hlsearch
-
-"other options
-set showcmd
-set noautochdir
 
 "" Key Mappins"
+nnoremap <SPACE> <Nop>
+let mapleader=" "
+
 map <C-S-H> <C-w>h
 map <C-S-J> <C-w>j
 map <C-S-K> <C-w>k
