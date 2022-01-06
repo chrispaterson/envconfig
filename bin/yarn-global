@@ -6,6 +6,4 @@ if [[ -z $(command -v yarn) ]]; then
 
 fi
 
-MODULES='create-ts-index markdown-to-html markserv json jira-cl yamljs ts-prune'
-
-yarn global add $MODULES
+yarn global add markserv json jira-cl yamljs ts-prune

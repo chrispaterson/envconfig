@@ -5,6 +5,7 @@
 	amend = ! $HOME/bin/git/amend
   b = ! $HOME/bin/git/b
 	provider = ! $HOME/bin/git/provider
+	isrepo = ! $HOME/bin/git/isrepo
 	rename-tag = ! $HOME/bin/git/rename-tag
 	root = ! $HOME/bin/git/root
 	set-author = ! $HOME/bin/git/set-author

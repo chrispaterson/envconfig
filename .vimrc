@@ -8,7 +8,7 @@ au bufread,bufnewfile *.css set filetype=css
 au bufread,bufnewfile *.html set filetype=html
 au bufread,bufnewfile *.jade set filetype=jade
 au bufread,bufnewfile *.java set filetype=java
-au bufread,bufnewfile *.js,*.jsx set filetype=javascript
+au bufread,bufnewfile *.js,*.jsx,*.cjs set filetype=javascript
 au bufread,bufnewfile *.json set filetype=json
 au bufread,bufnewfile *.sass,*.scss set filetype=sass
 au bufread,bufnewfile *.ts,*.tsx set filetype=typescript
@@ -95,6 +95,7 @@ Plug 'sekel/vim-vue-syntastic'
 Plug 'styled-components/vim-styled-components'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-markdown'
+Plug 'rderik/vim-markdown-toc'
 Plug 'christoomey/vim-tmux-navigator'
 
 " Initialize plugin system
@@ -123,7 +124,13 @@ augroup end
 """""""""""""""""""""""""""""""
 " Markdown Lint
 """""""""""""""""""""""""""""""
-let g:markdown_fenced_languages = ['javascript', 'typescript', 'html']
+let g:markdown_fenced_languages = []
+
+"""""""""""""""""""""""""""""""
+" Vim markdown Table of Contents
+"""""""""""""""""""""""""""""""
+let g:vmt_insert_anchors = 1
+let g:vmt_auto_update_on_save = 1
 
 """""""""""""""""""""""""""""""
 " JSDoc
