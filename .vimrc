@@ -9,7 +9,7 @@ au bufread,bufnewfile *.html set filetype=html
 au bufread,bufnewfile *.jade set filetype=jade
 au bufread,bufnewfile *.java set filetype=java
 au bufread,bufnewfile *.js,*.jsx,*.cjs set filetype=javascript
-au bufread,bufnewfile *.json set filetype=json
+au bufread,bufnewfile *.json set filetype=jsonc
 au bufread,bufnewfile *.sass,*.scss set filetype=sass
 au bufread,bufnewfile *.ts,*.tsx set filetype=typescript
 au bufread,bufnewfile *.vue set filetype=vue
@@ -97,6 +97,7 @@ Plug 'tpope/vim-surround'
 Plug 'tpope/vim-markdown'
 Plug 'rderik/vim-markdown-toc'
 Plug 'christoomey/vim-tmux-navigator'
+Plug 'kevinoid/vim-jsonc'
 
 " Initialize plugin system
 call plug#end()

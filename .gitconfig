@@ -3,15 +3,17 @@
 [alias]
 	ac = ! $HOME/bin/git/ac
 	amend = ! $HOME/bin/git/amend
-  b = ! $HOME/bin/git/b
-	provider = ! $HOME/bin/git/provider
+	dt = difftool
 	isrepo = ! $HOME/bin/git/isrepo
+	provider = ! $HOME/bin/git/provider
 	rename-tag = ! $HOME/bin/git/rename-tag
 	root = ! $HOME/bin/git/root
 	set-author = ! $HOME/bin/git/set-author
 	start = ! $HOME/bin/git/start
-    squash = ! $HOME/bin/git/squash
-	dt = difftool
+  b = ! $HOME/bin/git/b
+  base = ! $HOME/bin/git/base 
+  squash = ! $HOME/bin/git/squash
+  update = ! $HOME/bin/git/update
 [checkout]
     defaultRemote = origin
 [diff]
@@ -37,3 +39,9 @@
 	name = Chris Paterson
 [pull]
 	rebase = false
+[credential "https://github.com"]
+	helper = 
+	helper = !/usr/local/bin/gh auth git-credential
+[credential "https://git.corp.adobe.com"]
+	helper = 
+	helper = !/usr/local/bin/gh auth git-credential

@@ -50,10 +50,6 @@ load-nvmrc() {
       nvm use
       $HOME/bin/yarn-global
     fi
-  elif [ "$node_version" != "$(nvm version default)" ]; then
-    echo "Reverting to nvm default version"
-    nvm use default
-    $HOME/bin/yarn-global
   fi
 }
 
