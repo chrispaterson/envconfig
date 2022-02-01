@@ -1,6 +1,17 @@
 #!/bin/bash
-
+set -e
 . ~/.env
-BRANCH_NAME="$USERNAME/$1"
+
+if [[ $# == 0 ]]; then
+  echo 'Please provide a branch name'
+  exit 1
+elif [[ $# == 1 ]]; then
+  BASE_BRANCH=$(git base)
+  BRANCH_NAME="$USERNAME/$1"
+elif [[ $# == 2 ]]; then
+  BASE_BRANCH=$1
+  BRANCH_NAME="$USERNAME/$2"
+fi
+git checkout $BASE_BRANCH
 git checkout -b $BRANCH_NAME
 git push --set-upstream origin $BRANCH_NAME

@@ -1,27 +1,35 @@
 #!/bin/bash
 set -e
 
-git pull
-cd $(git root)
 BRANCH=$(git branch --show-current)
-TO_BRANCH=$(git base) && [[ $# > 0 ]] && TO_BRANCH=$1
+TO_BRANCH="main" && [[ $# > 0 ]] && TO_BRANCH=$1
 
 if [[ $TO_BRANCH == $BRANCH ]]; then
   echo "Can not merge from $BRANCH to $TO_BRANCH because they are the same"
   exit 1
 fi
 
+read -p "Do you want to get changes from $TO_BRANCH? [Y/n] " -n 1 -r
+echo    # move to a new line
+
+if ! [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]
+then
+  echo "Exiting without merging"
+  exit 
+
+fi
+
+git pull
+cd $(git root)
 git switch $TO_BRANCH 
 git pull
 git switch - 
-
-git merge --no-commit $TO_BRANCH
 
 if [[ -f ./rush.json ]]; then
   git checkout $TO_BRANCH -- common/config/rush/pnpm-lock.yaml common/config/rush/repo-state.json && rush update 
 fi
 
-git add -A 
+git merge $TO_BRANCH
+git add -A
 git commit -m "Merge $TO_BRANCH into $BRANCH"
-
 cd -
