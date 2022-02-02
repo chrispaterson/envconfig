@@ -19,17 +19,26 @@ then
 
 fi
 
-git pull
 cd $(git root)
+git pull
 git switch $TO_BRANCH 
 git pull
 git switch - 
 
+git merge $TO_BRANCH
+
 if [[ -f ./rush.json ]]; then
+
   git checkout $TO_BRANCH -- common/config/rush/pnpm-lock.yaml common/config/rush/repo-state.json && rush update 
+  git add common/config/rush/pnpm-lock.yaml
+  git add common/config/rush/repo-state.json
 fi
 
-git merge $TO_BRANCH
-git add -A
-git commit -m "Merge $TO_BRANCH into $BRANCH"
+CONFLICTS=$(git diff --name-status --diff-filter=U)
+if [[ -z "$CONFLICTS" ]]; then
+  git commit --no-edit
+else
+  echo "Please resolve the following merge conflicts before committing"
+fi
+
 cd -

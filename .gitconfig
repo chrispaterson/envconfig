@@ -12,6 +12,7 @@
 	start = ! $HOME/bin/git/start
   b = ! $HOME/bin/git/b
   base = ! $HOME/bin/git/base 
+  pr = ! $HOME/bin/git/pr 
   squash = ! $HOME/bin/git/squash
   update = ! $HOME/bin/git/update
 [checkout]
