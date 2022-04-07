@@ -8,7 +8,7 @@ au bufread,bufnewfile *.css set filetype=css
 au bufread,bufnewfile *.html set filetype=html
 au bufread,bufnewfile *.jade set filetype=jade
 au bufread,bufnewfile *.java set filetype=java
-au bufread,bufnewfile *.js,*.jsx,*.cjs set filetype=javascript
+au bufread,bufnewfile *.js,*.jsx,*.cjs,*.mjs set filetype=javascript
 au bufread,bufnewfile *.json set filetype=jsonc
 au bufread,bufnewfile *.sass,*.scss set filetype=sass
 au bufread,bufnewfile *.ts,*.tsx set filetype=typescript
@@ -98,6 +98,7 @@ Plug 'tpope/vim-markdown'
 Plug 'rderik/vim-markdown-toc'
 Plug 'christoomey/vim-tmux-navigator'
 Plug 'kevinoid/vim-jsonc'
+Plug 'whiteinge/diffconflicts'
 
 " Initialize plugin system
 call plug#end()
@@ -121,6 +122,8 @@ augroup mygroup
   " Update signature help on jump placeholder.
   autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 augroup end
+
+command! -nargs=0 Prettier :CocCommand prettier.formatFile
 
 """""""""""""""""""""""""""""""
 " Markdown Lint
@@ -298,6 +301,8 @@ nmap <leader>a  <Plug>(coc-codeaction-selected)
 nmap <leader>ac  <Plug>(coc-codeaction)
 " Apply AutoFix to problem on the current line.
 nmap <leader>qf  <Plug>(coc-fix-current)
+
+nmap <leader>h   <Plug>(DiffConflictsShowHistory)
 
 " Map function and class text objects
 " NOTE: Requires 'textDocument.documentSymbol' support from the language server.

@@ -3,6 +3,7 @@
 [alias]
 	ac = ! $HOME/bin/git/ac
 	amend = ! $HOME/bin/git/amend
+  commands = ! $HOME/bin/git/commands
 	dt = difftool
 	isrepo = ! $HOME/bin/git/isrepo
 	provider = ! $HOME/bin/git/provider
@@ -13,7 +14,10 @@
   b = ! $HOME/bin/git/b
   base = ! $HOME/bin/git/base 
   pr = ! $HOME/bin/git/pr 
+  prune-branches = ! $HOME/bin/git/prune-branches 
+  rr = ! $HOME/bin/git/rr 
   squash = ! $HOME/bin/git/squash
+  umr = ! $HOME/bin/git/umr
   update = ! $HOME/bin/git/update
 [checkout]
     defaultRemote = origin
@@ -23,10 +27,10 @@
     cmd = vim -f -c MergetoolStart "$MERGED" "$BASE" "$LOCAL" "$REMOTE"
 	prompt = false
 [merge]
-	tool = vim_mergetool
+	tool = diffconflicts
 	conflictstyle = diff3
 [mergetool]
-    keepBackup=false
+	keepBackup = false
 	prompt = false
 [mergetool "vim_mergetool"]
     cmd = vim -f -c MergetoolStart "$MERGED" "$BASE" "$LOCAL" "$REMOTE"
@@ -38,6 +42,7 @@
 	hooksPath =
 [user]
 	name = Chris Paterson
+	email = paterson@adobe.com
 [pull]
 	rebase = false
 [credential "https://github.com"]
@@ -46,3 +51,11 @@
 [credential "https://git.corp.adobe.com"]
 	helper = 
 	helper = !/usr/local/bin/gh auth git-credential
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+[mergetool "diffconflicts"]
+	cmd = vim -c DiffConflicts \"$MERGED\" \"$BASE\" \"$LOCAL\" \"$REMOTE\"
+	trustExitCode = true

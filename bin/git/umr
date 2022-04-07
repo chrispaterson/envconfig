@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "Showing PRs reviewed by me but not merged"
+gh pr list -S "reviewed-by:@me"

@@ -1,9 +1,24 @@
 {
   "eslint.autoFixOnSave": true,
   "eslint.run": "onSave",
+  "eslint.packageManager": "pnpm",
   "tsserver.formatOnType": false,
+  "tsserver.npm": "/usr/local/bin/pnpm",
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.preferences.importModuleSpecifierEnding":"js",
+  "typescript.preferences.quoteStyle":"double",
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": true,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
   "coc.preferences.formatOnType": true,
   "coc.preferences.jumpCommand": "vsplit",
-  "coc.preferences.formatOnSaveFiletypes": ["javascript", "typescript", "json", "css", "markdown"],
+  "coc.preferences.formatOnSaveFiletypes": [
+    "javascript", 
+    "typescript", 
+    "json", 
+    "jsonc", 
+    "css", 
+    "markdown", 
+    "html"
+  ],
   "prettier.disableSuccessMessage": true
 }

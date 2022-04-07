@@ -1,25 +1,63 @@
 #!/bin/bash
 
-START_PATH='.'
+START_PATH=''
 
-if ! [ -z $1 ]; then
-  START_PATH=$1
-fi
+ESLINT="$(npm bin)/eslint"
+RECURSIVE=""
+print_usage() {
+  echo
+  echo "Create Index Usage:"
+  echo
+  echo "$(basename $0) [-r] [-h] [PATH] "
+  echo " [-r] - recursively create index.ts files"
+  echo " [-h] - print this help dialog"
+  echo " [PATH] - Starting Path, defaults to '.'"
+  echo
+}
 
-if ! [ -d $START_PATH ]; then
-  echo 'invalid path name'
-  exit 1
-fi
-
-cd $START_PATH
-FILES=$(ls)
-echo -n > 'index.ts'
-for FILE in $FILES; do 
-  if [[ $FILE != 'index.ts' ]]; then 
-    if [ -d $FILE ]; then
-      echo "export * from './$FILE';" >> 'index.ts'
-    elif [[ ${FILE##*.} == 'ts' ]]; then
-      echo "export * from './${FILE%.*}';" >> 'index.ts'
-    fi
+for ARG in "$@"; do
+  if [[ -d $ARG ]]; then
+    START_PATH=$ARG
+  elif [[ $ARG == "-r" ]]; then
+    RECURSIVE='true'
+  elif [[ $ARG == "-h" ]]; then
+    print_usage
+    exit 0;
+  else 
+    print_usage
+    exit 1;
   fi
 done
+
+
+create() {
+  cd $1 >/dev/null 2>&1
+  FILES=$(ls)
+  echo -n > 'index.ts'
+  for FILE in $FILES; do 
+    if [[ $FILE != 'index.ts'  ]]; then 
+      if [ -d $FILE ]; then
+
+        # don't link to it if it's prefixed with an underscore
+        if [[ $FILE != _* ]]; then
+          echo "export * from \"./$FILE/index.js\";" >> 'index.ts'
+        fi
+
+        create "$PWD/$FILE"
+        cd ../ >/dev/null 2>&1
+
+      elif [[ $FILE == *.ts && $FILE != *.*.ts && $FILE != _* ]]; then
+
+        echo "export * from \"./${FILE%.*}.js\";" >> 'index.ts'
+      fi
+    fi
+  done
+
+  #if [ -f $ESLINT ]; then
+  #  $ESLINT --fix index.ts >/dev/null 2>&1
+  #fi
+
+  echo "Created index file at $1/index.ts"
+
+}
+create "$PWD/$START_PATH"

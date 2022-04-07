@@ -1,6 +1,4 @@
 #!/bin/bash
-set -e
-
 BRANCH=$(git branch --show-current)
 TO_BRANCH="main" && [[ $# > 0 ]] && TO_BRANCH=$1
 
@@ -25,7 +23,7 @@ git switch $TO_BRANCH
 git pull
 git switch - 
 
-git merge $TO_BRANCH
+git merge $TO_BRANCH --no-edit
 
 if [[ -f ./rush.json ]]; then
 
