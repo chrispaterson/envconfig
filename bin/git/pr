@@ -1,3 +1,7 @@
 #!/bin/bash
 
+# Just wraps gh pr and passes along arguments
+# This only exists because I often try to do
+# this by mistake
+
 gh pr $@

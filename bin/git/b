@@ -1,4 +1,14 @@
 #!/bin/bash
+
+# Creates a branch prefixed with the username
+# $USERNAME should be set in ~/.env
+#
+# Example: git b foo
+# creates a branch from main named [USERNAME]/foo
+#
+# Example 2: git b bar foo
+# creates a branch from bar named [USERNAME]/foo
+
 set -e
 . ~/.env
 

@@ -1,4 +1,7 @@
 #!/bin/bash
 
+# Echos list of PR reviews that you haven't looked at yet
+# Requires gh commandline util
+
 echo "Showing PRs that have requested my review but I haven't reviewed yet"
 gh pr list -S "user-review-requested:@me"

@@ -1,7 +1,0 @@
-#!/bin/bash
-
-BRANCHES=$(git branch -l)
-
-for BRANCH in $BRANCHES; do 
-  echo $BRANCH
-done

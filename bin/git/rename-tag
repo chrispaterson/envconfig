@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# For renaming a tag that was named incorrectly by mistake
+
 if [[ -z $1 || -z $2 ]]; then
   echo "Please pass old name and new name"
   exit 1

@@ -1,5 +1,22 @@
 #!/bin/bash
 
+# sets author and email based on values in the ~/.env file
+# When cloning a repository and making a commit, the git cl
+# will make a commit without the author information set.   
+# When working with repos across public github and internal 
+# corporate, it doesn't make sense to use a global 
+# configuration.  This script enables you to set the author
+# variables per repo.
+#
+# required variables in ~/.env
+# MY_NAME - Human readable name
+# WORK_EMAIL - As it sounds
+# GITHUB_ANON_EMAIL - Github provides an anonymous email
+#
+# Example: git set-author
+# sets author variables for the repo and amends the last
+# commit with that information.
+
 source ~/.env
 
 GIT_PROVIDER=$(git provider)

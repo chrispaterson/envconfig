@@ -1,4 +1,7 @@
 #!/bin/bash
 
+# shows github prs that have been reviewed by you but not yet merged
+# requires gh
+
 echo "Showing PRs reviewed by me but not merged"
 gh pr list -S "reviewed-by:@me"

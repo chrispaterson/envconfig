@@ -1,4 +1,7 @@
 #!/bin/bash
 
+# For when you make a commit but wanted to add 
+# something else to it without editing it
+
 git add -A
 git commit --amend --no-edit

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# exits 0 if the current working directory is in a repo
+# otherwise exits 1
+
 if git rev-parse --git-dir > /dev/null 2>&1; then
     exit 0
   else

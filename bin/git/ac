@@ -1,3 +1,8 @@
 #!/bin/bash
 
+# Simple script that combines git add "all" and git commit.  
+# Passes along additional flags to commit as well
+# 
+# Example usage: git ac -m "Commit Message" 
+
 git add -A && git commit "$*"

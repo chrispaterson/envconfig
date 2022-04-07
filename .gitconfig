@@ -10,11 +10,10 @@
 	rename-tag = ! $HOME/bin/git/rename-tag
 	root = ! $HOME/bin/git/root
 	set-author = ! $HOME/bin/git/set-author
-	start = ! $HOME/bin/git/start
   b = ! $HOME/bin/git/b
   base = ! $HOME/bin/git/base 
   pr = ! $HOME/bin/git/pr 
-  prune-branches = ! $HOME/bin/git/prune-branches 
+  prs = ! $HOME/bin/git/prs 
   rr = ! $HOME/bin/git/rr 
   squash = ! $HOME/bin/git/squash
   umr = ! $HOME/bin/git/umr

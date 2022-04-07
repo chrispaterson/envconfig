@@ -1,9 +1,12 @@
 #!/bin/bash
 
+# Begins interactive squash from last common commit
+# Usage: git squash [to-branch (default main)]
+
 cd $(git root)
 
 BRANCH=$(git branch --show-current)
-TO_BRANCH='master' && [[ $# > 0 ]] && TO_BRANCH=$1
+TO_BRANCH='main' && [[ $# > 0 ]] && TO_BRANCH=$1
 
 if [[ $TO_BRANCH == $BRANCH ]]; then
   echo "Can not squash from $BRANCH to $TO_BRANCH because they are the same"
