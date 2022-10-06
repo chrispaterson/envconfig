@@ -1,0 +1,103 @@
+#!/bin/bash
+
+usage ()
+{
+  echo "Usage: git pr [-h] <branch>"
+}
+
+showhelp()
+{
+  echo "
+  If no github pull request exists for this branch a draft github pull request
+  will be created and then opened in the browser.  Otherwise, just open the
+  github pull request in the browser.
+
+  CREATING:
+  For github pull request creation, the branch is assumed to follow the format
+  of <username>/<JIRA-ISSUE>/<semantic-name>
+
+  username      - is ignored
+
+  JIRA-ISSUE    - is added to the title, and a link is created in a body to the
+                  jira issue. 
+                  
+                  The title will be set in the following format:
+                    [JIRA-ISSUE] <title>
+
+                  The link will be placed in the body in the following format: 
+                    [JIRA-ISSUE](https://jira.corp.adobe.com/browse/JIRA-ISSUE
+
+  semantic-name - Will be converted from kebab-case to Title Case and used in
+                  the title of the github pull request.
+
+  CLI Dependencies: git, gh, node
+  "
+  echo " "
+  usage
+  echo " "
+  echo "options:"
+  echo "-h, --help                show brief help"
+}
+
+while getopts "h" opt; do
+  case $opt in
+    h | -help)
+      showhelp
+      exit
+      ;;
+    \?)
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+branch=$(git branch --show-current)
+gh_pr_view=$(gh pr view 2>&1)
+to_branch="main" && [[ $# > 0 ]] && to_branch=$1
+
+
+if [[ $to_branch == $branch ]]; then
+  echo "Can't PR from $branch to $to_branch because they are the same"
+  exit 1
+fi
+
+if [[ $gh_pr_view =~ ^no.*$ ]]; then
+  issue=$(echo $branch | cut -d"/" -f2)
+  semantic_name=$(echo $branch | cut -d"/" -f3)
+  # Convert to title case
+  semantic_name=$(node -e "console.log(\"$semantic_name\".split('-').map((word) => word.replace(/^[a-z]/, (lower) => lower.toUpperCase())).join(' '))")
+  title="[$issue] $semantic_name"
+
+  common_commit=$(git merge-base $to_branch $branch)
+  body="Jira: [$issue](https://jira.corp.adobe.com/browse/$issue)
+
+  $(git log HEAD...$common_commit --pretty=format:' - %s%n%n%b')
+
+  $(cat $(git rev-parse --show-toplevel)/.github/PULL_REQUEST_TEMPLATE.md))
+  
+  "
+
+  read -p "Create Pull Request?
+  
+  $title
+  __________________________________________
+  
+  $body
+
+ [Y/n]?
+  " -n 1 -r
+
+  # exit early if it's a no
+  if ! [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]; then
+    echo    
+    echo "It's cool, we all make mistakes..."
+    echo    
+    exit 
+  fi
+
+
+  gh pr create -B $to_branch -t "$title" -b "$body" -l "Team: CCX Content" -d 
+
+fi
+gh pr view -w

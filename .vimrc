@@ -95,10 +95,12 @@ Plug 'sekel/vim-vue-syntastic'
 Plug 'styled-components/vim-styled-components'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-markdown'
+Plug 'tpope/vim-fugitive'
 Plug 'rderik/vim-markdown-toc'
 Plug 'christoomey/vim-tmux-navigator'
 Plug 'kevinoid/vim-jsonc'
 Plug 'whiteinge/diffconflicts'
+Plug '/usr/local/opt/fzf'
 
 " Initialize plugin system
 call plug#end()
@@ -109,10 +111,7 @@ call plug#end()
 let g:coc_global_extensions = [
   \ 'coc-tsserver',
   \ 'coc-eslint',
-  \ 'coc-stylelintplus',
-  \ 'coc-json',
-  \ 'coc-prettier',
-  \ 'coc-markdownlint'
+  \ 'coc-prettier'
   \ ]
 
 augroup mygroup
@@ -124,6 +123,31 @@ augroup mygroup
 augroup end
 
 command! -nargs=0 Prettier :CocCommand prettier.formatFile
+
+" use <tab> for trigger completion and navigate to the next complete item
+function! CheckBackspace() abort
+  let col = col('.') - 1
+  return !col || getline('.')[col - 1]  =~# '\s'
+endfunction
+
+inoremap <silent><expr> <Tab>
+      \ coc#pum#visible() ? coc#pum#next(1) :
+      \ CheckBackspace() ? "\<Tab>" :
+      \ coc#refresh()
+
+" Remap <cr> to make it confirms completion.
+inoremap <expr> <cr> coc#pum#visible() ? coc#pum#confirm() : "\<CR">"
+" Make <cr> select the first completion item and confirm the completion when
+" no item has been selected
+inoremap <silent><expr> <cr> coc#pum#visible() ? coc#_select_confirm() : "\<C-g>u\<CR>"
+" Make coc.nvim format your code on <cr>
+"inoremap <silent><expr <>cr> coc#pum#visible)( ? coc#_select_confirm)( : "\<C-g>u\<CR>\<c-r=coc#on_enter())\CR<"">>")
+" Use coc#pum#info() if you need to confirm completion, only when there's
+" selected complete item
+"inoremap <silent><expr> <cr> coc#pum#visible( && coc#pum#info))(['index'] != -1 ? coc#pum#confirm() : \<"C-g>u\<CR>">)
+" Use <Tab> and <S-Tab> to navigate the completion list
+inoremap <expr> <Tab> coc#pum#visible() ? coc#pum#next(1) : "\<Tab>"
+inoremap <expr> <S-Tab> coc#pum#visible() ? coc#pum#prev(1) : "\<S-Tab>"
 
 """""""""""""""""""""""""""""""
 " Markdown Lint
@@ -219,7 +243,7 @@ let g:NERDCustomDelimiters = {
 let g:NERDCommentEmptyLines = 1
 let g:NERDSpaceDelims = 1
 let g:NERDCompactSexyComs = 1
-
+let g:NERDCreateDefaultMappings = 1
 
 "" Key Mappins"
 nnoremap <SPACE> <Nop>
@@ -239,25 +263,11 @@ set signcolumn=yes
 
 "" COC
 
-" Use tab for trigger completion with characters ahead and navigate.
-" NOTE: Use command ':verbose imap <tab>' to make sure tab is not mapped by
-" other plugin before putting this into your config.
-inoremap <silent><expr> <TAB>
-      \ pumvisible() ? "\<C-n>" :
-      \ <SID>check_back_space() ? "\<TAB>" :
-      \ coc#refresh()
-inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
-function! s:check_back_space() abort
-  let col = col('.') - 1
-  return !col || getline('.')[col - 1]  =~# '\s'
-endfunction
+" NerdCommenter
+imap <C-c> <plug>NERDCommenterInsert
 
 " Use <c-space> to trigger completion.
 inoremap <silent><expr> <c-@> coc#refresh()
-" Make <CR> auto-select the first completion item and notify coc.nvim to
-" format on enter, <cr> could be remapped by other vim plugin
-inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
-                              \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 " Use `[g` and `]g` to navigate diagnostics
 " Use `:CocDiagnostics` to get all diagnostics of current buffer in location list.
 nmap <silent> [g <Plug>(coc-diagnostic-prev)
@@ -370,4 +380,3 @@ packloadall
 " Load all of the helptags now, after plugins have been loaded.
 " All messages and errors will be ignored.
 silent! helptags ALL
-

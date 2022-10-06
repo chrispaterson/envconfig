@@ -8,6 +8,8 @@ alias l='ls -Gl'
 # Always open files in vertical split mode
 alias vi='vim -O'
 
+alias vimrc="vim $HOME/.vimrc"
+
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
 
   # Linux
@@ -32,18 +34,50 @@ fi
 export NVM_DIR="$HOME/.nvm"
 . "$(brew --prefix nvm)/nvm.sh"
 
-# bash parameter completion for the Rush CLI
-_rush_bash_complete()
-{
-  local word=${COMP_WORDS[COMP_CWORD]}
-
-  local completions
-  completions="$(rush tab-complete --position "${COMP_POINT}" --word "${COMP_LINE}" 2>/dev/null)"
-  if [ $? -ne 0 ]; then
-    completions=""
-  fi
-
-  COMPREPLY=( $(compgen -W "$completions" -- "$word") )
+export cdr() {
+  repo_root=$(git rev-parse --show-toplevel)
+  cd $repo_root
 }
 
-complete -f -F _rush_bash_complete rush
+export get_rush_config() {
+  rush_config_file="rush.json"
+
+  cdr
+
+  raw_rush_config=$(cat $rush_config_file)
+
+  if [ -z $raw_rush_config ]; then
+    echo "$rush_config_file not found!"
+    cd -
+    return
+  fi
+
+  clean_rush_config=$(echo $raw_rush_config | strip-json-comments)
+
+  echo $clean_rush_config;
+}
+
+export cdp() {
+
+  cdr
+
+  if [ -z $1 ]; then
+    echo "Please enter a package name"
+    cd - > /dev/null
+    return
+  fi
+
+  folder=$(get_rush_config | jq "( .projects[] | select(.packageName == \"@hz/$1\") ).projectFolder")
+
+  if [ -z $folder ]; then
+    echo "Package \"$1\" not found"
+    cd - > /dev/null
+    return
+  fi
+
+  folder=$(echo $folder | tr -d '"')
+  folder=$(realpath $folder)
+
+  cd - > /dev/null
+  cd $folder
+}

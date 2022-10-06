@@ -3,4 +3,4 @@
 # shows consoldated list of PRs that have been assigned and you haven't
 # reviewed and ones you've reviewed but haven't merged yet
 
-git rr && git umr
+gh pr status && git umr

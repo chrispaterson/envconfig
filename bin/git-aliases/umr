@@ -3,5 +3,7 @@
 # shows github prs that have been reviewed by you but not yet merged
 # requires gh
 
-echo "Showing PRs reviewed by me but not merged"
+bold=$(tput bold)
+echo ""
+echo "${bold}Reviewed but not yet merged${bold}"
 gh pr list -S "reviewed-by:@me"

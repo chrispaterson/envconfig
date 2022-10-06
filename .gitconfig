@@ -1,49 +1,51 @@
 [push]
 	default = simple
 [alias]
-	ac = ! $HOME/bin/git/ac
-	amend = ! $HOME/bin/git/amend
-  commands = ! $HOME/bin/git/commands
+	ac = ! $HOME/bin/git-aliases/ac
+	amend = ! $HOME/bin/git-aliases/amend
+  commands = ! $HOME/bin/git-aliases/commands
 	dt = difftool
-	isrepo = ! $HOME/bin/git/isrepo
-	provider = ! $HOME/bin/git/provider
-	rename-tag = ! $HOME/bin/git/rename-tag
-	root = ! $HOME/bin/git/root
-	set-author = ! $HOME/bin/git/set-author
-  b = ! $HOME/bin/git/b
-  base = ! $HOME/bin/git/base 
-  pr = ! $HOME/bin/git/pr 
-  prs = ! $HOME/bin/git/prs 
-  rr = ! $HOME/bin/git/rr 
-  squash = ! $HOME/bin/git/squash
-  umr = ! $HOME/bin/git/umr
-  update = ! $HOME/bin/git/update
+	isrepo = ! $HOME/bin/git-aliases/isrepo
+	provider = ! $HOME/bin/git-aliases/provider
+	rename-tag = ! $HOME/bin/git-aliases/rename-tag
+	root = ! $HOME/bin/git-aliases/root
+	set-author = ! $HOME/bin/git-aliases/set-author
+  b = ! $HOME/bin/git-aliases/b
+  base = ! $HOME/bin/git-aliases/base 
+  pr = ! $HOME/bin/git-aliases/pr 
+  prs = ! $HOME/bin/git-aliases/prs 
+  psh = ! $HOME/bin/git-aliases/psh 
+  squash = ! $HOME/bin/git-aliases/squash
+  umr = ! $HOME/bin/git-aliases/umr
+  unwind = ! $HOME/bin/git-aliases/unwind
+  update = ! $HOME/bin/git-aliases/update
 [checkout]
-    defaultRemote = origin
+  defaultRemote = origin
 [diff]
-	tool = vimdiff
+	tool = p4mergetool
 [difftool]
-    cmd = vim -f -c MergetoolStart "$MERGED" "$BASE" "$LOCAL" "$REMOTE"
+  cmd = vim -f -c MergetoolStart "$MERGED" "$BASE" "$LOCAL" "$REMOTE"
 	prompt = false
 [merge]
-	tool = diffconflicts
+	tool = p4mergetool
+  defaultToUpstream = true
+  autoStash = true
 	conflictstyle = diff3
 [mergetool]
 	keepBackup = false
 	prompt = false
 [mergetool "vim_mergetool"]
-    cmd = vim -f -c MergetoolStart "$MERGED" "$BASE" "$LOCAL" "$REMOTE"
-    trustExitCode=true
+  cmd = vim -f -c MergetoolStart "$MERGED" "$BASE" "$LOCAL" "$REMOTE"
+  trustExitCode=true
 [credential]
 	helper = store
 [core]
 	ignorecase = false
-	hooksPath =
 [user]
 	name = Chris Paterson
 	email = paterson@adobe.com
 [pull]
-	rebase = false
+	rebase = true
 [credential "https://github.com"]
 	helper = 
 	helper = !/usr/local/bin/gh auth git-credential
@@ -58,3 +60,8 @@
 [mergetool "diffconflicts"]
 	cmd = vim -c DiffConflicts \"$MERGED\" \"$BASE\" \"$LOCAL\" \"$REMOTE\"
 	trustExitCode = true
+[mergetool "p4mergetool"]
+	cmd = /Applications/p4merge.app/Contents/Resources/launchp4merge $PWD/$BASE $PWD/$REMOTE $PWD/$LOCAL $PWD/$MERGED
+	trustExitCode = false
+[difftool "p4mergetool"]
+	cmd = /Applications/p4merge.app/Contents/Resources/launchp4merge $LOCAL $REMOTE

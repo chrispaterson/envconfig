@@ -1,4 +1,5 @@
 nvm
+coreutils
 gh
-kdiff3
 tmux
+jq

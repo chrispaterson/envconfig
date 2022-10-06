@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Begins interactive squash from last common commit
+# Usage: git squash [to-branch (default main)]
+
+BRANCH=$(git branch --show-current)
+TO_BRANCH='main' && [[ $# > 0 ]] && TO_BRANCH=$1
+
+if [[ $TO_BRANCH == $BRANCH ]]; then
+  echo "Can not squash from $BRANCH to $TO_BRANCH because they are the same"
+  exit 1
+fi
+
+COMMON_COMMIT=$(git merge-base $TO_BRANCH $BRANCH)
+
+git reset $COMMON_COMMIT
+git add -A
+git commit

@@ -12,7 +12,7 @@ echo    # move to a new line
 
 if ! [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]
 then
-  echo "Exiting without merging"
+  echo "It's cool, we all make mistakes..."
   exit 
 
 fi

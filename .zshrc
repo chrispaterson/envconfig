@@ -58,3 +58,9 @@ bindkey -v
 add-zsh-hook chpwd load-nvmrc
 
 load-nvmrc
+
+_cdp() {
+  compadd $(get_rush_config | jq ".projects[] .packageName" | tr -d '"' | tr -d '@hz/')
+}
+
+compdef _cdp cdp

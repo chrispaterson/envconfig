@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "Do you have input?"
+read input
+echo $input

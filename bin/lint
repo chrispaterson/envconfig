@@ -1,0 +1,23 @@
+#!/bin/bash
+
+files=$(git diff main --name-only | grep src)
+paths=()
+
+for file in $files; do
+  path=$(dirname $file)
+  paths=("${paths[@]}" "${path%src*}")
+done
+pkgs=(); while IFS= read -r -d '' x; do pkgs+=("$x"); done < <(printf "%s\0" "${paths[@]}" | sort -uz)
+
+for pkg in "${pkgs[@]}"; do
+  dir="$(git rev-parse --show-toplevel)/$pkg"
+  if [[ -d "$dir" ]]
+  then
+    echo
+    echo "---------------------"
+    echo "Entering $dir"
+    echo "---------------------"
+    echo
+    (cd $dir && rushx lint:fix) || exit 1;
+  fi
+done

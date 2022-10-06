@@ -1,0 +1,26 @@
+#!/bin/bash
+
+OLD_NAME=$1
+NEW_NAME=$2
+
+if [ -z $NEW_NAME ]; then 
+  echo "specify a new name"
+  exit 1
+fi
+export NEW_NAME=$NEW_NAME
+
+if [ -z $OLD_NAME ]; then
+  echo "specify a name"
+  exit 1
+fi
+
+move_file () {
+  filename=$(basename -- "$1")
+  extension="${filename#*.}"
+  mv "$filename" "$NEW_NAME.$extension"
+}
+export -f move_file
+
+find . -type f -name "$OLD_NAME.*" -exec bash -c 'move_file "$0"' {} \;
+sed -i.bak "s/$OLD_NAME/$NEW_NAME/g" `find . -name "$NEW_NAME.*"` && rm -r `find . -name "*.bak"`
+

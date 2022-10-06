@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Creates a branch prefixed with the username
+#
+# Example: git b foo
+# creates a branch from main named [username]/foo
+#
+# Example 2: git b bar foo
+# creates a branch from bar named [username]/foo
+
+set -e
+username="$(whoami)"
+
+if [[ $# == 0 ]]; then
+  base_branch="main"
+else
+  base_branch=$1
+fi
+
+
+echo "Jira issue number?"
+read jira_issue 
+
+echo
+echo "human-readable name?"
+read hr_name 
+
+# Replace spaces with '-'
+hr_name=${hr_name//[ ]/-}
+
+branch_name="$username/$jira_issue/$hr_name"
+
+read -p "Create branch $branch_name? [Y/n] " -n 1 -r
+echo    # move to a new line
+
+if ! [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]
+then
+  echo "It's cool, we all make mistakes..."
+  exit 
+
+fi
+
+cd $(git rev-parse --show-toplevel)
+git checkout $base_branch
+git pull
+git checkout -b $branch_name
+git push --set-upstream origin $branch_name --no-verify
