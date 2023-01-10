@@ -81,3 +81,14 @@ export cdp() {
   cd - > /dev/null
   cd $folder
 }
+
+export rsearch() {
+  dirs=$(get_rush_config | jq "( .projects[] | .projectFolder )" | tr -d '"')
+  cdr
+  while IFS= read -r dir; do
+    if [ -d "$dir/src" ]; then
+      grep -rl "$1" "$dir/src"
+    fi
+  done <<< "$dirs"
+  cd - > /dev/null
+}

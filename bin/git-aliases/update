@@ -1,16 +1,16 @@
 #!/bin/bash
-BRANCH=$(git branch --show-current)
-TO_BRANCH="main" && [[ $# > 0 ]] && TO_BRANCH=$1
+branch=$(git branch --show-current)
+to_branch="main" && [[ $# > 0 ]] && to_branch=$1
 
-if [[ $TO_BRANCH == $BRANCH ]]; then
-  echo "Can not merge from $BRANCH to $TO_BRANCH because they are the same"
+if [[ $to_branch == $branch ]]; then
+  echo "Can not merge from $branch to $to_branch because they are the same"
   exit 1
 fi
 
-read -p "Do you want to get changes from $TO_BRANCH? [Y/n] " -n 1 -r
+read -p "Do you want to get changes from $to_branch? [Y/n] " -n 1 -r
 echo    # move to a new line
 
-if ! [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]
+if ! [[ $reply =~ ^[Yy]$ || -z $reply ]]
 then
   echo "It's cool, we all make mistakes..."
   exit 
@@ -18,25 +18,21 @@ then
 fi
 
 cd $(git root)
-git pull
-git switch $TO_BRANCH 
-git pull
-git switch - 
+git fetch
+git merge origin/$to_branch
 
-git merge $TO_BRANCH --no-edit
 
-if [[ -f ./rush.json ]]; then
+conflicts=$(git diff --name-status --diff-filter=U)
 
-  git checkout $TO_BRANCH -- common/config/rush/pnpm-lock.yaml common/config/rush/repo-state.json && rush update 
-  git add common/config/rush/pnpm-lock.yaml
-  git add common/config/rush/repo-state.json
-fi
+if [[ -z "$conflicts" ]]; then
+  if [[ -f ./rush.json ]]; then
 
-CONFLICTS=$(git diff --name-status --diff-filter=U)
-if [[ -z "$CONFLICTS" ]]; then
+    git checkout $to_branch -- common/config/rush/pnpm-lock.yaml common/config/rush/repo-state.json
+    rush update
+    git add common/config/rush/pnpm-lock.yaml
+    git add common/config/rush/repo-state.json
+  fi
   git commit --no-edit
-else
-  echo "Please resolve the following merge conflicts before committing"
 fi
 
 cd -

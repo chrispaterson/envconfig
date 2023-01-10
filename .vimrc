@@ -188,44 +188,6 @@ autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isT
 set background=dark
 colorscheme Tomorrow-Night-Bright
 
-"""""""""""""""""""""""""""""""
-" Close Tag
-"""""""""""""""""""""""""""""""
-" filenames like *.xml, *.html, *.xhtml, ...
-" Then after you press <kbd>&gt;</kbd> in these files, this plugin will try to close the current tag.
-"
-let g:closetag_filenames = '*.html,*.vue,*.jsx,*.tsx,*.ts'
-
-" filenames like *.xml, *.xhtml, ...
-" This will make the list of non closing tags self closing in the specified files.
-"
-let g:closetag_xhtml_filenames = '*.xhtml,*.jsx,*.tsx,*.ts'
-
-" filetypes like xml, html, xhtml, ...
-" These are the file types where this plugin is enabled.
-"
-let g:closetag_filetypes = 'html,vue,typescript.tsx,javascript.jsx,jsx,tsx,xhtml,phtml'
-
-" integer value [0|1]
-" This will make the list of non closing tags case sensitive (e.g. `<Link>` will be closed while `<link>` won't.)
-"
-let g:closetag_emptyTags_caseSensitive = 1
-
-" Shortcut for closing tags, default is '>'
-"
-let g:closetag_shortcut = '>>'
-
-" Add > at current position without closing the current tag, default is ''
-"
-let g:closetag_close_shortcut = '<leader>>'
-
-let g:closetag_regions = {
-      \ 'typescript.tsx': 'jsxRegion,tsxRegion,litHtmlRegion',
-      \ 'javascript.jsx': 'jsxRegion,litHtmlRegion',
-      \ 'javascript':     'litHtmlRegion',
-      \ 'typescript':     'litHtmlRegion',
-      \ }
-
 """"
 " NERDCommenter
 """"

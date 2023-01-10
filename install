@@ -24,7 +24,7 @@ cd $HOME_DIR
 for FILE in $(ls -A $PROJECT_DIR)
 do
 
-  if ! [[ $FILE == ".git" || $FILE == ".gitignore" || $FILE == ".gitmodules" || $FILE =~ ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" || $FILE =~ ".DS_Store" || $FILE =~ "font" || $FILE =~ ".txt" ]]; then
+  if ! [[ $FILE == ".git" || $FILE == ".gitmodules" || $FILE =~ ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" || $FILE =~ ".DS_Store" || $FILE =~ "font" || $FILE =~ ".txt" ]]; then
 
     # if the file exists and is not a symbolic link, if it is a symbolic link
     # then we've been here before

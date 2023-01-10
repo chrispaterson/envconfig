@@ -3,7 +3,7 @@
 [alias]
 	ac = ! $HOME/bin/git-aliases/ac
 	amend = ! $HOME/bin/git-aliases/amend
-  commands = ! $HOME/bin/git-aliases/commands
+	authors = ! $HOME/bin/git-aliases/authors
 	dt = difftool
 	isrepo = ! $HOME/bin/git-aliases/isrepo
 	provider = ! $HOME/bin/git-aliases/provider
@@ -12,6 +12,9 @@
 	set-author = ! $HOME/bin/git-aliases/set-author
   b = ! $HOME/bin/git-aliases/b
   base = ! $HOME/bin/git-aliases/base 
+  commands = ! $HOME/bin/git-aliases/commands
+  fracture = ! $HOME/bin/git-aliases/fracture
+  last-change = log -1 -p
   pr = ! $HOME/bin/git-aliases/pr 
   prs = ! $HOME/bin/git-aliases/prs 
   psh = ! $HOME/bin/git-aliases/psh 
@@ -19,6 +22,7 @@
   umr = ! $HOME/bin/git-aliases/umr
   unwind = ! $HOME/bin/git-aliases/unwind
   update = ! $HOME/bin/git-aliases/update
+  wt = worktree
 [checkout]
   defaultRemote = origin
 [diff]
@@ -41,6 +45,7 @@
 	helper = store
 [core]
 	ignorecase = false
+	excludesfile = /Users/paterson/.gitignore
 [user]
 	name = Chris Paterson
 	email = paterson@adobe.com

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+pkg="$1"
+
+if [ -z $pkg ]; then
+
+  echo "Please provide a package name"
+  echo "Usage:"
+  echo "  $0 package-name"
+  exit 1
+fi
+
+echo
+echo "Finding all packages that depend on $pkg"
+echo
+
+woprefix=$(echo $pkg | sed 's/^@hz\///')
+
+rush-pnpm why -r --parseable "$pkg" | grep -v "$woprefix"

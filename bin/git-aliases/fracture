@@ -1,0 +1,10 @@
+#!/bin/bash
+
+pr_number=$(gh pr view --json number -q ".number" 2>&1)
+
+if [[ $pr_number =~ ^no.*$ ]]; then
+  echo "No fracture because no PR!"
+  exit 1
+fi
+
+open -a "Google Chrome.app" "https://$pr_number.prenv.projectx.corp.adobe.com"

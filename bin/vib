@@ -8,8 +8,8 @@ fi
 if [ ! -f $1 ]; then
 
   echo '#!/bin/bash' > $1
+  chmod a+x $1
 
 fi
 
-chmod a+x $1
 vim $1

@@ -1,13 +1,12 @@
 #!/bin/bash
 
-files=$(git diff main --name-only | grep src)
-paths=()
-
-for file in $files; do
-  path=$(dirname $file)
-  paths=("${paths[@]}" "${path%src*}")
-done
-pkgs=(); while IFS= read -r -d '' x; do pkgs+=("$x"); done < <(printf "%s\0" "${paths[@]}" | sort -uz)
+declare -a pkgs=(
+ [0]="platform/common/service-integration/inspiring-content-client"
+ [1]="platform/common/service-integration/adobe-stock-result-columns"
+ [2]="platform/common/service-integration/adobe-stock-client"
+ [3]="platform/ui/inspire-ui-core"
+ [4]="platform/ui/inspire-panels"
+)
 
 for pkg in "${pkgs[@]}"; do
   dir="$(git rev-parse --show-toplevel)/$pkg"

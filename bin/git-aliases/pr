@@ -53,14 +53,14 @@ while getopts "h" opt; do
 done
 
 branch=$(git branch --show-current)
-gh_pr_view=$(gh pr view 2>&1)
 to_branch="main" && [[ $# > 0 ]] && to_branch=$1
-
 
 if [[ $to_branch == $branch ]]; then
   echo "Can't PR from $branch to $to_branch because they are the same"
   exit 1
 fi
+
+gh_pr_view=$(gh pr view 2>&1)
 
 if [[ $gh_pr_view =~ ^no.*$ ]]; then
   issue=$(echo $branch | cut -d"/" -f2)
@@ -70,7 +70,7 @@ if [[ $gh_pr_view =~ ^no.*$ ]]; then
   title="[$issue] $semantic_name"
 
   common_commit=$(git merge-base $to_branch $branch)
-  body="Jira: [$issue](https://jira.corp.adobe.com/browse/$issue)
+  body="[$issue](https://jira.corp.adobe.com/browse/$issue)
 
   $(git log HEAD...$common_commit --pretty=format:' - %s%n%n%b')
 
@@ -97,7 +97,7 @@ if [[ $gh_pr_view =~ ^no.*$ ]]; then
   fi
 
 
-  gh pr create -B $to_branch -t "$title" -b "$body" -l "Team: CCX Content" -d 
+  gh pr create -B $to_branch -t "$title" -b "$body" -l "Team: CCX Content" -l "x-prenv" -d 
 
 fi
 gh pr view -w

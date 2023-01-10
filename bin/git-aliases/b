@@ -39,9 +39,17 @@ then
   exit 
 
 fi
+wt_path="../$hr_name-$jira_issue"
 
 cd $(git rev-parse --show-toplevel)
-git checkout $base_branch
-git pull
-git checkout -b $branch_name
+#git checkout $base_branch
+#git pull
+git worktree add -b $branch_name $wt_path $base_branch
+#git checkout -b $branch_name
+cd $wt_path
 git push --set-upstream origin $branch_name --no-verify
+
+if [[ -f ./rush.json ]]; then
+  rush update
+  rush build
+fi
