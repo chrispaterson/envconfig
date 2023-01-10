@@ -69,7 +69,7 @@ fi
 
 
 if [[ ! -z $message ]]; then
-  echo "-  $message" >> $LOG
+  echo "- $message" >> $LOG
   cat $LOG
   exit
 fi

@@ -1,0 +1,18 @@
+#!/bin/bash
+
+branches=$(git branch --merged)
+
+for branch in $branches; do
+  if ! [[ -f $branch || -d $branch || $branch == "main" ]]; then
+    if [[ ! -z $next_is_worktree ]]; then
+      next_is_worktree=""
+      git branch -D $branch
+      continue
+    fi
+    if [[ $branch =~ "+" ]]; then
+      next_is_worktree="true";
+    else
+      git branch -D $branch
+    fi
+  fi
+done;

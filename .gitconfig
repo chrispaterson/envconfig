@@ -12,6 +12,7 @@
 	set-author = ! $HOME/bin/git-aliases/set-author
   b = ! $HOME/bin/git-aliases/b
   base = ! $HOME/bin/git-aliases/base 
+  cleanup = ! $HOME/bin/git-aliases/cleanup
   commands = ! $HOME/bin/git-aliases/commands
   fracture = ! $HOME/bin/git-aliases/fracture
   last-change = log -1 -p
