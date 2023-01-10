@@ -3,7 +3,7 @@
 PRINT_LAST_LOGS=5
 usage ()
 {
-  echo "Usage: $0 [-p] [-h]"
+  echo "Usage: $0 [-p | --print] [-h | --help] [-m | --message] <message to log>"
 }
 
 showhelp()
@@ -14,6 +14,7 @@ showhelp()
   echo " "
   echo "options:"
   echo "-h, --help                show brief help"
+  echo "-m, --message             pass a message and do not open the editor"
   echo "-p, --print               Prints the last $PRINT_LAST_LOGS days of logs to stdout"
 }
 
@@ -34,7 +35,7 @@ fi
 LOG=$DIR/$(date +'%F').md
 
 
-while getopts "ph" opt; do
+while getopts "phm:" opt; do
   case $opt in
     p | --print)
       #
@@ -48,6 +49,10 @@ while getopts "ph" opt; do
       showhelp
       exit
       ;;
+    m | --message)
+      #
+      message="${OPTARG}"
+      ;;
     \?)
       usage >&2
       exit 1
@@ -60,6 +65,13 @@ if [[ ! -f $LOG ]]; then
   echo $(date +'# %A, %B %d, %Y') > $LOG
   echo "" >> $LOG
 
+fi
+
+
+if [[ ! -z $message ]]; then
+  echo "-  $message" >> $LOG
+  cat $LOG
+  exit
 fi
 
 echo "-  " >> $LOG
