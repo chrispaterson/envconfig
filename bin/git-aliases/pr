@@ -69,7 +69,7 @@ if [[ $gh_pr_view =~ ^no.*$ ]]; then
   semantic_name=$(node -e "console.log(\"$semantic_name\".split('-').map((word) => word.replace(/^[a-z]/, (lower) => lower.toUpperCase())).join(' '))")
   title="[$issue] $semantic_name"
 
-  common_commit=$(git merge-base $to_branch $branch)
+  common_commit=$(git merge-base origin/$to_branch $branch)
   body="[$issue](https://jira.corp.adobe.com/browse/$issue)
 
   $(git log HEAD...$common_commit --pretty=format:' - %s%n%n%b')

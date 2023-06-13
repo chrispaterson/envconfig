@@ -1,0 +1,4 @@
+#!/bin/bash
+
+cur_branch=$(git rev-parse --abbrev-ref HEAD)
+echo $cur_branch | cut -d"/" -f2

@@ -1,13 +1,13 @@
 #!/bin/bash
 branch=$(git branch --show-current)
-to_branch="main" && [[ $# > 0 ]] && to_branch=$1
+from_branch="main" && [[ $# > 0 ]] && from_branch=$1
 
-if [[ $to_branch == $branch ]]; then
-  echo "Can not merge from $branch to $to_branch because they are the same"
+if [[ $from_branch == $branch ]]; then
+  echo "Can not merge from $from_branch to $branch because they are the same"
   exit 1
 fi
 
-read -p "Do you want to get changes from $to_branch? [Y/n] " -n 1 -r
+read -p "Do you want to get changes from $from_branch? [Y/n] " -n 1 -r
 echo    # move to a new line
 
 if ! [[ $reply =~ ^[Yy]$ || -z $reply ]]
@@ -18,21 +18,24 @@ then
 fi
 
 cd $(git root)
-git fetch
-git merge origin/$to_branch
-
+git fetch -p
+git merge $from_branch --no-edit
 
 conflicts=$(git diff --name-status --diff-filter=U)
 
-if [[ -z "$conflicts" ]]; then
+# There are no conflicts
+if [[ -z "conflicts" ]]; then
   if [[ -f ./rush.json ]]; then
-
-    git checkout $to_branch -- common/config/rush/pnpm-lock.yaml common/config/rush/repo-state.json
-    rush update
-    git add common/config/rush/pnpm-lock.yaml
-    git add common/config/rush/repo-state.json
+    pnpm_lock_file="common/config/rush/pnpm-lock.yaml"
+    repo_state_file="common/config/rush/repo-state.json"
+    if [[ ! -z $(git diff origin/$from_branch -- $pnpm_lock_file) || ! -z $(git diff origin/$from_branch -- $repo_state_file) ]]; then
+      git checkout origin/$from_branch --  $pnpm_lock_file $repo_state_file
+      rush update
+      git add $pnpm_lock_file $repo_state_file
+    fi
   fi
   git commit --no-edit
-fi
+  git clean -f .
+else
 
 cd -

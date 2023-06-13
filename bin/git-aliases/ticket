@@ -1,0 +1,3 @@
+#!/bin/bash
+
+open -u "https://jira.corp.adobe.com/browse/$(git issue)"

@@ -22,6 +22,7 @@ fi
 #Add bin to path
 export PATH="$HOME/bin:$HOME/node_bin/node_modules/.bin:$PATH"
 export EDITOR="vim"
+export JAVA_HOME="/usr/bin/java"
 
 ENV_FILE=$HOME/.env
 
@@ -91,4 +92,14 @@ export rsearch() {
     fi
   done <<< "$dirs"
   cd - > /dev/null
+}
+
+get_share_url() {
+  local response=$(curl --header "X-Api-Key: projectx_webapp" "https://invitations-stage.adobe.io/api/v4/auth/urn:aaid:sc:VA6C2:f5dbce61-a6bd-4a9e-9f29-921a256b0983?cdnAcceleration=true")
+  local url=$(jq '.accessURL' <<< $response | sed 's/\"//g')
+  local accessToken=$(jq '.accessToken' <<< $response | sed 's/\"//g')
+
+  echo "$url?access_token=$accessToken&api_key=projectx_webapp"
+  open "$url?access_token=$accessToken&api_key=projectx_webapp"
+
 }

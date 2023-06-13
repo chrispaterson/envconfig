@@ -26,11 +26,11 @@ echo "human-readable name?"
 read hr_name 
 
 # Replace spaces with '-'
-hr_name=${hr_name//[ ]/-}
+branch_semantic_name=${hr_name//[ ]/-}
 
-branch_name="$username/$jira_issue/$hr_name"
+branch_name="$username/$jira_issue/$branch_semantic_name"
 
-read -p "Create branch $branch_name? [Y/n] " -n 1 -r
+read -p "Create branch $branch_name from base branch $base_branch? [Y/n] " -n 1 -r
 echo    # move to a new line
 
 if ! [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]
@@ -39,16 +39,13 @@ then
   exit 
 
 fi
-wt_path="../$hr_name-$jira_issue"
+wt_path="../$branch_semantic_name-$jira_issue"
 
 cd $(git rev-parse --show-toplevel)
-#git checkout $base_branch
-#git pull
-git worktree add -b $branch_name $wt_path $base_branch
-#git checkout -b $branch_name
-cd $wt_path
-git push --set-upstream origin $branch_name --no-verify
 
+git worktree add -b $branch_name $wt_path $base_branch
+cd $wt_path
+git push --set-upstream $branch_name --no-verify
 if [[ -f ./rush.json ]]; then
   rush update
   rush build
