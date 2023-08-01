@@ -39,14 +39,10 @@ then
   exit 
 
 fi
-wt_path="../$branch_semantic_name-$jira_issue"
 
-cd $(git rev-parse --show-toplevel)
-
-git worktree add -b $branch_name $wt_path $base_branch
-cd $wt_path
-git push --set-upstream $branch_name --no-verify
-if [[ -f ./rush.json ]]; then
+git checkout -b $branch_name $base_branch 
+git push --set-upstream origin $branch_name --no-verify
+if [[ -f "$(git rev-parse --show-toplevel)/rush.json" ]]; then
   rush update
   rush build
 fi

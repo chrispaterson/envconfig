@@ -9,7 +9,7 @@ fi
 
 source $HOME/.shrc
 
-source /usr/local/opt/powerlevel10k/powerlevel10k.zsh-theme
+source "$HOMEBREW_PREFIX/opt/powerlevel10k/powerlevel10k.zsh-theme"
 
 POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(dir vcs)
 POWERLEVEL9K_PROMPT_ON_NEWLINE=true
@@ -59,8 +59,8 @@ add-zsh-hook chpwd load-nvmrc
 
 load-nvmrc
 
-_cdp() {
-  compadd $(get_rush_config | jq ".projects[] .packageName" | tr -d '"' | tr -d '@hz/')
+_pkg() {
+  compadd $(rush_project_names)
 }
 
-compdef _cdp cdp
+compdef _pkg pkg

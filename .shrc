@@ -35,63 +35,44 @@ fi
 export NVM_DIR="$HOME/.nvm"
 . "$(brew --prefix nvm)/nvm.sh"
 
+# Change directory to the repository root
 export cdr() {
-  repo_root=$(git rev-parse --show-toplevel)
-  cd $repo_root
+  cd $(git rev-parse --show-toplevel)
 }
 
-export get_rush_config() {
-  rush_config_file="rush.json"
-
-  cdr
-
-  raw_rush_config=$(cat $rush_config_file)
-
-  if [ -z $raw_rush_config ]; then
-    echo "$rush_config_file not found!"
-    cd -
-    return
-  fi
-
-  clean_rush_config=$(echo $raw_rush_config | strip-json-comments)
-
-  echo $clean_rush_config;
+export rquery() {
+  rush query -q $1 | tr -d '"'
 }
 
-export cdp() {
+export rush_project_names() {
+   rquery ".projects[] | .packageName" | tr -d '@hz/'
+}
 
-  cdr
-
+export rush_project_folders() {
   if [ -z $1 ]; then
-    echo "Please enter a package name"
-    cd - > /dev/null
+    rquery ".projects[] | .projectFolder"
+    return
+  fi
+  
+  rquery "( .projects[] | select(.packageName == \"@hz/$1\") ).projectFolder"
+}
+
+export pkg() {
+  if [ -z $1 ]; then
+    cdr
     return
   fi
 
-  folder=$(get_rush_config | jq "( .projects[] | select(.packageName == \"@hz/$1\") ).projectFolder")
-
-  if [ -z $folder ]; then
-    echo "Package \"$1\" not found"
-    cd - > /dev/null
-    return
-  fi
-
-  folder=$(echo $folder | tr -d '"')
-  folder=$(realpath $folder)
-
-  cd - > /dev/null
-  cd $folder
+  cd $(rush_project_folders $1)
 }
 
 export rsearch() {
-  dirs=$(get_rush_config | jq "( .projects[] | .projectFolder )" | tr -d '"')
-  cdr
+  dirs=$(rush_project_folders)
   while IFS= read -r dir; do
     if [ -d "$dir/src" ]; then
       grep -rl "$1" "$dir/src"
     fi
   done <<< "$dirs"
-  cd - > /dev/null
 }
 
 get_share_url() {

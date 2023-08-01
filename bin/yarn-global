@@ -6,4 +6,4 @@ if [[ -z $(command -v yarn) ]]; then
 
 fi
 
-yarn global add markserv json jira-cl yamljs ts-prune strip-json-comments-cli
+yarn global add markserv pnpm
