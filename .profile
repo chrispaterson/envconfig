@@ -1,7 +1,6 @@
 #!/bin/sh
 
 export EDITOR="vim"
-export PATH="$PATH:/opt/homebrew/bin"
 
 if [ $SHELL = "/bin/bash" ]; then
 

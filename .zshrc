@@ -57,7 +57,14 @@ bindkey -v
 
 add-zsh-hook chpwd load-nvmrc
 
-load-nvmrc
+
+# See if this rc is being sourced in a git repo
+git rev-parse --is-inside-git-dir > /dev/null 2>&1
+
+# if the last command succeeded then nvm is a thing
+if [[ $? == 0 ]]; then 
+  load-nvmrc
+fi
 
 _pkg() {
   compadd $(rush_project_names)

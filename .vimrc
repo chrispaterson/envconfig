@@ -108,6 +108,7 @@ call plug#end()
 """""""""""""""""""""""""""""""
 " CoC
 """""""""""""""""""""""""""""""
+let g:coc_node_path = substitute(system('which node'), '\n', '', '')
 let g:coc_global_extensions = [
   \ 'coc-tsserver',
   \ 'coc-eslint',

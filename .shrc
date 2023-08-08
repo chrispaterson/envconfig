@@ -19,7 +19,7 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
 
 fi
 
-#Add bin to path
+export PATH="$PATH:/opt/homebrew/bin"
 export PATH="$HOME/bin:$HOME/node_bin/node_modules/.bin:$PATH"
 export EDITOR="vim"
 export JAVA_HOME="/usr/bin/java"
@@ -33,7 +33,14 @@ if [ -f "$ENV_FILE" ]; then
 fi
 
 export NVM_DIR="$HOME/.nvm"
-. "$(brew --prefix nvm)/nvm.sh"
+
+nvm_file="$(brew --prefix nvm)/nvm.sh"
+
+if [ -f $nvm_file ]; then
+  . $nvm_file
+else
+  echo "Unable to source nvm.sh from $nvm_file"
+fi
 
 # Change directory to the repository root
 export cdr() {

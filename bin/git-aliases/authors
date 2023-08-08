@@ -3,6 +3,10 @@
 authors=$(git log --pretty="%ae" | sort -u)
 
 for author in $authors; do
-  stats=$(git log --author="$author" --pretty=tformat: --numstat | awk '{ add += $1; subs += $2; loc += $1 + $2 } END { printf "%s added [%s] removed [%s] total [%s]\n", loc, add, subs, loc }' -)
-  echo "$stats $author"
+  stats=$(git log --since="JAN 1 2022" --until="DEC 31 2022" --author="$author" --pretty=tformat: --numstat | awk '{ tots += $1 + $2; } END { printf "%s\n", tots }' -)
+  if ! [ -z $stats ]; then
+    echo "$stats $author"
+  fi
 done
+
+# | awk '{ add += $1; subs += $2; loc += $1 + $2 } END { printf "%s added [%s] removed [%s] total [%s]\n", loc, add, subs }' -
