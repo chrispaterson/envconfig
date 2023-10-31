@@ -37,10 +37,20 @@ showhelp()
   echo " "
   echo "options:"
   echo "-h, --help                show brief help"
-  echo "-r, --ready               moves PR from draft to ready state"
-  echo "-d, --draft               moves PR back to draft state"
-  echo "-c, --checks              displays pr automated checks status"
-  echo "-m, --merge               adds the merge-queue label to the pr"
+  echo "-r, --ready               Moves PR from draft to ready state and transitions Jira issue status to In Review"
+  echo "-d, --draft               Moves PR back to draft state and transitions Jira issue status to In Development"
+  echo "-c, --checks              Displays pr automated checks status"
+  echo "-m, --merge               Adds the merge-queue label to the pr, and transitions Jira issue status to Ready To Merge"
+  echo "-a, --all                 Overview of all PRs for the repo related to me"
+  echo "-o, --others              Show PRs I have reviewed that are not yet merged"
+}
+
+reviewed_by_me_prs () 
+{
+  bold=$(tput bold)
+  echo ""
+  echo "${bold}Reviewed but not yet merged${bold}"
+  gh pr list -S "reviewed-by:@me"
 }
 
 branch=$(git branch --show-current)
@@ -52,7 +62,7 @@ if [[ "$issue" != "NO-JIRA" ]]; then
   "
 fi
 
-while getopts "hrmcd" opt; do
+while getopts "hrmcdao" opt; do
   case $opt in
     h | -help)
       showhelp
@@ -118,6 +128,15 @@ while getopts "hrmcd" opt; do
       echo " - Moving Jira issue $issue to Ready to Merge";
       jira issue move "$issue" "Ready to Merge" 
       exit
+      ;;
+    m | -merge)
+      exit
+      gh pr status
+      reviewed_by_me_prs
+      ;;
+    o | -others)
+      exit
+      reviewed_by_me_prs
       ;;
     \?)
       usage >&2

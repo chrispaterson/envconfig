@@ -19,10 +19,8 @@
   prenv = ! $HOME/bin/git-aliases/prenv
   last-change = log -1 -p
   pr = ! $HOME/bin/git-aliases/pr 
-  prs = ! $HOME/bin/git-aliases/prs 
   psh = ! $HOME/bin/git-aliases/psh 
   squash = ! $HOME/bin/git-aliases/squash
-  reviewed-prs = ! $HOME/bin/git-aliases/reviewed-prs
   unwind = ! $HOME/bin/git-aliases/unwind
   update = ! $HOME/bin/git-aliases/update
 [checkout]
