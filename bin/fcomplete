@@ -1,0 +1,13 @@
+#!/bin/bash
+
+input=$(j2m -j "$(git rev-parse --show-toplevel)/docs/development-process/feature-complete-checklist.md")
+
+for line in $input; do
+  if [[ $line =~ "Feature Complete Checklist" ]]; then
+    print_this_part="true"
+  fi
+  if [[ $print_this_part == "true" ]]; then 
+    echo "$line"
+  fi
+done
+

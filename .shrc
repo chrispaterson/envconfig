@@ -19,8 +19,7 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
 
 fi
 
-export PATH="$PATH:/opt/homebrew/bin"
-export PATH="$HOME/bin:$HOME/node_bin/node_modules/.bin:$PATH"
+export PATH="$PATH:/opt/homebrew/bin:$HOME/bin:$HOME/node_bin/node_modules/.bin:$HOME/.config/yarn/global/node_modules/.bin"
 export EDITOR="vim"
 export JAVA_HOME="/usr/bin/java"
 

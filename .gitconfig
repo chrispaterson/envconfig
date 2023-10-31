@@ -5,6 +5,7 @@
 	amend = ! $HOME/bin/git-aliases/amend
 	authors = ! $HOME/bin/git-aliases/authors
 	count-lines = ! $HOME/bin/git-aliases/count-lines
+	done = ! $HOME/bin/git-aliases/done
 	dt = difftool
 	isrepo = ! $HOME/bin/git-aliases/isrepo
 	issue = ! $HOME/bin/git-aliases/issue
@@ -16,6 +17,7 @@
   base = ! $HOME/bin/git-aliases/base 
   cleanup = ! $HOME/bin/git-aliases/cleanup
   commands = ! $HOME/bin/git-aliases/commands
+  dm = ! $HOME/bin/git-aliases/dm 
   fracture = ! $HOME/bin/git-aliases/fracture
   last-change = log -1 -p
   pr = ! $HOME/bin/git-aliases/pr 

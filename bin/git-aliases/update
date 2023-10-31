@@ -30,12 +30,12 @@ if [[ -z "conflicts" ]]; then
     repo_state_file="common/config/rush/repo-state.json"
     if [[ ! -z $(git diff origin/$from_branch -- $pnpm_lock_file) || ! -z $(git diff origin/$from_branch -- $repo_state_file) ]]; then
       git checkout origin/$from_branch --  $pnpm_lock_file $repo_state_file
-      rush update
+      ./bin/setup.sh
       git add $pnpm_lock_file $repo_state_file
     fi
   fi
+
   git commit --no-edit
   git clean -f .
-else
 
-cd -
+fi

@@ -69,6 +69,12 @@ if [[ "$OSTYPE" =~ "darwin" ]]; then
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
   fi
 
+  # All the brew taps to get brew stuff from
+  for TAP in $(cat $PROJECT_DIR/brew_taps.txt); do
+
+    brew tap $TAP 
+  done
+
   # All the system level apps that I install with brew
   for APP in $(cat $PROJECT_DIR/brew_apps.txt); do
 

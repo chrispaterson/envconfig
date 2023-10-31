@@ -1,4 +1,45 @@
 #!/bin/bash
 
-cur_branch=$(git rev-parse --abbrev-ref HEAD)
-echo $cur_branch | cut -d"/" -f2
+usage ()
+{
+  echo "Usage: git issue [-v|--view] [-h|--help]"
+}
+
+showhelp()
+{
+  echo "
+  Attempts to show the Jira issue number assosciated with this branch based on
+  the branch name (this works well with the git b command).  With no flags
+  passed, this script outputs the issue id to stdout.
+
+  CLI Dependencies: git, jira-cli
+  "
+  echo " "
+  usage
+  echo " "
+  echo "options:"
+  echo "-h, --help               show brief help"
+  echo "-v, --view               opens the issue in the browser"
+
+}
+
+issue=$(git rev-parse --abbrev-ref HEAD | cut -d"/" -f2)
+
+while getopts "hv" opt; do
+  case $opt in
+    h | -help)
+      showhelp
+      exit
+      ;;
+    v | -view)
+      jira open $issue
+      exit
+      ;;
+    \?)
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+echo $issue

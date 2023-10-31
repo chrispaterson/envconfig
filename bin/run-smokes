@@ -1,0 +1,25 @@
+#!/bin/bash
+
+pr_number=$(gh pr view --json number --jq .number)
+export URL="https://$pr_number.prenv.projectx.corp.adobe.com/"
+
+while getopts "l" opt; do
+  case $opt in
+    l | -local)
+      URL="https://localhost.adobe.com:8080/"
+      ;;
+    \?)
+      exit 1
+      ;;
+  esac
+done
+export SUITE="inspireTests"
+export USE_CHROMEDRIVER="true"
+
+echo ""
+echo "---> Running smoke suite $SUITE against $URL"
+echo ""
+
+cd "$(git rev-parse --show-toplevel)/apps/project-x/e2e"
+
+rushx wdio:local

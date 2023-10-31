@@ -2,7 +2,7 @@
 
 usage ()
 {
-  echo "Usage: git pr [-h] <branch>"
+  echo "Usage: git pr [-h | -r | -d | -c | -m] <branch>"
 }
 
 showhelp()
@@ -30,19 +30,93 @@ showhelp()
   semantic-name - Will be converted from kebab-case to Title Case and used in
                   the title of the github pull request.
 
-  CLI Dependencies: git, gh, node
+  CLI Dependencies: git, gh, node, jira-cli
   "
   echo " "
   usage
   echo " "
   echo "options:"
   echo "-h, --help                show brief help"
+  echo "-r, --ready               moves PR from draft to ready state"
+  echo "-d, --draft               moves PR back to draft state"
+  echo "-c, --checks              displays pr automated checks status"
+  echo "-m, --merge               adds the merge-queue label to the pr"
 }
 
-while getopts "h" opt; do
+branch=$(git branch --show-current)
+pr_number=$(gh pr view --json number --jq '.number' 2>&1)
+issue=$(echo $branch | cut -d"/" -f2)
+if [[ "$issue" != "NO-JIRA" ]]; then
+  issue_link="[$issue](https://jira.corp.adobe.com/browse/$issue)
+  
+  "
+fi
+
+while getopts "hrmcd" opt; do
   case $opt in
     h | -help)
       showhelp
+      exit
+      ;;
+    r | -ready)
+      gh pr ready
+      echo "PR $pr_number is ready for review!"
+
+      if [[ -z $issue_link ]]; then
+        echo " - No jira issue to link"
+        echo "Done!"
+        exit
+
+      fi
+
+      echo " - Adding Pull Request link to Jira issue $issue";
+      # Add links back to the PR in the issue
+      jira issue link remote "$issue" $(gh pr view --json url --jq '.url') "Pull Request"
+      echo " - Adding PR Environment link to Jira issue $issue";
+
+      jira issue link remote "$issue" "https://$pr_number.prenv.projectx.corp.adobe.com" "PR Environment"
+
+      echo " - Moving Jira issue $issue to In Review";
+
+      # Move ticket to In Review
+      jira issue move "$issue" "In Review" 
+
+      echo "Done!"
+
+      exit
+      ;;
+    d | -draft)
+      gh pr ready --undo
+      echo "PR $pr_number moved back to draft."
+      if [[ -z $issue_link ]]; then
+        echo " - No jira issue change status for"
+        echo "Done!"
+        exit
+
+      fi
+      echo " - Moving Jira issue $issue back to In Development";
+      # Move ticket to In Development
+      jira issue move "$issue" "In Development" 
+      echo "Done!"
+      exit
+      ;;
+    c | -checks)
+      echo "Getting PR check status for $pr_number"
+      gh pr checks "$pr_number"
+      exit
+      ;;
+    m | -merge)
+      gh pr edit --add-label "merge-queue"
+      echo "Added merge-queue label to pr #$pr_number"
+      if [[ -z $issue_link ]]; then
+        echo " - No jira issue change status for"
+        echo "Done!"
+        exit
+
+      fi
+      # Move ticket to Ready to Merge
+      echo " - Moving Jira issue $issue to Ready to Merge";
+      jira issue move "$issue" "Ready to Merge" 
       exit
       ;;
     \?)
@@ -52,29 +126,49 @@ while getopts "h" opt; do
   esac
 done
 
-branch=$(git branch --show-current)
-to_branch="main" && [[ $# > 0 ]] && to_branch=$1
 
-if [[ $to_branch == $branch ]]; then
-  echo "Can't PR from $branch to $to_branch because they are the same"
-  exit 1
-fi
+pr_template() {
+  while IFS= read -r line; do
+    if [[ $line != \\* && $line != ---* ]]; then
+      line=$(printf '%s\n' "$line")
+      if [[ 
+        $line =~ "Jira issue prefixed" || 
+        $line =~ "Useful title" ||
+        $line =~ "Team: ..." ||
+        $line =~ "Add labels to deploy PR envs" ||
+        $line =~ "Only added the" ||
+        $line =~ "I wrote unit tests for all new/modified functionality" ||
+        $line =~ "My code conforms to the coding conventions" ||
+        $line =~ "Opt-Out. I am not changing any code which involves Internationalization"
+      ]]; then
+        # check the box
+        echo $line | sed -E 's/-(.*)\[ \]/-\1[x]/g'
+      else
+        echo $line
+      fi
+    fi
+  done < $(git rev-parse --show-toplevel)/.github/PULL_REQUEST_TEMPLATE.md
+}
 
-gh_pr_view=$(gh pr view 2>&1)
 
-if [[ $gh_pr_view =~ ^no.*$ ]]; then
-  issue=$(echo $branch | cut -d"/" -f2)
+if [[ $pr_number =~ ^no.*$ ]]; then
+  to_branch="main" && [[ $# > 0 ]] && to_branch=$1
+
+  if [[ $to_branch == $branch ]]; then
+    echo "Can't PR from $branch to $to_branch because they are the same"
+    exit 1
+  fi
   semantic_name=$(echo $branch | cut -d"/" -f3)
   # Convert to title case
   semantic_name=$(node -e "console.log(\"$semantic_name\".split('-').map((word) => word.replace(/^[a-z]/, (lower) => lower.toUpperCase())).join(' '))")
   title="[$issue] $semantic_name"
 
   common_commit=$(git merge-base origin/$to_branch $branch)
-  body="[$issue](https://jira.corp.adobe.com/browse/$issue)
 
+  body="$issue_link
   $(git log HEAD...$common_commit --pretty=format:' - %s%n%n%b')
 
-  $(cat $(git rev-parse --show-toplevel)/.github/PULL_REQUEST_TEMPLATE.md))
+  $(pr_template)
   
   "
 
@@ -97,7 +191,11 @@ if [[ $gh_pr_view =~ ^no.*$ ]]; then
   fi
 
 
+  # actually create the PR
+  echo "Creating Pull Request to $to_branch, with title $title"
   gh pr create -B $to_branch -t "$title" -b "$body" -l "Team: CCX Content" -l "x-prenv" -d 
 
+
 fi
+
 gh pr view -w

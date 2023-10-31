@@ -25,6 +25,10 @@ echo
 echo "human-readable name?"
 read hr_name 
 
+if [[ -z "$jira_issue" ]]; then
+  jira_issue="NO-JIRA"
+fi
+
 # Replace spaces with '-'
 branch_semantic_name=${hr_name//[ ]/-}
 
@@ -43,6 +47,11 @@ fi
 git checkout -b $branch_name $base_branch 
 git push --set-upstream origin $branch_name --no-verify
 if [[ -f "$(git rev-parse --show-toplevel)/rush.json" ]]; then
-  rush update
-  rush build
+  cd $(git rev-parse --show-toplevel)
+  ./bin/setup.sh
+  cd -
+fi
+
+if ! [[ $jira_issue =~ "NO-JIRA" ]]; then
+  jira issue move "$jira_issue" "In Development" 
 fi
