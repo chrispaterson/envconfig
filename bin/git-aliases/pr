@@ -134,9 +134,14 @@ while getopts "hrmcdao" opt; do
       gh pr status
       reviewed_by_me_prs
       ;;
-    o | -others)
-      exit
+    a | -a)
+      gh pr status
       reviewed_by_me_prs
+      exit
+      ;;
+    o | -others)
+      reviewed_by_me_prs
+      exit
       ;;
     \?)
       usage >&2
