@@ -5,7 +5,6 @@
 	amend = ! $HOME/bin/git-aliases/amend
 	authors = ! $HOME/bin/git-aliases/authors
 	count-lines = ! $HOME/bin/git-aliases/count-lines
-	done = ! $HOME/bin/git-aliases/done
 	dt = difftool
 	isrepo = ! $HOME/bin/git-aliases/isrepo
 	issue = ! $HOME/bin/git-aliases/issue
@@ -17,17 +16,15 @@
   base = ! $HOME/bin/git-aliases/base 
   cleanup = ! $HOME/bin/git-aliases/cleanup
   commands = ! $HOME/bin/git-aliases/commands
-  fracture = ! $HOME/bin/git-aliases/fracture
+  prenv = ! $HOME/bin/git-aliases/prenv
   last-change = log -1 -p
   pr = ! $HOME/bin/git-aliases/pr 
   prs = ! $HOME/bin/git-aliases/prs 
   psh = ! $HOME/bin/git-aliases/psh 
   squash = ! $HOME/bin/git-aliases/squash
-  ticket = ! $HOME/bin/git-aliases/ticket
-  umr = ! $HOME/bin/git-aliases/umr
+  reviewed-prs = ! $HOME/bin/git-aliases/reviewed-prs
   unwind = ! $HOME/bin/git-aliases/unwind
   update = ! $HOME/bin/git-aliases/update
-  wt = worktree
 [checkout]
   defaultRemote = origin
 [diff]
