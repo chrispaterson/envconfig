@@ -170,7 +170,6 @@ case $command in
       exit
       ;;
     all)
-      exit
       gh pr status
       reviewed_by_me_prs
       exit
@@ -184,8 +183,10 @@ case $command in
       exit
       ;;
     *)
-      showhelp
-      exit 1
+      if ! [ -z $command ]; then
+        showhelp
+        exit 1
+      fi
       ;;
 esac
 
