@@ -2,7 +2,7 @@
 
 usage ()
 {
-  echo "Usage: git pr [flags] <branch>"
+  echo "Usage: git pr <command> [<branch>]"
 }
 
 showhelp()
@@ -35,15 +35,18 @@ showhelp()
   echo " "
   usage
   echo " "
-  echo "options:"
-  echo "-h, --help                show brief help"
-  echo "-r, --ready               Moves PR from draft to ready state and transitions Jira issue status to In Review"
-  echo "-d, --draft               Moves PR back to draft state and transitions Jira issue status to In Development"
-  echo "-c, --checks              Displays pr automated checks status"
-  echo "-m, --merge               Adds the merge-queue label to the pr, and transitions Jira issue status to Ready To Merge"
-  echo "-a, --all                 Overview of all PRs for the repo related to me"
-  echo "-o, --others              Show PRs I have reviewed that are not yet merged"
+  echo "Commands:"
+  echo "help                show brief help"
+  echo "ready               Moves PR from draft to ready state and transitions Jira issue status to In Review"
+  echo "draft               Moves PR back to draft state and transitions Jira issue status to In Development"
+  echo "checks              Displays pr automated checks status"
+  echo "merge               Adds the merge-queue label to the pr, and transitions Jira issue status to Ready To Merge"
+  echo "all                 Overview of all PRs for the repo related to me"
+  echo "others              Show PRs I have reviewed that are not yet merged"
 }
+
+command="$1"
+branch_maybe="$2"
 
 reviewed_by_me_prs () 
 {
@@ -76,13 +79,36 @@ if [[ "$issue" != "NO-JIRA" ]]; then
   "
 fi
 
-while getopts "hrmcdaob" opt; do
-  case $opt in
-    h | -help)
+
+pr_template() {
+  while IFS= read -r line; do
+    if [[ $line != \\* && $line != ---* ]]; then
+      line=$(printf '%s\n' "$line")
+      if [[ 
+        $line =~ "Jira issue prefixed" || 
+        $line =~ "Useful title" ||
+        $line =~ "Team: ..." ||
+        $line =~ "Add labels to deploy PR envs" ||
+        $line =~ "Only added the" ||
+        $line =~ "I wrote unit tests for all new/modified functionality" ||
+        $line =~ "My code conforms to the coding conventions" ||
+        $line =~ "Opt-Out. I am not changing any code which involves Internationalization"
+      ]]; then
+        # check the box
+        echo $line | sed -E 's/-(.*)\[ \]/-\1[x]/g'
+      else
+        echo $line
+      fi
+    fi
+  done < $(git rev-parse --show-toplevel)/.github/PULL_REQUEST_TEMPLATE.md
+}
+
+case $command in
+  help)
       showhelp
       exit
       ;;
-    r | -ready)
+    ready)
       gh pr ready
       echo "PR $pr_number is ready for review!"
 
@@ -109,7 +135,7 @@ while getopts "hrmcdaob" opt; do
 
       exit
       ;;
-    d | -draft)
+    draft)
       gh pr ready --undo
       echo "PR $pr_number moved back to draft."
       if [[ -z $issue_link ]]; then
@@ -124,12 +150,12 @@ while getopts "hrmcdaob" opt; do
       echo "Done!"
       exit
       ;;
-    c | -checks)
+    checks)
       echo "Getting PR check status for $pr_number"
       gh pr checks "$pr_number"
       exit
       ;;
-    m | -merge)
+    merge)
       gh pr edit --add-label "merge-queue"
       echo "Added merge-queue label to pr #$pr_number"
       if [[ -z $issue_link ]]; then
@@ -143,58 +169,29 @@ while getopts "hrmcdaob" opt; do
       jira issue move "$issue" "Ready to Merge" 
       exit
       ;;
-    m | -merge)
+    all)
       exit
       gh pr status
       reviewed_by_me_prs
+      exit
       ;;
-    a | -a)
-      gh pr status
+    others)
       reviewed_by_me_prs
       exit
       ;;
-    o | -others)
-      reviewed_by_me_prs
-      exit
-      ;;
-    b | -build)
+    build)
       open "https://app.circle.ci.adobe.com/pipelines/github/Horizon/hz?branch=$(urlencode $branch)"
       exit
       ;;
-    \?)
-      usage >&2
+    *)
+      showhelp
       exit 1
       ;;
-  esac
-done
-
-
-pr_template() {
-  while IFS= read -r line; do
-    if [[ $line != \\* && $line != ---* ]]; then
-      line=$(printf '%s\n' "$line")
-      if [[ 
-        $line =~ "Jira issue prefixed" || 
-        $line =~ "Useful title" ||
-        $line =~ "Team: ..." ||
-        $line =~ "Add labels to deploy PR envs" ||
-        $line =~ "Only added the" ||
-        $line =~ "I wrote unit tests for all new/modified functionality" ||
-        $line =~ "My code conforms to the coding conventions" ||
-        $line =~ "Opt-Out. I am not changing any code which involves Internationalization"
-      ]]; then
-        # check the box
-        echo $line | sed -E 's/-(.*)\[ \]/-\1[x]/g'
-      else
-        echo $line
-      fi
-    fi
-  done < $(git rev-parse --show-toplevel)/.github/PULL_REQUEST_TEMPLATE.md
-}
+esac
 
 
 if [[ $pr_number =~ ^no.*$ ]]; then
-  to_branch="main" && [[ $# > 0 ]] && to_branch=$1
+  to_branch="main" && [[ $# > 1 ]] && to_branch=$branch_maybe
 
   if [[ $to_branch == $branch ]]; then
     echo "Can't PR from $branch to $to_branch because they are the same"
