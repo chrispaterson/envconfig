@@ -5,6 +5,7 @@
 	amend = ! $HOME/bin/git-aliases/amend
 	authors = ! $HOME/bin/git-aliases/authors
 	count-lines = ! $HOME/bin/git-aliases/count-lines
+	checks = ! $HOME/bin/git-aliases/pr -c
 	dt = difftool
 	isrepo = ! $HOME/bin/git-aliases/isrepo
 	issue = ! $HOME/bin/git-aliases/issue

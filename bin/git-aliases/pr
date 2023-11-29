@@ -2,7 +2,7 @@
 
 usage ()
 {
-  echo "Usage: git pr [-h | -r | -d | -c | -m] <branch>"
+  echo "Usage: git pr [flags] <branch>"
 }
 
 showhelp()
@@ -53,6 +53,20 @@ reviewed_by_me_prs ()
   gh pr list -S "reviewed-by:@me"
 }
 
+urlencode () {
+  string=$1
+  while [ -n "$string" ]; do
+    tail=${string#?}
+    head=${string%$tail}
+    case $head in
+      [-._~0-9A-Za-z]) printf %c "$head";;
+      *) printf %%%02x "'$head"
+    esac
+    string=$tail
+  done
+  echo
+}
+
 branch=$(git branch --show-current)
 pr_number=$(gh pr view --json number --jq '.number' 2>&1)
 issue=$(echo $branch | cut -d"/" -f2)
@@ -62,7 +76,7 @@ if [[ "$issue" != "NO-JIRA" ]]; then
   "
 fi
 
-while getopts "hrmcdao" opt; do
+while getopts "hrmcdaob" opt; do
   case $opt in
     h | -help)
       showhelp
@@ -141,6 +155,10 @@ while getopts "hrmcdao" opt; do
       ;;
     o | -others)
       reviewed_by_me_prs
+      exit
+      ;;
+    b | -build)
+      open "https://app.circle.ci.adobe.com/pipelines/github/Horizon/hz?branch=$(urlencode $branch)"
       exit
       ;;
     \?)

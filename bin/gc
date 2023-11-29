@@ -1,0 +1,2 @@
+#!/bin/bash
+notifyutil -p org.WebKit.lowMemory
