@@ -36,13 +36,14 @@ showhelp()
   usage
   echo " "
   echo "Commands:"
-  echo "help                show brief help"
-  echo "ready               Moves PR from draft to ready state and transitions Jira issue status to In Review"
-  echo "draft               Moves PR back to draft state and transitions Jira issue status to In Development"
-  echo "checks              Displays pr automated checks status"
-  echo "merge               Adds the merge-queue label to the pr, and transitions Jira issue status to Ready To Merge"
   echo "all                 Overview of all PRs for the repo related to me"
+  echo "checks              Displays pr automated checks status"
+  echo "done                Checks to see that PR is merged, deletes local branch, marks ticket Done"
+  echo "draft               Moves PR back to draft state and transitions Jira issue status to In Development"
+  echo "help                Show brief help"
+  echo "merge               Adds the merge-queue label to the pr, and transitions Jira issue status to Ready To Merge"
   echo "others              Show PRs I have reviewed that are not yet merged"
+  echo "ready               Moves PR from draft to ready state and transitions Jira issue status to In Review"
 }
 
 command="$1"
@@ -79,6 +80,21 @@ if [[ "$issue" != "NO-JIRA" ]]; then
   "
 fi
 
+
+pr_done() {
+   if [[ $(gh pr view "$pr_number" --json state --jq '.state' ) == "MERGED" ]]; then
+     git checkout main
+     echo "Deleting branch $branch"
+     git branch -D $branch
+
+     echo "Moving Jira $issue to Done"
+      # Move ticket to Done
+      jira issue move "$issue" "Done" 
+    else
+      echo "Unable to close PR, it is not merged"
+      exit 1
+   fi
+}
 
 pr_template() {
   while IFS= read -r line; do
@@ -133,6 +149,10 @@ case $command in
 
       echo "Done!"
 
+      exit
+      ;;
+    done)
+      pr_done
       exit
       ;;
     draft)
