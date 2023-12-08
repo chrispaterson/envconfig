@@ -87,9 +87,13 @@ pr_done() {
      echo "Deleting branch $branch"
      git branch -D $branch
 
-     echo "Moving Jira $issue to Done"
-      # Move ticket to Done
-      jira issue move "$issue" "Done" 
+      if [[ "$issue" != "NO-JIRA" ]]; then
+       echo "Moving Jira $issue to Done"
+        # Move ticket to Done
+        jira issue move "$issue" "Done" 
+      else
+        echo "No Jira issue to update"
+      fi
     else
       echo "Unable to close PR, it is not merged"
       exit 1
