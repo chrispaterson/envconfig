@@ -4,3 +4,4 @@ coreutils
 gh
 tmux
 jira-cli
+powerlevel10k
