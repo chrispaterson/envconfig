@@ -1,29 +1,30 @@
 #!/bin/bash
 
-PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-HOME_DIR=$(echo ~)
+project_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+home_dir=$(echo ~)
 
-for FILE in $(ls -A $PROJECT_DIR)
+if ! [ -d $project_dir ]; then 
+	echo "Unable to locate project directory $project_dir"
+	exit 1
+fi
+
+for file in $(ls -A $project_dir)
 do
 
-  if ! [[ $FILE =~ ".git" || $FILE == ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" ]]; then
+  if ! [[ $FILE == ".git" || $FILE == ".gitmodules" || $FILE =~ ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" || $FILE =~ ".DS_Store" || $FILE =~ "font" || $FILE =~ ".txt" ]]; then
 
     # if the file exists and is not a symbolic link, if it is a symbolic link
     # then we've been here before
-    if [[ -L $HOME_DIR/$FILE ]]; then
+    if [[ -L $home_dir/$file ]]; then
 
-      rm $HOME_DIR/$FILE
+      rm $home_dir/$file
     fi
 
   fi
 done
 
-mv $PROJECT_DIR/.bak/* $HOME_DIR/
-
-if [[ -e .profile ]]; then
-  source .profile
-elif [[ -e .bashrc ]]; then
-  source .bashrc
+if [ -d $project_dir/.bak ]; then 
+	mv $project_dir/.bak/* $home_dir/
 fi
 
 echo "Should be returned to how you had it before..."
