@@ -1,10 +1,10 @@
 #!/bin/bash
 
-PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-HOME_DIR=$(echo ~)
-RELATIVE_PROJECT_DIR=./${PROJECT_DIR#"$HOME_DIR/"}
+project_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+home_dir=$(echo ~)
+RELATIVE_project_dir=./${project_dir#"$home_dir/"}
 
-cd $PROJECT_DIR
+cd $project_dir
 
 # Back up any existing files
 if [[ ! -d .bak ]]; then
@@ -19,42 +19,42 @@ git submodule update
 cd .vim/pack/lib/start/vim-jsdoc/
 make install
 
-cd $HOME_DIR
+cd $home_dir
 
-for FILE in $(ls -A $PROJECT_DIR)
+for FILE in $(ls -A $project_dir)
 do
 
   if ! [[ $FILE == ".git" || $FILE == ".gitmodules" || $FILE =~ ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" || $FILE =~ ".DS_Store" || $FILE =~ "font" || $FILE =~ ".txt" ]]; then
 
     # if the file exists and is not a symbolic link, if it is a symbolic link
     # then we've been here before
-    if [[ -e $HOME_DIR/$FILE && ! -L $HOME_DIR/$FILE ]]; then
+    if [[ -e $home_dir/$FILE && ! -L $home_dir/$FILE ]]; then
 
       # Force override of old
-      mv -f $HOME_DIR/$FILE $PROJECT_DIR/.bak/
+      mv -f $home_dir/$FILE $project_dir/.bak/
 
     fi
 
     if [ ! -e $FILE ]; then
 
       # link
-      ln -sv $RELATIVE_PROJECT_DIR/$FILE
+      ln -sv $RELATIVE_project_dir/$FILE
     fi
 
   fi
 done
 
 # See if we need to cp any bin scripts back
-if [[ -d $PROJECT_DIR/.bak/bin ]]; then
+if [[ -d $project_dir/.bak/bin ]]; then
 
   # look at all the files that we copied over
-  for FILE in $(ls -A $PROJECT_DIR/.bak/bin/)
+  for FILE in $(ls -A $project_dir/.bak/bin/)
   do
 
     # if it's not in the bin, we copy back
-    if ! [[ -e $HOME_DIR/bin/$FILE ]]; then
+    if ! [[ -e $home_dir/bin/$FILE ]]; then
 
-      cp -r $PROJECT_DIR/.bak/bin/$FILE $HOME_DIR/bin/
+      cp -r $project_dir/.bak/bin/$FILE $home_dir/bin/
 
     fi
   done
@@ -71,13 +71,13 @@ if [[ "$OSTYPE" =~ "darwin" ]]; then
   fi
 
   # All the brew taps to get brew stuff from
-  for TAP in $(cat $PROJECT_DIR/brew_taps.txt); do
+  for TAP in $(cat $project_dir/brew_taps.txt); do
 
     brew tap $TAP 
   done
 
   # All the system level apps that I install with brew
-  for APP in $(cat $PROJECT_DIR/brew_apps.txt); do
+  for APP in $(cat $project_dir/brew_apps.txt); do
 
     if ! command -v $APP &> /dev/null
     then
@@ -87,6 +87,6 @@ if [[ "$OSTYPE" =~ "darwin" ]]; then
 
 fi
 
-$PROJECT_DIR/bin/yarn-global
+$project_dir/bin/yarn-global
 
 echo "Installed, but you must source ~/.profile for the env to take effect"
