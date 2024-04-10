@@ -1,14 +1,15 @@
 #!/bin/bash
-pr_number=$(gh pr view --json number --jq '.number' 2>&1)
-
-if [[ $pr_number =~ ^no.*$ ]]; then
-  echo "Unable to add honeydew script, Please open a PR first"
-  exit 1
-fi
 
 is_installed_gh="$(brew info gh)"
 if [[ $is_installed_gh =~ "Not installed" ]]; then
   brew install gh
+fi
+
+pr_number=$(gh pr view --json number --jq '.number' 2>&1)
+
+if [[ $pr_number =~ ^no.*$ ]]; then
+  echo "Unable to add Muppet Labs test, Please open a PR first"
+  exit 1
 fi
 
 is_installed_jq="$(brew info jq)"
