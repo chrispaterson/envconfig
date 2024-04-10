@@ -37,6 +37,7 @@ showhelp()
   echo " "
   echo "Commands:"
   echo "all                 Overview of all PRs for the repo related to me"
+  echo "number              Prints PR number"
   echo "checks              Displays pr automated checks status"
   echo "done                Checks to see that PR is merged, deletes local branch, marks ticket Done"
   echo "draft               Moves PR back to draft state and transitions Jira issue status to In Development"
@@ -153,6 +154,10 @@ case $command in
 
       echo "Done!"
 
+      exit
+      ;;
+    number)
+      echo $pr_number
       exit
       ;;
     done)

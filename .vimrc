@@ -101,6 +101,7 @@ Plug 'christoomey/vim-tmux-navigator'
 Plug 'kevinoid/vim-jsonc'
 Plug 'whiteinge/diffconflicts'
 Plug '/usr/local/opt/fzf'
+Plug 'github/copilot.vim'
 
 " Initialize plugin system
 call plug#end()

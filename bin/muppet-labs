@@ -1,0 +1,65 @@
+#!/bin/bash
+pr_number=$(gh pr view --json number --jq '.number' 2>&1)
+
+if [[ $pr_number =~ ^no.*$ ]]; then
+  echo "Unable to add honeydew script, Please open a PR first"
+  exit 1
+fi
+
+is_installed_gh="$(brew info gh)"
+if [[ $is_installed_gh =~ "Not installed" ]]; then
+  brew install gh
+fi
+
+is_installed_jq="$(brew info jq)"
+if [[ $is_installed_jq =~ "Not installed" ]]; then
+  brew install jq
+fi
+
+
+cd "$(git rev-parse --show-toplevel)/apps/project-x/e2e-honeydew/"
+file="package.json"
+temp_file="$file.tmp"
+muppet_labs_label="muppet-labs"
+current_labels=$(gh pr view --json labels --jq '.labels[].name')
+for label in $current_labels; do
+  if [[ $label == $muppet_labs_label ]]; then
+
+    read -p "Remove Muppet Labs test from PR [Y/n]? "
+    # exit early if it's a no
+    if ! [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]; then
+      echo    
+      echo "It's cool, we all make mistakes..."
+      echo    
+      exit 
+    fi
+
+    echo "Ok, removing the $muppet_labs_label label and reverting changes to the honeydew $file"
+
+    gh pr edit --remove-label "$muppet_labs_label" 
+    git checkout main -- "$file"
+    git add "$file"
+    git commit -m "Removing Muppet Labs test"
+    exit
+  fi
+done
+
+read -p "Add Muppet Labs test to PR [Y/n]? "
+# exit early if it's a no
+if ! [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]; then
+  echo    
+  echo "It's cool, we all make mistakes..."
+  echo    
+  exit 
+fi
+
+echo "Ok, making changes to the honeydew $file and adding the $muppet_labs_label label to the PR"
+
+jq -M '.scripts += {"test:inspire": "URL=https://'"$pr_number"'.prenv.projectx.corp.adobe.com rushx test:playwright --grep \"@inspire\"", "test:muppet-labs": "rushx test:inspire"}' $file > $temp_file
+mv $temp_file $file
+rushx lint:fix
+
+git add "$file"
+git commit -m "Adding Muppet Labs test"
+git push
+gh pr edit --add-label "$muppet_labs_label" 

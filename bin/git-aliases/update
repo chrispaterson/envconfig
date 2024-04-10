@@ -1,25 +1,72 @@
 #!/bin/bash
 branch=$(git branch --show-current)
-from_branch="main" && [[ $# > 0 ]] && from_branch=$1
+from_branch="main"
+maybe_origin=" "
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -o) maybe_origin=1; shift;;
+      -u) update_local=1; shift;;
+       *)
+            if [[ "$1" == -* ]]; then
+                echo "Error: Invalid option: $1"
+                exit 1
+            fi
+
+            from_branch=$1
+            shift
+            ;;
+    esac
+done
 
 if [[ $from_branch == $branch ]]; then
   echo "Can not merge from $from_branch to $branch because they are the same"
   exit 1
 fi
 
-read -p "Do you want to get changes from $from_branch? [Y/n] " -n 1 -r
+if [[ $update_local -eq 1 ]]; then
+  prompt="Do you want to get changes from $from_branch and also update that branch locally?"
+elif [[ $maybe_origin -eq 1 ]]; then
+  prompt="Do you want to get changes from origin/$from_branch and not update that branch locally?"
+else
+  prompt="Do you want to get changes from $from_branch?"
+  git merge $from_branch --no-edit
+fi
+
+read -p "$prompt [Y/n] " reply
 echo    # move to a new line
 
-if ! [[ $reply =~ ^[Yy]$ || -z $reply ]]
-then
-  echo "It's cool, we all make mistakes..."
-  exit 
-
-fi
+case "$reply" in 
+  y|Y ) 
+    echo "Ok then..."
+    ;;
+  n|N ) 
+    echo "It's cool, we all make mistakes..."
+    exit 
+  ;;
+  * ) if ! [[ $reply ]]; then
+      echo "Ok then..."
+    else
+      echo "Not sure what that response was..."
+      exit 
+    fi
+    ;;
+esac
 
 cd $(git root)
 git fetch -p
-git merge $from_branch --no-edit
+
+if [[ $update_local -eq 1 ]]; then
+  git switch $from_branch
+  git pull
+  git switch -
+  git merge $from_branch
+elif [[ $maybe_origin -eq 1 ]]; then
+  git merge origin/$from_branch --no-edit
+else
+  git merge $from_branch --no-edit
+fi
+
 
 conflicts=$(git diff --name-status --diff-filter=U)
 
@@ -37,5 +84,7 @@ if [[ -z "conflicts" ]]; then
 
   git commit --no-edit
   git clean -f .
+else
+  echo "Please resolve merge conflicts before committing"
 
 fi
