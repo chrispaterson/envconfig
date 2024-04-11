@@ -13,13 +13,42 @@ function abspath {
   fi
 }
 
-target=$(abspath $1)
-echo "file: $target"
+function usage {
+  echo
+  echo "Open directory or path on corresponding github website"
+  echo
+  echo "Usage: $(basename $0) [-b] <path>"
+  echo
+  echo "Options:"
+  echo "-b    Go to blame page"
+  echo
+}
+
+ghpath="tree"
+# Function to handle options and arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -b) ghpath="blame";shift;;
+    *)
+        if [[ "$1" == -* ]]; then
+            echo "Error: Invalid option: $1"
+            usage
+            exit 1
+        fi
+
+        target=$(abspath $1)
+        shift
+        ;;
+  esac
+done
+
 if [[ -z $target ]]; then
-  echo "please pass a file or path"
+  usage
   exit 1
 fi
+
+
 root_dir=$(git rev-parse --show-toplevel)
 relative_dir="${target/${root_dir}/}"
 IFS=":" read -ra PARTS <<< "$(git remote get-url origin)"
-open "https://${PARTS[0]/git@/}/${PARTS[1]/.git/}/tree/$(git rev-parse --abbrev-ref HEAD)/$relative_dir"
+open "https://${PARTS[0]/git@/}/${PARTS[1]/.git/}/$ghpath/$(git rev-parse --abbrev-ref HEAD)/$relative_dir"
