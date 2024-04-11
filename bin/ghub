@@ -21,5 +21,5 @@ if [[ -z $target ]]; then
 fi
 root_dir=$(git rev-parse --show-toplevel)
 relative_dir="${target/${root_dir}/}"
-
-open https://git.corp.adobe.com/Horizon/hz/tree/main/$relative_dir
+IFS=":" read -ra PARTS <<< "$(git remote get-url origin)"
+open "https://${PARTS[0]/git@/}/${PARTS[1]/.git/}/tree/$(git rev-parse --abbrev-ref HEAD)/$relative_dir"
