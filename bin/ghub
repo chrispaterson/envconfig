@@ -1,0 +1,25 @@
+#!/bin/bash
+function abspath {
+  if [[ -d "$1" ]]
+  then
+    pushd "$1" >/dev/null
+    pwd
+    popd >/dev/null
+  elif [[ -e "$1" ]]
+  then
+    pushd "$(dirname "$1")" >/dev/null
+    echo "$(pwd)/$(basename "$1")"
+    popd >/dev/null
+  fi
+}
+
+target=$(abspath $1)
+echo "file: $target"
+if [[ -z $target ]]; then
+  echo "please pass a file or path"
+  exit 1
+fi
+root_dir=$(git rev-parse --show-toplevel)
+relative_dir="${target/${root_dir}/}"
+
+open https://git.corp.adobe.com/Horizon/hz/tree/main/$relative_dir

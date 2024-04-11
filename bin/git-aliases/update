@@ -45,16 +45,13 @@ case "$reply" in
     exit 
   ;;
   * ) if ! [[ $reply ]]; then
-      echo "Ok then..."
+      echo "Ok then, merging in changes"
     else
       echo "Not sure what that response was..."
       exit 
     fi
     ;;
 esac
-
-cd $(git root)
-git fetch -p
 
 if [[ $update_local -eq 1 ]]; then
   git switch $from_branch
@@ -77,7 +74,7 @@ if [[ -z "conflicts" ]]; then
     repo_state_file="common/config/rush/repo-state.json"
     if [[ ! -z $(git diff origin/$from_branch -- $pnpm_lock_file) || ! -z $(git diff origin/$from_branch -- $repo_state_file) ]]; then
       git checkout origin/$from_branch --  $pnpm_lock_file $repo_state_file
-      ./bin/setup.sh
+      rush update
       git add $pnpm_lock_file $repo_state_file
     fi
   fi

@@ -4,9 +4,10 @@
 	ac = ! $HOME/bin/git-aliases/ac
 	amend = ! $HOME/bin/git-aliases/amend
 	authors = ! $HOME/bin/git-aliases/authors
-	count-lines = ! $HOME/bin/git-aliases/count-lines
 	checks = ! $HOME/bin/git-aliases/pr -c
+	count-lines = ! $HOME/bin/git-aliases/count-lines
 	dt = difftool
+  hub = ! WORKING_DIR=$PWD $HOME/bin/git-aliases/hub
 	isrepo = ! $HOME/bin/git-aliases/isrepo
 	issue = ! $HOME/bin/git-aliases/issue
 	provider = ! $HOME/bin/git-aliases/provider
@@ -17,9 +18,9 @@
   base = ! $HOME/bin/git-aliases/base 
   cleanup = ! $HOME/bin/git-aliases/cleanup
   commands = ! $HOME/bin/git-aliases/commands
-  prenv = ! $HOME/bin/git-aliases/prenv
   last-change = log -1 -p
   pr = ! $HOME/bin/git-aliases/pr 
+  prenv = ! $HOME/bin/git-aliases/prenv
   psh = ! $HOME/bin/git-aliases/psh 
   squash = ! $HOME/bin/git-aliases/squash
   unwind = ! $HOME/bin/git-aliases/unwind
