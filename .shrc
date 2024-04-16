@@ -57,7 +57,7 @@ export rush_project_names() {
 export rush_project_folders() {
   if [ -z $1 ]; then
     rquery ".projects[] | .projectFolder"
-    return
+    exit
   fi
   
   rquery "( .projects[] | select(.packageName == \"@hz/$1\") ).projectFolder"
@@ -65,8 +65,9 @@ export rush_project_folders() {
 
 export pkg() {
   if [ -z $1 ]; then
-    cdr
-    return
+
+    echo "Package not found"
+    exit 1
   fi
 
   cd $(rush_project_folders $1)
@@ -79,6 +80,10 @@ export rsearch() {
       grep -rl "$1" "$dir/src"
     fi
   done <<< "$dirs"
+}
+
+export jump() {
+  cd $HOME/projects/adobe/hz/$1
 }
 
 get_share_url() {

@@ -51,4 +51,4 @@ fi
 root_dir=$(git rev-parse --show-toplevel)
 relative_dir="${target/${root_dir}/}"
 IFS=":" read -ra PARTS <<< "$(git remote get-url origin)"
-open "https://${PARTS[0]/git@/}/${PARTS[1]/.git/}/$ghpath/$(git rev-parse --abbrev-ref HEAD)/$relative_dir"
+open "https://${PARTS[0]/git@/}/${PARTS[1]/.git/}/$ghpath/$(git rev-parse --abbrev-ref HEAD)$relative_dir"

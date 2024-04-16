@@ -44,14 +44,17 @@ then
 
 fi
 
+wt_path="../$branch_semantic_name-$jira_issue"
+
+cd $(git rev-parse --show-toplevel)
+
+git worktree add -b $branch_name $wt_path $base_branch
+cd $wt_path
+git push --set-upstream origin $branch_name
+./bin/setup.sh
+
+exit
+
+# branch method
 git checkout -b $branch_name $base_branch 
 git push --set-upstream origin $branch_name --no-verify
-if [[ -f "$(git rev-parse --show-toplevel)/rush.json" ]]; then
-  cd $(git rev-parse --show-toplevel)
-  ./bin/setup.sh
-  cd -
-fi
-
-if ! [[ $jira_issue =~ "NO-JIRA" ]]; then
-  jira issue move "$jira_issue" "In Development" 
-fi
