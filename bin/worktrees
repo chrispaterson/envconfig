@@ -1,0 +1,31 @@
+#!/bin/bash
+
+get_wt_dirname() {
+    local target_path common_part 
+
+    target_path=$(readlink -f "$1")
+
+    updirs=""
+    common_part=$(readlink -f "$(pwd)")
+    if [[ "$common_part" == "$target_path" ]]; then
+      exit
+    fi
+    while [[ "${target_path#$common_part}" == "${target_path}" ]]; do
+        common_part=$(dirname "$common_part")
+        updirs="$updirs"
+    done
+
+    echo "$updirs${target_path#$common_part/}"
+}
+
+worktrees=$(git worktree list --porcelain) 
+worktree_paths=()
+
+while IFS= read -r line; do
+  if [[ $line =~ "worktree" ]]; then
+    abs_path="${line/'worktree '/}"
+    rel_path=$(get_wt_dirname $abs_path)
+    worktree_paths+=($rel_path)
+  fi
+done <<< "$worktrees"
+echo ${worktree_paths[*]}

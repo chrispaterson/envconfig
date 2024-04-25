@@ -83,7 +83,20 @@ export rsearch() {
 }
 
 export jump() {
-  cd $HOME/projects/adobe/hz/$1
+  local last_jump_file="/tmp/last_jump.dat"
+  local cwd=$(pwd)
+  if [[ $1 == '-' ]]; then
+    new_path=$(cat "$last_jump_file")
+    if [[ -z "$new_path" ]]; then
+      echo "Last jump not defined"
+      return
+    fi
+    cd $new_path
+  else
+    git_root=$(git rev-parse --show-toplevel)
+    cd "$git_root/../$1/${cwd/$git_root/}"
+  fi
+  echo "$cwd" > "$last_jump_file"
 }
 
 get_share_url() {

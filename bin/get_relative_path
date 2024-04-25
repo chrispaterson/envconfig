@@ -1,0 +1,23 @@
+#!/bin/bash
+
+get_relative_path() {
+    local source_path target_path common_part source_relative target_relative
+
+    source_path=$(readlink -f "$1")
+    target_path=$(readlink -f "$2")
+
+    updirs=""
+    common_part="$source_path"
+    while [[ "${target_path#$common_part}" == "${target_path}" ]]; do
+        common_part=$(dirname "$common_part")
+        updirs="../$updirs"
+    done
+
+    echo "$updirs${target_path#$common_part/}"
+}
+
+# Example usage:
+source_path="$(pwd)"
+target_path="/Users/paterson/projects/adobe/hz/Brick-register-inspire-panels-CCEX-75305"
+relative_path=$(get_relative_path "$source_path" "$target_path")
+echo "Relative path: $relative_path"

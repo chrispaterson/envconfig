@@ -1,27 +1,79 @@
 #!/bin/bash
 
-function yes_or_no {
-  while true; do
-    read -p "$* [y/n]: " yn
-    case $yn in
-      [Yy]*) return 0  ;;  
-      [Nn]*) echo "Ok, that's cool..." ; return  1 ;;
-    esac
-  done
+function delete_branch {
+  echo "Removing worktree $2"
+  echo "This takes a rediculous amount of time, please wait..."
+  git worktree remove -f "$2"
+
+  echo "Deleting branch $1"
+  git branch -D "$1"
 }
 
-git fetch -p
-branches=$(git for-each-ref refs/heads/ "--format=%(refname:short)") 
 
-for branch in $branches; do  
-   mergeBase=$(git merge-base main $branch) 
-   if [[ $(git cherry main $(git commit-tree $(git rev-parse "$branch^{tree}") -p $mergeBase -m _)) == "-"* ]]; then
-     yes_or_no "Delete branch $branch?" && git worktree remove git branch -D $branch
-   fi
+branches=()
+paths=()
+path=""
+
+while IFS= read -r line; do
+  if [[ $line =~ "worktree" ]]; then
+    path="${line/'worktree '/}"
+  fi
+  if [[ ! -z $path && $line =~ "branch" ]]; then
+    branch=${line:18}
+
+    # we're never going to delete main
+    if [[ $branch != "main" ]]; then
+
+      # Is the pr merged?
+      pr_state=$(gh pr view $branch --json state --jq ".state" 2>/dev/null)
+      if [[ $pr_state == "MERGED" ]]; then
+        branches+=("$branch")
+        paths+=("$path")
+      fi
+    fi
+    path=""
+  fi
+done <<< "$(git worktree list --porcelain)"
+
+if [[ ${#branches[@]} -eq 0 ]]; then 
+  echo "There are no branches and worktrees that can be cleaned up!"
+  exit 0
+fi
+
+prompt=$(for branch in "${branches[@]}"; do echo $branch; done) 
+
+read -p "Do you want to delete the following branches?
+
+$prompt
+
+[Y/n]" -n 1 -r
+echo    # (optional) move to a new line
+if [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]; then
+    for index in ${!branches[@]}; do 
+      delete_branch "${branches[$index]}" "${paths[$index]}" 
+    done
+    exit 0
+fi
+
+read -p "Ok.  Would you like to continue one by one? [Y/n]" -n 1 -r
+echo    # (optional) move to a new line
+if ! [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]; then
+
+  echo "Ok, I don't know what you want from me then...  I'm just a shell script, I can't read your mind"
+  exit 0
+fi
+
+echo "Ok then..."
+
+for index in ${!branches[@]}; do 
+  prompt="It looks like ${branches[$index]} has merged, do you want to delete it?"
+
+  read -p "$prompt [Y/n]" -n 1 -r
+  echo    # (optional) move to a new line
+  if [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]; then
+      delete_branch "${branches[$index]}" "${paths[$index]}" 
+  else
+    echo "Ok, not deleting..."
+  fi
+
 done
-
-echo ""
-echo "-- All merged branches have been removed! --"
-echo ""
-
-git switch -

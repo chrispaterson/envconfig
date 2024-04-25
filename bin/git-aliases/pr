@@ -109,6 +109,11 @@ pr_template() {
       ]]; then
         # check the box
         echo $line | sed -E 's/-(.*)\[ \]/-\1[x]/g'
+      elif [[ $line =~ "Jira Link:" ]]; then
+        echo "$line $issue_link"
+      elif [[ $line =~ "Description of Change" ]]; then
+        echo "$line
+        $(git log HEAD...$common_commit --pretty=format:' - %s%n%n%b')"
       else
         echo $line
       fi
@@ -125,27 +130,6 @@ case $command in
       gh pr ready
       echo "PR $pr_number is ready for review!"
 
-      if [[ -z $issue_link ]]; then
-        echo " - No jira issue to link"
-        echo "Done!"
-        exit
-
-      fi
-
-      echo " - Adding Pull Request link to Jira issue $issue";
-      # Add links back to the PR in the issue
-      jira issue link remote "$issue" $(gh pr view --json url --jq '.url') "Pull Request"
-      echo " - Adding PR Environment link to Jira issue $issue";
-
-      jira issue link remote "$issue" "https://$pr_number.prenv.projectx.corp.adobe.com" "PR Environment"
-
-      echo " - Moving Jira issue $issue to In Review";
-
-      # Move ticket to In Review
-      jira issue move "$issue" "In Review" 
-
-      echo "Done!"
-
       exit
       ;;
     number)
@@ -159,16 +143,6 @@ case $command in
     draft)
       gh pr ready --undo
       echo "PR $pr_number moved back to draft."
-      if [[ -z $issue_link ]]; then
-        echo " - No jira issue change status for"
-        echo "Done!"
-        exit
-
-      fi
-      echo " - Moving Jira issue $issue back to In Development";
-      # Move ticket to In Development
-      jira issue move "$issue" "In Development" 
-      echo "Done!"
       exit
       ;;
     checks)
@@ -179,15 +153,6 @@ case $command in
     merge)
       gh pr edit --add-label "merge-queue"
       echo "Added merge-queue label to pr #$pr_number"
-      if [[ -z $issue_link ]]; then
-        echo " - No jira issue change status for"
-        echo "Done!"
-        exit
-
-      fi
-      # Move ticket to Ready to Merge
-      echo " - Moving Jira issue $issue to Ready to Merge";
-      jira issue move "$issue" "Ready to Merge" 
       exit
       ;;
     all)
@@ -226,12 +191,7 @@ if [[ $pr_number =~ ^no.*$ ]]; then
 
   common_commit=$(git merge-base origin/$to_branch $branch)
 
-  body="$issue_link
-  $(git log HEAD...$common_commit --pretty=format:' - %s%n%n%b')
-
-  $(pr_template)
-  
-  "
+  body="$(pr_template)"
 
   read -p "Create Pull Request?
   

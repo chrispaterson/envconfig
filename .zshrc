@@ -66,6 +66,15 @@ if [[ $? == 0 ]]; then
   load-nvmrc
 fi
 
+# 0 -- vanilla completion (abc => abc)
+# 1 -- smart case completion (abc => Abc)
+# 2 -- word flex completion (abc => A-big-Car)
+# 3 -- full flex completion (abc => ABraCadabra)
+zstyle ':completion:*' matcher-list '' \
+  'm:{a-z\-}={A-Z\_}' \
+  'r:[^[:alpha:]]||[[:alpha:]]=** r:|=* m:{a-z\-}={A-Z\_}' \
+  'r:|?=** m:{a-z\-}={A-Z\_}'
+
 _pkg() {
   compadd $(rush_project_names)
 }
@@ -73,7 +82,8 @@ _pkg() {
 compdef _pkg pkg
 
 _jump() {
-  compadd $(ls $HOME/projects/adobe/hz/)
+
+  compadd $(worktrees)
 }
 
 compdef _jump jump

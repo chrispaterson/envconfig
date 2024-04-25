@@ -7,7 +7,6 @@
 	checks = ! $HOME/bin/git-aliases/pr -c
 	count-lines = ! $HOME/bin/git-aliases/count-lines
 	dt = difftool
-  hub = ! WORKING_DIR=$PWD $HOME/bin/git-aliases/hub
 	isrepo = ! $HOME/bin/git-aliases/isrepo
 	issue = ! $HOME/bin/git-aliases/issue
 	provider = ! $HOME/bin/git-aliases/provider

@@ -14,13 +14,8 @@ if [ -z $OLD_NAME ]; then
   exit 1
 fi
 
-move_file () {
-  filename=$(basename -- "$1")
-  extension="${filename#*.}"
-  mv "$filename" "$NEW_NAME.$extension"
-}
-export -f move_file
-
-find . -type f -name "$OLD_NAME.*" -exec bash -c 'move_file "$0"' {} \;
-sed -i.bak "s/$OLD_NAME/$NEW_NAME/g" `find . -name "$NEW_NAME.*"` && rm -r `find . -name "*.bak"`
-
+for file in $(find . -name "*$OLD_NAME*"); do
+  mv $file "${file/$OLD_NAME/$NEW_NAME}"
+done 
+sed -i.bak 's/'"$OLD_NAME"'/'"$NEW_NAME"'/g' `find . -type f -name "*.*"`
+rm `find . -type f -name "*.bak"`

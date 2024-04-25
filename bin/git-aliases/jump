@@ -1,0 +1,15 @@
+#!/bin/bash
+
+worktrees=$(git worktree list --porcelain) 
+worktree_paths=()
+
+while IFS= read -r line; do
+  if [[ $line =~ "worktree" ]]; then
+    abs_path="${line/'worktree '/}"
+    rel_path=$(realpath $abs_path)
+    worktree_paths+=($rel_path)
+  fi
+done <<< "$worktrees"
+
+echo ${worktree_paths[*]}
+
