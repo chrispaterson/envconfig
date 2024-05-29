@@ -18,6 +18,8 @@
   "coc.preferences.jumpCommand": "vsplit",
   "coc.preferences.rootPatterns": [".git", "package.json"],
   "coc.preferences.formatOnSaveFiletypes": [
+    "sh",
+    "bash",
     "javascript",
     "typescript",
     "json",

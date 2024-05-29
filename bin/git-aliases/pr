@@ -214,7 +214,7 @@ if [[ $pr_number =~ ^no.*$ ]]; then
 
   # actually create the PR
   echo "Creating Pull Request to $to_branch, with title $title"
-  gh pr create -B $to_branch -t "$title" -b "$body" -l "Team: CCX Content" -l "x-prenv" -d 
+  gh pr create -B $to_branch -t "$title" -b "$body" -l "Team: App Structure" -d 
 
 
 fi

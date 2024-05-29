@@ -13,6 +13,7 @@ au bufread,bufnewfile *.json set filetype=jsonc
 au bufread,bufnewfile *.sass,*.scss set filetype=sass
 au bufread,bufnewfile *.ts,*.tsx set filetype=typescript
 au bufread,bufnewfile *.vue set filetype=vue
+au bufread,bufnewfile *.sh set filetype=bash
 
 """""""""""""""""""""""""""""""
 " indentation
@@ -102,6 +103,8 @@ Plug 'kevinoid/vim-jsonc'
 Plug 'whiteinge/diffconflicts'
 Plug '/usr/local/opt/fzf'
 Plug 'github/copilot.vim'
+Plug 'josa42/coc-sh'
+Plug 'prabirshrestha/vim-lsp'
 
 " Initialize plugin system
 call plug#end()
@@ -113,7 +116,8 @@ let g:coc_node_path = substitute(system('which node'), '\n', '', '')
 let g:coc_global_extensions = [
   \ 'coc-tsserver',
   \ 'coc-eslint',
-  \ 'coc-prettier'
+  \ 'coc-prettier',
+  \ 'coc-sh'
   \ ]
 
 augroup mygroup
@@ -226,6 +230,13 @@ hi SpellCap cterm=bold,underline ctermfg=Yellow ctermbg=Black
 set signcolumn=yes
 
 "" COC
+if executable('bash-language-server')
+    au User lsp_setup call lsp#register_server({
+      \ 'name': 'bash-language-server',
+      \ 'cmd': {server_info->['bash-language-server', 'start']},
+      \ 'allowlist': ['sh', 'bash'],
+  \ })
+endif
 
 " NerdCommenter
 imap <C-c> <plug>NERDCommenterInsert

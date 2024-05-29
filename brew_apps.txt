@@ -6,3 +6,4 @@ tmux
 jira-cli
 powerlevel10k
 tree
+shellcheck
