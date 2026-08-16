@@ -1,13 +1,13 @@
 #!/bin/bash
 
 BRANCH=$(git branch --show-current)
-TO_BRANCH='main' && [[ $# > 0 ]] && TO_BRANCH=$1
+TO_BRANCH='main' && [[ $# -gt 0 ]] && TO_BRANCH=$1
 
-if [[ $TO_BRANCH == $BRANCH ]]; then
+if [[ $TO_BRANCH == "$BRANCH" ]]; then
   echo "Can not unwind from $BRANCH to $TO_BRANCH because they are the same"
   exit 1
 fi
 
-COMMON_COMMIT=$(git merge-base $TO_BRANCH $BRANCH)
+COMMON_COMMIT=$(git merge-base "$TO_BRANCH" "$BRANCH")
 
-git reset $COMMON_COMMIT
+git reset "$COMMON_COMMIT"

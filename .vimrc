@@ -85,6 +85,7 @@ Plug 'heavenshell/vim-jsdoc'
 Plug 'https://tpope.io/vim/repeat.git'
 Plug 'jonsmithers/vim-html-template-literals'
 Plug 'leafgarland/typescript-vim'
+Plug 'rishi-opensource/vim-claude-code'
 Plug 'mxw/vim-jsx'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'pangloss/vim-javascript'
@@ -102,12 +103,58 @@ Plug 'christoomey/vim-tmux-navigator'
 Plug 'kevinoid/vim-jsonc'
 Plug 'whiteinge/diffconflicts'
 Plug '/usr/local/opt/fzf'
-Plug 'github/copilot.vim'
 Plug 'josa42/coc-sh'
 Plug 'prabirshrestha/vim-lsp'
 
 " Initialize plugin system
 call plug#end()
+
+"""""""""""""""""""""""""""""""
+" Claude Code
+"""""""""""""""""""""""""""""""
+" Disable built-in toggle so our custom one takes over
+let g:claude_code_map_toggle = ''
+
+" Toggle: kill process on close, resume last session on reopen (<C-Space>)
+nnoremap <silent> <NUL> :call <SID>claude_toggle()<CR>
+function! s:claude_toggle()
+  let buf = bufnr('claude-code')
+  if buf != -1 && bufwinid(buf) != -1
+    " Pane is visible — kill the process and close
+    let job = term_getjob(buf)
+    if job isnot v:null && job_status(job) ==# 'run'
+      call term_sendkeys(buf, "\<C-c>/exit\<CR>")
+      sleep 300m
+      call term_setkill(buf, 'kill')
+    endif
+    silent! execute 'bdelete! ' . buf
+  else
+    " Pane is closed — reopen, resuming last session if one exists for this project
+    let l:project_key = substitute(getcwd(), '/', '-', 'g')
+    let l:session_glob = expand('~/.claude/projects') . l:project_key . '/*.jsonl'
+    if !empty(glob(l:session_glob))
+      Claude continue
+    else
+      Claude
+    endif
+  endif
+endfunction
+
+" Kill claude terminals on Vim exit to avoid E947 "job still running" error
+autocmd VimLeavePre * call s:kill_claude_terminals()
+function! s:kill_claude_terminals()
+  for buf in range(1, bufnr('$'))
+    if getbufvar(buf, '&buftype') ==# 'terminal' && bufname(buf) =~# 'claude'
+      let job = term_getjob(buf)
+      if job isnot v:null && job_status(job) ==# 'run'
+        call term_sendkeys(buf, "\<C-c>/exit\<CR>")
+        sleep 500m
+      endif
+      call term_setkill(buf, 'kill')
+      silent! execute 'bdelete! ' . buf
+    endif
+  endfor
+endfunction
 
 """""""""""""""""""""""""""""""
 " CoC
@@ -154,6 +201,12 @@ inoremap <silent><expr> <cr> coc#pum#visible() ? coc#_select_confirm() : "\<C-g>
 " Use <Tab> and <S-Tab> to navigate the completion list
 inoremap <expr> <Tab> coc#pum#visible() ? coc#pum#next(1) : "\<Tab>"
 inoremap <expr> <S-Tab> coc#pum#visible() ? coc#pum#prev(1) : "\<S-Tab>"
+
+" Use `[g` and `]g` to navigate diagnostics
+" Use `:CocDiagnostics` to get all diagnostics of current buffer in location
+" list.
+nmap <silent> [ <Plug>(coc-diagnostic-prev)
+nmap <silent> ] <Plug>(coc-diagnostic-next)
 
 """""""""""""""""""""""""""""""
 " Markdown Lint
@@ -347,11 +400,12 @@ nnoremap <silent><nowait> <space>k  :<C-u>CocPrev<CR>
 " Resume latest coc list.
 nnoremap <silent><nowait> <space>p  :<C-u>CocListResume<CR>
 
-noremap <leader>i :NERDCommenterInsert<CR>
-
 " Load all plugins now.
 " Plugins need to be added to runtimepath before helptags can be generated.
 packloadall
 " Load all of the helptags now, after plugins have been loaded.
 " All messages and errors will be ignored.
 silent! helptags ALL
+
+set diffopt& diffopt+=iwhiteall
+

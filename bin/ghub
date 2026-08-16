@@ -51,4 +51,6 @@ fi
 root_dir=$(git rev-parse --show-toplevel)
 relative_dir="${target/${root_dir}/}"
 IFS=":" read -ra PARTS <<< "$(git remote get-url origin)"
-open "https://${PARTS[0]/git@/}/${PARTS[1]/.git/}/$ghpath/$(git rev-parse --abbrev-ref HEAD)$relative_dir"
+ssh_host="${PARTS[0]/git@/}"
+actual_host=$(ssh -G "$ssh_host" 2>/dev/null | awk '/^hostname / {print $2}')
+open "https://${actual_host:-$ssh_host}/${PARTS[1]/.git/}/$ghpath/$(git rev-parse --abbrev-ref HEAD)$relative_dir"

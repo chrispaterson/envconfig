@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PRINT_LAST_LOGS=5
+PRINT_LAST_LOGS=1
 usage ()
 {
   echo "Usage: $0 [-p | --print] [-h | --help] [-m | --message] <message to log>"
@@ -15,7 +15,7 @@ showhelp()
   echo "options:"
   echo "-h, --help                show brief help"
   echo "-m, --message             pass a message and do not open the editor"
-  echo "-p, --print               Prints the last $PRINT_LAST_LOGS days of logs to stdout"
+  echo "-p, --print               Prints the last $PRINT_LAST_LOGS day(s) of logs to stdout"
 }
 
 # There is no "Documents" on a
@@ -37,19 +37,19 @@ LOG=$DIR/$(date +'%F').md
 
 while getopts "phm:" opt; do
   case $opt in
-    p | --print)
+    p )
       #
       ls -d $DIR/*.md \
         | sort -h -r \
         | head -n $PRINT_LAST_LOGS \
-        | while read log; do cat $log; echo''; done
+        | while read -r log; do cat "$log"; echo''; done
       exit;
       ;;
-    h | -help)
+    h )
       showhelp
       exit
       ;;
-    m | --message)
+    m )
       #
       message="${OPTARG}"
       ;;
@@ -62,28 +62,28 @@ done
 
 if [[ ! -f $LOG ]]; then
 
-  echo $(date +'# %A, %B %d, %Y') > $LOG
-  echo "" >> $LOG
+  cmd "$(date +'# %A, %B %d, %Y')" > "$LOG"
+  echo "" >> "$LOG"
 
 fi
 
 
-if [[ ! -z $message ]]; then
-  echo "- $message" >> $LOG
-  cat $LOG
+if [[ -n $message ]]; then
+  echo "- $message" >> "$LOG"
+  cat "$LOG"
   exit
 fi
 
-echo "-  " >> $LOG
+echo "-  " >> "$LOG"
 
 if [[ $EDITOR =~ "vim" ]]; then
 
-  vim "+normal G$" +startinsert $LOG
+  vim "+normal G$" +startinsert "$LOG"
 
 elif [[ $EDITOR =~ "emacs" ]]; then
 
-  emacs $LOG --eval "(goto-char (point-max))"
+  emacs "$LOG" --eval "(goto-char (point-max))"
 else
 
-  open $LOG
+  open "$LOG"
 fi

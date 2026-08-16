@@ -2,59 +2,261 @@
 
 # Creates a branch prefixed with the username
 #
-# Example: git b foo
-# creates a branch from main named [username]/foo
+# Args are classified by format:
+#   Base branch: "." (current) or contains "/" (e.g. main, feature/foo)
+#   Issue: JIRA key (ISSUE-123) or GitHub (#123, 123, owner/repo#123)
 #
-# Example 2: git b bar foo
-# creates a branch from bar named [username]/foo
+# Example: git b main ISSUE-123
+#   branch from main with Jira issue ISSUE-123
+#
+# Example: git b . 123
+#   branch from current branch with GitHub issue 123
 
 set -e
 username="$(whoami)"
 
-if [[ $# == 0 ]]; then
-  base_branch="main"
+# Handle -d/--delete early before the main arg-parsing loop
+if [[ "$1" == "-d" || "$1" == "--delete" ]]; then
+  shift
+  if [[ -n "$1" ]]; then
+    branch_to_delete="$1"
+  else
+    branch_to_delete=$(git branch --show-current)
+  fi
+
+  read -p "Delete branch '$branch_to_delete' locally and on origin? [y/N] " -n 1 -r
+  echo
+  if ! [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "Aborted."
+    exit 0
+  fi
+
+  # Remove worktree if one is checked out on this branch
+  worktree_path=$(git worktree list --porcelain | awk -v b="$branch_to_delete" '
+    /^worktree / { wt=$2 }
+    /^branch / { br=$2; sub("refs/heads/","",br); if (br==b) print wt }
+  ')
+  if [[ -n "$worktree_path" && "$worktree_path" != "$(git rev-parse --show-toplevel)" ]]; then
+    echo "Removing worktree at $worktree_path..."
+    git worktree remove --force "$worktree_path"
+  fi
+
+  git branch -D "$branch_to_delete"
+  git push origin --delete "$branch_to_delete"
+  exit 0
+fi
+
+sprint_id() {
+	jira sprint list --table --plain --state active | awk 'NR==2 {print $1}'
+}
+# Parse CLI flags (options only; positional args collected)
+issue_number=""
+base_branch="main"
+args=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      echo "Usage: git b [OPTIONS] [BASE_BRANCH] [ISSUE]"
+      echo
+      echo "Creates a branch prefixed with the username."
+      echo
+      echo "Options:"
+      echo "  -d, --delete [BRANCH]   Delete local + remote branch (defaults to current)"
+      echo "  -h, --help              Show this help"
+      echo
+      echo "Arguments (by format):"
+      echo "  BASE_BRANCH   '.' (current) or branch name (e.g. main, feature/foo)"
+      echo "  ISSUE        JIRA key (ISSUE-123) or GitHub (#123, 123, owner/repo#123)"
+      echo
+      echo "Examples:"
+      echo "  git b main ISSUE-123     branch from main with Jira issue ISSUE-123"
+      echo "  git b . 123              branch from current branch with GitHub issue 123"
+      echo "  git b -d                 delete current branch locally and on origin"
+      echo "  git b -d my-branch       delete my-branch locally and on origin"
+      echo
+      echo "Branch name format:"
+      echo "  With issue:    {username}/{issue-id}/{semantic-name}"
+      echo "  Without issue: {username}/{semantic-name}"
+      echo
+      echo "  e.g. username/ISSUE-123/add-plugin-validation"
+      echo "  e.g. username/123/fix-button-styling"
+      echo "  e.g. username/my-feature"
+      exit 0
+      ;;
+    -*)
+      # future options could go here
+      args+=("$1")
+      shift
+      ;;
+    *)
+      args+=("$1")
+      shift
+      ;;
+  esac
+done
+
+# Classify positional args: base branch vs issue
+# Base branch: "." (current) or contains "/" or doesn't match issue pattern
+# Jira issue: PROJECT-123 (e.g. ISSUE-123)
+# GitHub issue: 123, #123, or owner/repo#123
+issue_type=""
+for arg in "${args[@]}"; do
+  if [[ "$arg" == "." ]]; then
+    base_branch="$arg"
+  elif [[ "$arg" =~ ^[a-zA-Z]+-[0-9]+$ ]]; then
+    if [[ -z "$issue_number" ]]; then
+      issue_number="$arg"
+      issue_type="jira"
+    fi
+  elif [[ "$arg" =~ ^#?[0-9]+$ ]] || [[ "$arg" =~ ^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+#[0-9]+$ ]]; then
+    if [[ -z "$issue_number" ]]; then
+      issue_number="$arg"
+      issue_type="github"
+    fi
+  else
+    base_branch="$arg"
+  fi
+done
+
+if [[ "$base_branch" == "." ]]; then
+  base_branch=$(git branch --show-current)
+fi
+
+git_root=$(git rev-parse --show-toplevel)
+
+# If base_branch looks like an existing remote branch (contains "/"), short-circuit to worktree checkout
+if [[ "$base_branch" =~ / ]] && [[ -z "$issue_number" ]]; then
+  if git ls-remote --heads origin "$base_branch" 2>/dev/null | grep -q .; then
+    # Strip the leading username segment to derive the worktree path
+    branch_tail="${base_branch#*/}"
+    worktree_path="$git_root/../$branch_tail"
+
+    read -p "Create worktree for existing branch '$base_branch' at $worktree_path? [Y/n] " -n 1 -r
+    echo
+    if ! [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]; then
+      echo "It's cool, we all make mistakes..."
+      exit 0
+    fi
+
+    # Create local tracking branch if it doesn't already exist
+    if ! git rev-parse --verify "$base_branch" >/dev/null 2>&1; then
+      git fetch origin "$base_branch:$base_branch"
+    fi
+
+    mkdir -p "$(dirname "$worktree_path")"
+    git worktree add "$worktree_path" "$base_branch"
+
+    cd "$worktree_path"
+    nvm use 2>/dev/null || true
+
+    if [[ -f "$(git rev-parse --show-toplevel)/rush.json" ]]; then
+      rush update
+      rush build
+    fi
+    exit 0
+  fi
+fi
+
+if [[ -z "$issue_number" ]]; then
+  echo "Issue number?"
+  read -r issue_number
+fi
+
+# Detect issue type from format when not already set (e.g. from prompt)
+if [[ -n "$issue_number" && -z "$issue_type" ]]; then
+  if [[ "$issue_number" =~ ^[a-zA-Z]+-[0-9]+$ ]]; then
+    issue_type="jira"
+  elif [[ "$issue_number" =~ ^#?[0-9]+$ ]] || [[ "$issue_number" =~ ^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+#[0-9]+$ ]]; then
+    issue_type="github"
+  else
+    issue_type="jira"
+  fi
+fi
+
+jira_issue_info=""
+gh_issue=""
+branch_semantic_name=""
+summary=""
+if [[ -n "$issue_number" ]]; then
+  # Fetch issue summary
+  if [[ "$issue_type" == "jira" ]]; then
+    echo "Fetching Jira summary..."
+    jira_issue_info=$(jira issue view "$issue_number" --raw 2>/dev/null)
+    summary=$(echo "$jira_issue_info" | jq -r '.fields.summary // empty')
+  else
+    echo "Fetching GitHub issue..."
+    gh_issue=$(gh issue view "$issue_number" --json title 2>/dev/null)
+    summary=$(echo "$gh_issue" | jq -r '.title // empty')
+  fi
+fi
+
+# Use AI to create a branch name
+if [[ -n "$summary" ]]; then
+	if command -v claude >/dev/null 2>&1; then
+		echo "Generating branch name from summary with AI ✨"
+		branch_semantic_name=$(claude --print "Generate a short git branch name (lowercase, hyphens, no spaces, max 4-5 words) for this issue: $summary. Output ONLY the branch name, nothing else." 2>/dev/null | tail -1 | tr -d '\n' | xargs) || branch_semantic_name=""
+	else
+		echo "Warning: 'claude' command not found. Skipping AI branch name generation ❌"
+		branch_semantic_name=""
+	fi
+fi
+
+# If AI failed, ask for a human-readable name
+if [[ -z "$branch_semantic_name" ]]; then
+  echo
+  echo "human-readable name?"
+  read -r hr_name
+  # Replace spaces with '-'
+  branch_semantic_name=${hr_name//[ ]/-}
+fi
+
+if [[ -n "$issue_number" ]]; then
+  # Use branch-safe segment: strip owner/repo# for GitHub, keep as-is for Jira
+  if [[ "$issue_type" == "github" ]]; then
+    issue_branch_segment="${issue_number##*#}"
+  else
+    issue_branch_segment="$issue_number"
+  fi
+  branch_name="$username/$issue_branch_segment/$branch_semantic_name"
+  worktree_path="$git_root/../$issue_branch_segment/$branch_semantic_name"
 else
-  base_branch=$1
+  branch_name="$username/$branch_semantic_name"
+  worktree_path="$git_root/../$branch_semantic_name"
 fi
 
-
-echo "Jira issue number?"
-read jira_issue 
-
-echo
-echo "human-readable name?"
-read hr_name 
-
-if [[ -z "$jira_issue" ]]; then
-  jira_issue="NO-JIRA"
-fi
-
-# Replace spaces with '-'
-branch_semantic_name=${hr_name//[ ]/-}
-
-branch_name="$username/$jira_issue/$branch_semantic_name"
-
-read -p "Create branch $branch_name from base branch $base_branch? [Y/n] " -n 1 -r
+read -p "Create branch $branch_name (worktree: $worktree_path) from $base_branch? [Y/n] " -n 1 -r
 echo    # move to a new line
 
 if ! [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]
 then
   echo "It's cool, we all make mistakes..."
-  exit 
+  exit
 
 fi
 
-wt_path="../$branch_semantic_name-$jira_issue"
+git worktree add -b "$branch_name" "$worktree_path" "$base_branch"
+git -C "$worktree_path" push --set-upstream origin "$branch_name"
+if [[ -n "$issue_number" && "$issue_type" == "jira" ]]; then
+  if [[ -n "$JIRA_API_TOKEN" ]]; then
+    jira issue assign "$issue_number" "$(whoami)"
+    active_sprint=$(sprint_id)
+    if [[ -n "$active_sprint" ]]; then
+      jira sprint add "$active_sprint" "$issue_number"
+    else
+      echo "Active sprint not found, can't add to sprint"
+    fi
+    jira issue move "$issue_number" "In Development"
+  else
+    echo "JIRA_API_TOKEN is not set, skipping JIRA actions"
+  fi
+fi
 
-cd $(git rev-parse --show-toplevel)
+cd "$worktree_path"
+nvm use 2>/dev/null || true
 
-git worktree add -b $branch_name $wt_path $base_branch
-cd $wt_path
-git push --set-upstream origin $branch_name
-./bin/setup.sh
-
-exit
-
-# branch method
-git checkout -b $branch_name $base_branch 
-git push --set-upstream origin $branch_name --no-verify
+# Just double check this is a rush repo
+if [[ -f "$(git rev-parse --show-toplevel)/rush.json" ]]; then
+  # Update/install rush dependencies
+  rush update
+  rush build
+fi

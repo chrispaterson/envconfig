@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Jira"
+  short_description: "Create GRAPH Jira issues from context"
+  default_prompt: "Create a Jira Story, Bug, or Epic in GRAPH using the Corp Jira MCP tools and the current conversation context."

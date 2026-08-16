@@ -6,4 +6,4 @@ if [[ -z $(command -v yarn) ]]; then
 
 fi
 
-yarn global add markserv pnpm j2m bash-language-server
+yarn global add pnpm ts-prune j2m bash-language-server sort-package-json eslint@9 prettier

@@ -1,0 +1,136 @@
+#!/bin/bash
+# DEPRECATED: superseded by `git orchestrate`, which handles the full PR lifecycle
+# (CI fixes, review feedback, merging, and post-merge cleanup) in a single daemon.
+# This script is retained for reference only and is no longer invoked.
+#
+# pr-check-watch <pr_number> <repo> <issue> <branch> <worktree_path>
+#
+# Background monitor: polls CI checks for a PR, auto-fixes failures by invoking
+# claude in the worktree, and sends a macOS notification when all checks pass.
+#
+# Follows the same daemon pattern as pr-watch.
+
+PR_NUMBER="$1"
+REPO="$2"
+ISSUE="${3:-}"
+BRANCH="$4"
+WORKTREE_PATH="$5"
+
+LOG_FILE="${HOME}/.cache/pr-check-watch-${PR_NUMBER}.log"
+PID_FILE="${HOME}/.cache/pr-check-watch-${PR_NUMBER}.pid"
+INTERVAL=60       # seconds between polls
+MAX_FIX_ATTEMPTS=3
+
+mkdir -p "${HOME}/.cache"
+
+# Deduplicate: if a watcher is already running for this PR, exit early
+if [[ -f "$PID_FILE" ]]; then
+  old_pid=$(cat "$PID_FILE")
+  if kill -0 "$old_pid" 2>/dev/null; then
+    echo "Already watching checks for PR #$PR_NUMBER (pid $old_pid)"
+    exit 0
+  fi
+fi
+
+(
+  echo "[$(date)] Starting check watch for PR #$PR_NUMBER ($BRANCH) in $REPO" >> "$LOG_FILE"
+  echo "[$(date)] Worktree: $WORKTREE_PATH" >> "$LOG_FILE"
+
+  fix_attempts=0
+
+  while true; do
+    sleep "$INTERVAL"
+
+    # Fetch check status for the PR
+    checks_output=$(gh pr checks "$PR_NUMBER" --repo "$REPO" 2>&1)
+    check_exit=$?
+
+    if [[ $check_exit -ne 0 ]]; then
+      echo "[$(date)] gh pr checks failed (exit $check_exit) — retrying next poll" >> "$LOG_FILE"
+      continue
+    fi
+
+    # Count checks still in progress vs failed
+    # gh pr checks outputs: <name> <state> <duration> <url>
+    # States we treat as "still running": pending, in_progress, queued, waiting, requested
+    pending_count=$(echo "$checks_output" | grep -cEi '\b(pending|in_progress|queued|waiting|requested)\b' || true)
+    fail_count=$(echo "$checks_output"    | grep -cEi '\b(fail|timed_out)\b' || true)
+
+    echo "[$(date)] pending=$pending_count failed=$fail_count" >> "$LOG_FILE"
+
+    # Still waiting on checks — come back later
+    if [[ "$pending_count" -gt 0 ]]; then
+      continue
+    fi
+
+    # All checks green — notify and exit
+    if [[ "$fail_count" -eq 0 ]]; then
+      echo "[$(date)] All checks passed!" >> "$LOG_FILE"
+      osascript -e "display notification \"PR #$PR_NUMBER: all checks passed — ready for review\" with title \"✅ ${ISSUE:-PR} Ready for Review\" sound name \"Glass\""
+      rm -f "$PID_FILE"
+      exit 0
+    fi
+
+    # Failures — give up if we've hit the cap
+    if [[ "$fix_attempts" -ge "$MAX_FIX_ATTEMPTS" ]]; then
+      echo "[$(date)] Max fix attempts ($MAX_FIX_ATTEMPTS) reached — notifying user" >> "$LOG_FILE"
+      osascript -e "display notification \"PR #$PR_NUMBER: $fail_count check(s) still failing after $MAX_FIX_ATTEMPTS attempts. Manual review needed.\" with title \"❌ ${ISSUE:-PR} Needs Attention\" sound name \"Basso\""
+      rm -f "$PID_FILE"
+      exit 1
+    fi
+
+    (( fix_attempts++ ))
+    echo "[$(date)] $fail_count check(s) failed — fix attempt $fix_attempts/$MAX_FIX_ATTEMPTS" >> "$LOG_FILE"
+    osascript -e "display notification \"PR #$PR_NUMBER: $fail_count check(s) failed — auto-fixing (attempt $fix_attempts of $MAX_FIX_ATTEMPTS)...\" with title \"🔧 ${ISSUE:-PR} Auto-fix\" sound name \"Purr\""
+
+    # Collect failure logs from recent runs on this branch
+    failure_logs=$(
+      gh run list \
+        --branch "$BRANCH" \
+        --repo "$REPO" \
+        --json databaseId,conclusion \
+        --jq '.[] | select(.conclusion == "failure") | .databaseId' \
+        2>/dev/null \
+      | head -3 \
+      | while read -r run_id; do
+          echo "=== Run $run_id ==="
+          gh run view "$run_id" --repo "$REPO" --log-failed 2>/dev/null | head -150
+        done
+    )
+
+    # Fall back to the raw checks output if we couldn't get run logs
+    if [[ -z "$failure_logs" ]]; then
+      failure_logs="$checks_output"
+    fi
+
+    # Invoke claude to diagnose and fix in the worktree
+    cd "$WORKTREE_PATH" || {
+      echo "[$(date)] Could not cd to worktree $WORKTREE_PATH — aborting" >> "$LOG_FILE"
+      exit 1
+    }
+
+    claude --print "PR #$PR_NUMBER on branch '$BRANCH' has $fail_count failed CI check(s). This is fix attempt $fix_attempts of $MAX_FIX_ATTEMPTS.
+
+Worktree path: $WORKTREE_PATH
+
+Failed check logs:
+$failure_logs
+
+Fix the failures. Then:
+1. Run the pre-completion checklist (rushx build, rushx lint, rushx test) for every package you touched — fix any new failures before committing.
+2. Stage fixed files.
+3. Commit: git commit -m 'fix: resolve CI check failures'
+4. Push: git push
+
+Work autonomously. Do not ask for confirmation." >> "$LOG_FILE" 2>&1
+
+    echo "[$(date)] Fix attempt $fix_attempts complete — pausing 30s then resuming polling" >> "$LOG_FILE"
+
+    # Brief pause to let the push register before the next poll
+    sleep 30
+  done
+) &
+
+echo "$!" > "$PID_FILE"
+disown $!
+echo "Watching PR #$PR_NUMBER checks — tail -f $LOG_FILE"

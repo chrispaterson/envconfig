@@ -1,0 +1,51 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+    echo "Usage: forget <branch>"
+    exit 1
+fi
+
+# Function to get the worktree path of a given branch
+get_worktree_path() {
+  local branch=$1
+  # Set an environment variable for the branch
+  export branch="refs/heads/$branch"
+  # List all worktrees and find the path associated with the given branch
+  git worktree list --porcelain | awk '
+  BEGIN { branch = ENVIRON["branch"] }
+  $1 == "worktree" { wt = $2 }
+  $1 == "branch" && $2 == branch { print wt }
+  '
+  # Unset the environment variable to avoid side effects
+  unset branch
+}
+
+# Example usage
+branch_name="$1"
+worktree_path=$(get_worktree_path "$branch_name")
+
+prompt="Do you want to delete the following branch?"
+branch_and_worktree="$branch_name"
+
+if [ -n "$worktree_path" ]; then
+    echo "Worktree for branch '$branch_name' is: $worktree_path"
+    prompt="Do you want to delete the following branch and worktree?"
+    branch_and_worktree="$branch_name ($worktree_path)"
+fi
+
+read -p "$prompt [Y/n] 
+
+$branch_and_worktree
+
+" -n 1 -r
+echo    # move to a new line
+if [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]; then
+    if [ -n "$worktree_path" ]; then
+        echo "Removing worktree $worktree_path"
+        echo "This takes a rediculous amount of time, please wait..."
+        git worktree remove -f "$worktree_path"
+    fi
+    echo "Deleting branch $branch_name"
+    git branch -D "$branch_name"
+    exit 0
+fi

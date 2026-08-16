@@ -1,9 +1,11 @@
 #!/bin/bash
 
 function delete_branch {
-  echo "Removing worktree $2"
-  echo "This takes a rediculous amount of time, please wait..."
-  git worktree remove -f "$2"
+  if [[ -n "$2" ]]; then
+    echo "Removing worktree $2"
+    echo "This takes a rediculous amount of time, please wait..."
+    git worktree remove -f "$2"
+  fi
 
   echo "Deleting branch $1"
   git branch -D "$1"
@@ -12,20 +14,22 @@ function delete_branch {
 
 branches=()
 paths=()
+branches_with_worktrees=()
 path=""
 
+# First, collect branches that have worktrees
 while IFS= read -r line; do
   if [[ $line =~ "worktree" ]]; then
     path="${line/'worktree '/}"
   fi
-  if [[ ! -z $path && $line =~ "branch" ]]; then
+  if [[ -n $path && $line =~ "branch" ]]; then
     branch=${line:18}
 
     # we're never going to delete main
     if [[ $branch != "main" ]]; then
-
+      branches_with_worktrees+=("$branch")
       # Is the pr merged?
-      pr_state=$(gh pr view $branch --json state --jq ".state" 2>/dev/null)
+      pr_state=$(gh pr view "$branch" --json state --jq ".state" 2>/dev/null)
       if [[ $pr_state == "MERGED" ]]; then
         branches+=("$branch")
         paths+=("$path")
@@ -35,8 +39,37 @@ while IFS= read -r line; do
   fi
 done <<< "$(git worktree list --porcelain)"
 
+# Now check branches without worktrees
+while IFS= read -r branch; do
+  # Remove leading * and spaces from branch name
+  branch=$(echo "$branch" | sed 's/^[* ]*//')
+  
+  # Skip main and branches we already found with worktrees
+  if [[ $branch == "main" ]]; then
+    continue
+  fi
+  
+  # Check if this branch has a worktree
+  has_worktree=false
+  for wt_branch in "${branches_with_worktrees[@]}"; do
+    if [[ "$branch" == "$wt_branch" ]]; then
+      has_worktree=true
+      break
+    fi
+  done
+  
+  if [[ $has_worktree == false ]]; then
+    # Check if the PR is merged
+    pr_state=$(gh pr view "$branch" --json state --jq ".state" 2>/dev/null)
+    if [[ $pr_state == "MERGED" ]]; then
+      branches+=("$branch")
+      paths+=("")  # Empty path indicates no worktree
+    fi
+  fi
+done <<< "$(git branch --format='%(refname:short)')"
+
 if [[ ${#branches[@]} -eq 0 ]]; then 
-  echo "There are no branches and worktrees that can be cleaned up!"
+  echo "There are no merged branches that can be cleaned up!"
   exit 0
 fi
 
@@ -49,7 +82,7 @@ $prompt
 [Y/n]" -n 1 -r
 echo    # (optional) move to a new line
 if [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]; then
-    for index in ${!branches[@]}; do 
+    for index in "${!branches[@]}"; do 
       delete_branch "${branches[$index]}" "${paths[$index]}" 
     done
     exit 0
@@ -65,7 +98,7 @@ fi
 
 echo "Ok then..."
 
-for index in ${!branches[@]}; do 
+for index in "${!branches[@]}"; do 
   prompt="It looks like ${branches[$index]} has merged, do you want to delete it?"
 
   read -p "$prompt [Y/n]" -n 1 -r

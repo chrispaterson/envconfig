@@ -1,46 +1,45 @@
 #!/bin/bash
-from_branch="origin/main"
+from_branch="main"
 
-prompt="Do you want to get changes from $from_branch?"
+cd "$(git rev-parse --show-toplevel)" || exit 1
 
-read -p "$prompt [Y/n] " reply
-echo    # move to a new line
+# Find if from_branch is already checked out in a worktree
+main_worktree=$(git worktree list --porcelain | awk -v branch="refs/heads/${from_branch}" '
+  /^worktree /{wt=$2}
+  $0 == "branch " branch {print wt}
+')
 
-case "$reply" in 
-  y|Y ) 
-    echo "Ok then..."
-    ;;
-  n|N ) 
-    echo "It's cool, we all make mistakes..."
-    exit 
-  ;;
-  * ) if ! [[ $reply ]]; then
-      echo "Ok then, merging in changes"
-    else
-      echo "Not sure what that response was..."
-      exit 
-    fi
-    ;;
-esac
+if [[ -n "$main_worktree" ]]; then
+  # Pull in whichever worktree has main checked out
+  (cd "$main_worktree" && git pull --prune)
+else
+  # main not checked out anywhere — switch, pull, switch back
+  git switch "$from_branch"
+  git pull --prune
+  git switch -
+fi
 
-git fetch -p
-git merge $from_branch --no-edit
+git merge "$from_branch" --no-edit
+
+if [[ -f rush.json ]]; then
+  files=(
+    "common/config/rush/pnpm-lock.yaml"
+    "common/config/rush/repo-state.json" 
+  )
+  git checkout $from_branch -- "${files[@]}"
+
+fi
+
 conflicts=$(git diff --name-status --diff-filter=U)
 
 # There are no conflicts
-if [[ -z "conflicts" ]]; then
+if [[ -z "$conflicts" ]]; then
+  # Handle Rush repo
   if [[ -f ./rush.json ]]; then
-    pnpm_lock_file="common/config/rush/pnpm-lock.yaml"
-    repo_state_file="common/config/rush/repo-state.json"
-    if [[ ! -z $(git diff $from_branch -- $pnpm_lock_file) || ! -z $(git diff $from_branch -- $repo_state_file) ]]; then
-      git checkout $from_branch --  $pnpm_lock_file $repo_state_file
-      rush update
-      git add $pnpm_lock_file $repo_state_file
-    fi
+    rush update
+    git add -A
+    git commit --amend --no-edit
   fi
-
-  git commit --no-edit
-  git clean -f .
 else
   echo "Please resolve merge conflicts before committing"
 fi

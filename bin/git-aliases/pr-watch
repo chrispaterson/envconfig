@@ -1,0 +1,61 @@
+#!/bin/bash
+# DEPRECATED: superseded by `git orchestrate`, which handles the full PR lifecycle
+# (CI fixes, review feedback, merging, and post-merge cleanup) in a single daemon.
+# This script is retained for reference only and is no longer invoked.
+#
+# pr-watch <pr_number> <repo> <issue> <branch> <repo_root>
+# Background watcher: keeps a PR branch up to date with its base branch and
+# calls `git pr done` automatically when the PR merges.
+
+PR_NUMBER="$1"
+REPO="$2"
+ISSUE="$3"
+BRANCH="$4"
+REPO_ROOT="$5"
+
+LOG_FILE="${HOME}/.cache/pr-watch-${PR_NUMBER}.log"
+PID_FILE="${HOME}/.cache/pr-watch-${PR_NUMBER}.pid"
+PR_SCRIPT="${HOME}/bin/git-aliases/pr"
+INTERVAL=120  # 2 minutes
+
+mkdir -p "${HOME}/.cache"
+
+# Prevent duplicate watchers for the same PR
+if [[ -f "$PID_FILE" ]]; then
+  old_pid=$(cat "$PID_FILE")
+  if kill -0 "$old_pid" 2>/dev/null; then
+    echo "Already watching PR #$PR_NUMBER (pid $old_pid)"
+    exit 0
+  fi
+fi
+
+(
+  echo "[$(date)] Starting watch for PR #$PR_NUMBER in $REPO (branch: $BRANCH, issue: ${ISSUE:-none})" >> "$LOG_FILE"
+
+  while true; do
+    json=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json state,mergeStateStatus 2>&1)
+    state=$(echo "$json" | jq -r '.state')
+    merge_state=$(echo "$json" | jq -r '.mergeStateStatus')
+
+    echo "[$(date)] state=$state mergeStateStatus=$merge_state" >> "$LOG_FILE"
+
+    if [[ "$state" == "MERGED" || "$state" == "CLOSED" ]]; then
+      echo "[$(date)] PR #$PR_NUMBER $state — running pr done." >> "$LOG_FILE"
+      osascript -e "display notification \"PR #$PR_NUMBER merged. Running cleanup...\" with title \"git pr\" sound name \"Glass\""
+      cd "$REPO_ROOT" && "$PR_SCRIPT" done "$PR_NUMBER" "$ISSUE" "$BRANCH" >> "$LOG_FILE" 2>&1
+      rm -f "$PID_FILE"
+      exit 0
+    fi
+
+    if [[ "$merge_state" == "BEHIND" ]]; then
+      echo "[$(date)] Branch is behind — updating PR #$PR_NUMBER..." >> "$LOG_FILE"
+      gh pr update-branch "$PR_NUMBER" --repo "$REPO" >> "$LOG_FILE" 2>&1
+    fi
+
+    sleep "$INTERVAL"
+  done
+) &
+
+echo "$!" > "$PID_FILE"
+disown $!
+echo "Watching PR #$PR_NUMBER — tail -f $LOG_FILE"

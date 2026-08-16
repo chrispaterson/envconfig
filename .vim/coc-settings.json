@@ -2,11 +2,13 @@
   "eslint.alwaysShowStatus": true,
   "eslint.autoFixOnSave": true,
   "eslint.format.enable": true,
-  "eslint.packageManager": "pnpm",
   "eslint.run": "onType",
-  "eslint.trace.server": "on",
+  "eslint.workingDirectories": [{ "mode": "auto" }],
   "tsserver.formatOnType": false,
+  "homeassistant.hostUrl": "https://homeassistant.local:8123",
+  "homeassistant.longLivedAccessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyNGE2NWY0Y2YzMWI0NDI3OTUxODQ0Y2Q5M2UwYmZjOCIsImlhdCI6MTczOTY0NjQ1NCwiZXhwIjoyMDU1MDA2NDU0fQ.Qw9w5cCZSl4ukV7Eg5lqNKhzxcNmm672L4xztVKNkJc",
   "tsserver.disableAutomaticTypeAcquisition": true,
+  "tsserver.tsdk": "./node_modules/typescript/lib",
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": true,
   "typescript.preferences.importModuleSpecifier": "relative",
@@ -27,5 +29,8 @@
     "css",
     "markdown",
     "html"
-  ]
+  ],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  }
 }

@@ -3,6 +3,7 @@
 .bak
 .netrwhist
 node_modules
-.npmrc
 .DS_Store
 .vim/plugged
+
+**/.claude/settings.local.json

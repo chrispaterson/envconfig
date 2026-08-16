@@ -6,105 +6,36 @@ alias ll='ls -GlA'
 alias l='ls -Gl'
 
 # Always open files in vertical split mode
-alias vi='vim -O'
+#alias vi='vim -O'
 
 alias vimrc="vim $HOME/.vimrc"
 
-if [[ "$OSTYPE" == "linux-gnu" ]]; then
+alias find-inspect="ps aux | grep \"node --inspect-brk\" | grep -v grep"
 
-  # Linux
-
-  # only on linux -- OSX will throw an error if I pass the --color=auto
-  alias ls='ls --color=auto'
-
-fi
-
-export PATH="$PATH:/opt/homebrew/bin:$HOME/bin:$HOME/node_bin/node_modules/.bin:$HOME/.config/yarn/global/node_modules/.bin"
+export PATH="$PATH:/opt/homebrew/bin:$HOME/bin:$HOME/node_bin/node_modules/.bin:$HOME/.config/yarn/global/node_modules/.bin:$HOME/.local/bin"
 export EDITOR="vim"
 export JAVA_HOME="/usr/bin/java"
-
 ENV_FILE=$HOME/.env
 
 if [ -f "$ENV_FILE" ]; then
 
-  source "$ENV_FILE"
-
+  . "$ENV_FILE"
 fi
 
 export NVM_DIR="$HOME/.nvm"
 
 nvm_file="$(brew --prefix nvm)/nvm.sh"
 
-if [ -f $nvm_file ]; then
-  . $nvm_file
+if [ -f "$nvm_file" ]; then
+  . "$nvm_file"
 else
   echo "Unable to source nvm.sh from $nvm_file"
 fi
 
 # Change directory to the repository root
-export cdr() {
-  cd $(git rev-parse --show-toplevel)
+cdr() {
+  cd "$(git rev-parse --show-toplevel)" || return
 }
+export cdr
 
-export rquery() {
-  rush query -q $1 | tr -d '"'
-}
-
-export rush_project_names() {
-   rquery ".projects[] | .packageName" | tr -d '@hz/'
-}
-
-export rush_project_folders() {
-  if [ -z $1 ]; then
-    rquery ".projects[] | .projectFolder"
-    exit
-  fi
-  
-  rquery "( .projects[] | select(.packageName == \"@hz/$1\") ).projectFolder"
-}
-
-export pkg() {
-  if [ -z $1 ]; then
-
-    echo "Package not found"
-    exit 1
-  fi
-
-  cd $(rush_project_folders $1)
-}
-
-export rsearch() {
-  dirs=$(rush_project_folders)
-  while IFS= read -r dir; do
-    if [ -d "$dir/src" ]; then
-      grep -rl "$1" "$dir/src"
-    fi
-  done <<< "$dirs"
-}
-
-export jump() {
-  local last_jump_file="/tmp/last_jump.dat"
-  local cwd=$(pwd)
-  if [[ $1 == '-' ]]; then
-    new_path=$(cat "$last_jump_file")
-    if [[ -z "$new_path" ]]; then
-      echo "Last jump not defined"
-      return
-    fi
-    cd $new_path
-  else
-    git_root=$(git rev-parse --show-toplevel)
-    cd "$git_root/../$1/${cwd/$git_root/}"
-  fi
-  echo "$cwd" > "$last_jump_file"
-}
-
-get_share_url() {
-  local response=$(curl --header "X-Api-Key: projectx_webapp" "https://invitations-stage.adobe.io/api/v4/auth/urn:aaid:sc:VA6C2:f5dbce61-a6bd-4a9e-9f29-921a256b0983?cdnAcceleration=true")
-  local url=$(jq '.accessURL' <<< $response | sed 's/\"//g')
-  local accessToken=$(jq '.accessToken' <<< $response | sed 's/\"//g')
-
-  echo "$url?access_token=$accessToken&api_key=projectx_webapp"
-  open "$url?access_token=$accessToken&api_key=projectx_webapp"
-
-}
+export do

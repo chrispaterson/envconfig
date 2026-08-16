@@ -2,8 +2,8 @@ nodejs
 nvm
 coreutils
 gh
-tmux
-jira-cli
 powerlevel10k
 tree
 shellcheck
+jq
+yq

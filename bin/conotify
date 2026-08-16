@@ -1,0 +1,66 @@
+#!/bin/bash
+set -euo pipefail
+
+REPO_ROOT="/Users/paterson/projects/adobe/hz-bazel"
+cd "$REPO_ROOT"
+
+: "${SLACK_BOT_TOKEN:?Set SLACK_BOT_TOKEN}"
+: "${GITHUB_TOKEN:?Set GITHUB_TOKEN for bazel //:codeowners}"
+
+# PR context
+PR_URL="$(gh pr view --json url --jq .url)"
+PR_TITLE="$(gh pr view --json title --jq .title)"
+PR_BODY="$(gh pr view --json body --jq .body)"
+
+# Reason = first non-empty line in Description of Change (fallback to title)
+PR_REASON="$(
+  awk 'BEGIN{in=0}
+       /^### Description of Change/{in=1; next}
+       /^### /{if(in==1){exit}}
+       { if(in==1) print }' <<< "$PR_BODY" \
+  | sed '/^[[:space:]]*$/d' | head -n 1
+)"
+if [ -z "${PR_REASON:-}" ]; then
+  PR_REASON="$PR_TITLE"
+fi
+
+# Get codeowners output (prefer helper script, fall back to raw bazel)
+CO_OUTPUT="$(
+  ./bin/find-codeowners.sh --all 2>/dev/null || bazel run //:codeowners -- --all 2>/dev/null
+)"
+
+# Extract the block:
+#   The following reviewers were auto assigned by GitHub:
+#   @user for: @Horizon/team-a, @Horizon/team-b
+readarray -t ASSIGN_LINES < <(
+  awk '
+    /The following reviewers were auto assigned by GitHub:/ { grab=1; next }
+    grab==1 {
+      if ($0 ~ /^@/) { print; next }
+      if ($0 ~ /^[[:space:]]*$/) { exit }
+      if ($0 !~ /^@/) { exit }
+    }
+  ' <<< "$CO_OUTPUT"
+)
+
+if [ "${#ASSIGN_LINES[@]}" -eq 0 ]; then
+  echo "No auto-assigned reviewer block found."
+  exit 0
+fi
+
+echo "Notifying ${#ASSIGN_LINES[@]} reviewer(s) for ${PR_URL}"
+for line in "${ASSIGN_LINES[@]}"; do
+  # line example: "@login for: @Horizon/team-a, @Horizon/team-b"
+  login="$(awk '{print $1}' <<< "$line" | sed 's/^@//')"
+  groups="$(sed -E 's/^@[^ ]+ for: *//' <<< "$line")"
+
+  TEXT="Hi ${login}, I have a PR that needs your review ${PR_URL}. You are codeowner for ${groups}. I'm changing ${PR_REASON}. Thanks!"
+
+  curl -sS -X POST "https://slack.com/api/chat.postMessage" \
+    -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+    -H "Content-type: application/json; charset=utf-8" \
+    --data "$(jq -n --arg channel "@${login}" --arg text "$TEXT" '{channel:$channel, text:$text}')" \
+    | jq -e '.ok == true' > /dev/null || echo "Failed to DM @${login}"
+done
+
+echo "Done."

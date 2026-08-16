@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Sort a list of files based on their most recent Git commit date
+if [ -t 0 ]; then
+  # No input provided, display usage
+  echo "Usage: echo <files> | ./sort_git_files.sh"
+  exit 1
+fi
+
+xargs -I{} git log -1 --format="%at %ai {}" {} | sort -nr | awk '{print $2, $3, $4, $5}'

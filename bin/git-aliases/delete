@@ -1,0 +1,37 @@
+#!/bin/bash
+
+branch="$1"
+current_branch=$(git branch --show-current)
+keep_remote=0
+
+# Parse args for --keep-remote flag
+for arg in "$@"; do
+  if [[ "$arg" == "--keep-remote" ]]; then
+    keep_remote=1
+    # Remove this flag from the positional args
+    set -- "${@/--keep-remote/}"
+    break
+  fi
+done
+
+if [[ -z "$branch" ]]; then
+  branch="$current_branch"
+fi
+if [[ "$branch" == "main" ]]; then
+  echo "Cannot delete main branch"
+  exit 1
+fi
+
+pr_state=$(gh pr view ${branch} --json state --jq '.state' 2>/dev/null)
+
+if [[ "pr_state" && "$pr_state" != "CLOSED" ]]; then
+  gh pr close ${branch} >/dev/null 2>&1
+fi
+
+if [[ "$current_branch" != "main" ]]; then
+	git switch main
+fi
+git branch -D "$branch" 
+if [[ "$keep_remote" == 0 ]]; then
+	git push origin --delete "$branch"
+fi

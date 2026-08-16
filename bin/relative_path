@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Usage: ./relative_path.sh /absolute/path/to/your/file /optional/base/path
+
+if [ "$#" -lt 1 ]; then
+    echo "Usage: $0 <absolute-path> [base-path]"
+    exit 1
+fi
+
+absolute_path="$1"
+base_path="${2:-$(pwd)}"
+
+# Ensure paths are absolute
+absolute_path=$(cd "$(dirname "$absolute_path" )" || exit; pwd)/$(basename "$absolute_path")
+base_path=$(cd "$(dirname "$base_path")" || exit; pwd)/$(basename "$base_path")
+
+# Compute the relative path
+relative_path=""
+common_part="$base_path"
+back=""
+
+while [[ "${absolute_path#"$common_part"}" == "${absolute_path}" ]]; do
+    common_part="$(dirname "$common_part")"
+    if [[ -z "$back" ]]; then
+        back="../"
+    else
+        back="../$back"
+    fi
+done
+
+if [[ "$common_part" == "/" ]]; then
+    relative_path="$back${absolute_path#/}"
+else
+    forward_part="${absolute_path#"$common_part"/}"
+    relative_path="$back$forward_part"
+fi
+
+echo "$relative_path"

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+output=$(rush codeowners)
+
+if [ $? -eq 0 ]; then
+  echo "$output"
+else
+  echo "No codeowners found"
+fi

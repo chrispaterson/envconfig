@@ -5,4 +5,21 @@
 # 
 # Example usage: git ac -m "Commit Message" 
 
-git add -A && git commit "$*"
+git pull --prune 
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+CWD=$(pwd)
+
+if [[ "$CWD" == *"hz-bazel"* && -f "package.json" && "$CWD" != "$REPO_ROOT" ]]; then
+  bazel run :eslint.fix
+  bazel run :prettier.fix
+elif [ -f "$(git rev-parse --show-toplevel 2>/dev/null)/rush.json" ]; then
+  rush format
+fi
+git add -A 
+
+if [[ " $* " == *" -m "* ]]; then
+  git commit "$*"
+else
+  claude -p /commit-staged
+fi

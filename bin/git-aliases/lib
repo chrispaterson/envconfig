@@ -1,0 +1,30 @@
+#!/bin/bash
+# Shared utilities for git-aliases scripts. Source this file, do not execute.
+
+# Run a command with a terminal spinner.
+# Command stdout is buffered and printed after the command completes so it
+# does not interleave with the spinner frames.
+# The spinner itself writes to stderr so it stays visible when stdout is
+# captured by a $() subshell.
+#
+# Usage (display):  run_with_spinner "Label" command [args...]
+# Usage (capture):  result=$(run_with_spinner "Label" command [args...])
+run_with_spinner() {
+  local label="$1"; shift
+  local tmp rc
+  tmp=$(mktemp)
+  "$@" >"$tmp" 2>&1 &
+  local pid=$!
+  local frames=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+  local i=0
+  while kill -0 "$pid" 2>/dev/null; do
+    printf "\r⏳ %s %s " "$label" "${frames[$((i % 10))]}" >&2
+    i=$((i + 1))
+    sleep 0.1
+  done
+  wait "$pid"; rc=$?
+  printf "\r✅ %-60s\n" "$label" >&2
+  cat "$tmp"
+  rm -f "$tmp"
+  return $rc
+}

@@ -1,0 +1,1009 @@
+#!/bin/bash
+# orchestrate <start|stop|status|once>
+#
+# Background orchestrator for the full Jira → PR lifecycle.
+# Replaces: pr-watch, pr-check-watch
+#
+# Opt-in: label a Jira issue "plaid" to have the orchestrator pick it up.
+# If it's not yet in the active sprint, /do will add it automatically.
+#
+# What it does every 2 minutes:
+#   1. Queries Jira for all stories/bugs assigned to you with the "plaid" label
+#   2. For each story with no worktree → dispatches `claude --print "/do GRAPH-XXX --auto"`
+#   3. For each story with a worktree + open PR:
+#      - CI failing        → dispatches claude to fix and push
+#      - Changes requested → dispatches claude to address review feedback (unlimited rounds)
+#      - Approved + green  → merges the PR (worktree-aware)
+#      - Merged            → moves Jira to Done, removes worktree, cleans branch
+#
+# Usage:
+#   git orchestrate start    # start the daemon (run from inside the git repo)
+#   git orchestrate stop     # stop the daemon
+#   git orchestrate status   # show running state and active jobs
+#   git orchestrate once     # run one cycle now (useful for testing)
+
+set -euo pipefail
+
+# ── Configuration ─────────────────────────────────────────────────────────────
+
+MAX_PARALLEL=10
+POLL_INTERVAL=120  # seconds between full cycles
+MAX_CI_ATTEMPTS=3       # max consecutive CI fix attempts before escalating to human
+REVIEW_STUCK_THRESHOLD=3 # notify if Claude pushes this many times with no new reviewer activity
+
+STATE_DIR="${HOME}/.cache/graph-orchestrate"
+PID_FILE="${STATE_DIR}/orchestrate.pid"
+LOG_FILE="${STATE_DIR}/orchestrate.log"
+REPO_FILE="${STATE_DIR}/repo_root"
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+log() {
+  local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+  echo "$msg" >> "$LOG_FILE"
+  echo "$msg"
+}
+
+# Run claude, sending its output to a per-issue verbose log.
+# Main log only gets orchestrator-level events; tail $STATE_DIR/$issue.log for full detail.
+claude_run() {
+  local issue="$1"; shift
+  claude "$@" >> "${STATE_DIR}/${issue}.log" 2>&1
+}
+
+# Inspect child processes of a running job and return a human-readable status line.
+check_job_status() {
+  local issue="$1"
+  local pid="$2"
+
+  # Gather direct children and grandchildren (claude spawns a shell which spawns the tool)
+  local all_pids
+  all_pids=$(pgrep -P "$pid" 2>/dev/null || true)
+  for child in $all_pids; do
+    local grandchildren
+    grandchildren=$(pgrep -P "$child" 2>/dev/null || true)
+    all_pids="$all_pids $grandchildren"
+  done
+
+  local status="" context=""
+  for p in $all_pids; do
+    local cmd
+    cmd=$(ps -p "$p" -o command= 2>/dev/null || true)
+    [[ -z "$cmd" ]] && continue
+
+    case "$cmd" in
+      *"vitest"*)         status="running tests" ;;
+      *"rush update"*)    status="installing dependencies" ;;
+      *"rush build"*)     status="building (rush build)" ;;
+      *"rushx build"*)    status="building" ;;
+      *"rushx lint"*)     status="linting" ;;
+      *"rushx test"*)     status="running tests" ;;
+      *"eslint"*)         status="linting" ;;
+      *"tsc"*)            status="type checking" ;;
+      *"gh pr create"*)   status="creating pull request" ;;
+      *"gh pr"*)          status="updating pull request" ;;
+      *"gh run"*)         status="fetching CI logs" ;;
+      *"git push"*)       status="pushing branch" ;;
+      *"git commit"*)     status="committing changes" ;;
+      *"git worktree"*)   status="setting up worktree" ;;
+      *"git reset"*)      status="setting up branch" ;;
+      *"jira"*)           status="updating Jira" ;;
+    esac
+
+    # Extract package name from cwd or eval'd command if available
+    if [[ -n "$status" ]]; then
+      local pkg
+      pkg=$(echo "$cmd" | grep -oE 'packages/[a-z0-9_-]+' | head -1 || true)
+      [[ -n "$pkg" ]] && context=" in $pkg"
+      break
+    fi
+  done
+
+  if [[ -n "$status" ]]; then
+    log "$issue: ↳ $status$context"
+  else
+    log "$issue: ↳ claude working... (verbose: ${STATE_DIR}/${issue}.log)"
+  fi
+}
+
+notify() {
+  local message="$1"
+  local title="${2:-Graph Orchestrator}"
+  local sound="${3:-Glass}"
+  local url="${4:-}"   # optional: clicking the notification opens this URL
+
+  if command -v terminal-notifier &>/dev/null; then
+    # terminal-notifier: sticky (persists until dismissed) + clickable URL
+    local args=(-message "$message" -title "$title" -sound "$sound" -sticky)
+    [[ -n "$url" ]] && args+=(-open "$url")
+    terminal-notifier "${args[@]}" 2>/dev/null || true
+  else
+    # Fallback: standard macOS notification (not sticky, no URL)
+    osascript -e "display notification \"$message\" with title \"$title\" sound name \"$sound\"" 2>/dev/null || true
+  fi
+}
+
+lock_file()     { echo "${STATE_DIR}/lock-${1}.pid"; }
+attempts_file() { echo "${STATE_DIR}/attempts-${1}-${2}.count"; }
+name_file()     { echo "${STATE_DIR}/name-${1}.txt"; }
+
+# Returns a short 2-3 word label for an issue, fetching and caching on first call.
+get_issue_name() {
+  local issue="$1"
+  local f
+  f="$(name_file "$issue")"
+  if [[ -f "$f" ]]; then
+    cat "$f"
+    return
+  fi
+  local summary short
+  summary=$(jira issue view "$issue" --raw 2>/dev/null | jq -r '.fields.summary // ""' 2>/dev/null || echo "")
+  if [[ -n "$summary" ]]; then
+    # Drop common filler words, take first 3 remaining words, lowercase
+    short=$(echo "$summary" \
+      | tr '[:upper:]' '[:lower:]' \
+      | awk '{for(i=1;i<=NF;i++) if($i!="the"&&$i!="a"&&$i!="an"&&$i!="for"&&$i!="of"&&$i!="to"&&$i!="with"&&$i!="in"&&$i!="and"&&$i!="or"&&$i!="is"&&$i!="are") printf "%s ",$i}' \
+      | awk '{print $1" "$2" "$3}' \
+      | sed 's/ *$//')
+  else
+    short="$issue"
+  fi
+  echo "$short" > "$f"
+  echo "$short"
+}
+
+# Returns 0 if the issue has an active lock (a running claude subprocess)
+is_locked() {
+  local lock
+  lock="$(lock_file "$1")"
+  [[ -f "$lock" ]] || return 1
+  local pid
+  pid=$(cat "$lock" 2>/dev/null) || return 1
+  kill -0 "$pid" 2>/dev/null
+}
+
+# Cleans up stale locks whose process is no longer alive
+clear_stale_lock() {
+  local lock
+  lock="$(lock_file "$1")"
+  [[ -f "$lock" ]] || return 0
+  local pid
+  pid=$(cat "$lock" 2>/dev/null) || { rm -f "$lock"; return 0; }
+  if ! kill -0 "$pid" 2>/dev/null; then
+    rm -f "$lock"
+  fi
+}
+
+get_attempts() {
+  local f
+  f="$(attempts_file "$1" "$2")"
+  cat "$f" 2>/dev/null || echo 0
+}
+
+increment_attempts() {
+  local f
+  f="$(attempts_file "$1" "$2")"
+  local n
+  n=$(get_attempts "$1" "$2")
+  echo $((n + 1)) > "$f"
+}
+
+reset_attempts() {
+  rm -f "$(attempts_file "$1" "ci")" "$(attempts_file "$1" "review")"
+}
+
+# Count currently active dispatched jobs (locks with live PIDs)
+active_job_count() {
+  local count=0
+  for lock in "${STATE_DIR}"/lock-*.pid; do
+    [[ -f "$lock" ]] || continue
+    local pid
+    pid=$(cat "$lock" 2>/dev/null) || continue
+    kill -0 "$pid" 2>/dev/null && (( count++ )) || rm -f "$lock"
+  done
+  echo "$count"
+}
+
+# ── Dispatch functions ────────────────────────────────────────────────────────
+
+# Spawn /do for a story that has no worktree yet.
+# Passes the issue summary inline so the headless claude invocation doesn't
+# need MCP OAuth for the initial fetch — the skill uses `jira issue view` CLI
+# for the full description.
+dispatch_do() {
+  local issue="$1"
+  local repo_root="$2"
+  local lock
+  lock="$(lock_file "$issue")"
+
+  # Fetch summary via jira CLI (safe one-liner, no special chars risk)
+  local issue_summary
+  issue_summary=$(jira issue view "$issue" --raw 2>/dev/null \
+    | jq -r '.fields.summary // ""' 2>/dev/null || echo "")
+
+  local username
+  username=$(whoami)
+
+  # Write the prompt to a temp file — direct instructions, no slash command,
+  # so Claude cannot misinterpret it as "show me the issue list"
+  local prompt_file
+  prompt_file=$(mktemp /tmp/do-prompt-XXXXXX.txt)
+  cat > "$prompt_file" << PROMPT
+Implement Jira story $issue end-to-end. Work autonomously — do not ask for confirmation at any step.
+
+**Issue:** $issue
+**Summary:** $issue_summary
+
+**Step 1 — Fetch full issue details**
+Run: jira issue view $issue --raw
+Parse fields.summary and fields.description from the JSON for the acceptance criteria.
+
+**Step 2 — Generate semantic slug**
+Derive a 4–5 word kebab-case slug from the summary (lowercase, hyphens, drop filler words).
+
+**Step 3 — Create the worktree**
+git fetch origin main
+git worktree add .git/agent-worktrees/$issue -b $username/$issue/<slug> origin/main
+Then cd into .git/agent-worktrees/$issue for all subsequent file operations.
+
+**Step 4 — Push the branch**
+git push --set-upstream origin $username/$issue/<slug>
+
+**Step 5 — Jira housekeeping**
+jira issue assign $issue $username
+SPRINT_ID=\$(jira sprint list --table --plain --state active | awk 'NR==2 {print \$1}')
+[[ -n "\$SPRINT_ID" ]] && jira sprint add "\$SPRINT_ID" $issue
+jira issue move $issue "In Development"
+
+**Step 6 — Rush setup**
+From inside the worktree: source auth.sh && nvm use 2>/dev/null || true && rush update
+
+**Step 7 — Implement**
+Read the acceptance criteria from Step 1 and implement them. Follow TDD: write failing tests first, then implement to pass.
+
+**Step 8 — Pre-completion checklist**
+For every package touched: rushx build, rushx lint, rushx test. Fix any failures before continuing.
+
+**Step 9 — Create draft PR**
+gh pr create -B main -t "[$issue] <Title Case Slug>" -b "<body from .github/PULL_REQUEST_TEMPLATE.md>" -d
+Do NOT call gh pr ready. Do NOT open a browser.
+
+**Step 10 — Link PR to Jira**
+PR_URL=\$(gh pr view --json url -q '.url')
+jira issue link remote $issue "\$PR_URL" "GitHub Pull Request"
+
+Print the PR URL when done.
+PROMPT
+
+  local issue_log="${STATE_DIR}/${issue}.log"
+  (
+    # Redirect all subshell output to the issue log immediately so any
+    # set -e failures (cd, cat, claude crash) are captured rather than lost
+    exec >> "$issue_log" 2>&1
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] dispatch_do: started in $repo_root"
+
+    cd "$repo_root" || { echo "ERROR: could not cd to $repo_root"; exit 1; }
+
+    local prompt
+    prompt=$(cat "$prompt_file") || { echo "ERROR: could not read prompt file $prompt_file"; exit 1; }
+    rm -f "$prompt_file"
+
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] dispatch_do: invoking claude"
+    claude --print "$prompt"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] dispatch_do: claude exited $?"
+
+    log "$issue: /do complete"
+    rm -f "$lock"
+  ) &
+  echo $! > "$lock"
+  log "$issue: /do started (pid $!)"
+  disown $!
+}
+
+# Resume an interrupted /do — worktree and branch exist but no PR yet.
+# Claude picks up from wherever it left off and finishes (build/lint/test/PR).
+dispatch_resume() {
+  local issue="$1" worktree="$2" branch="$3"
+  local lock
+  lock="$(lock_file "$issue")"
+  local issue_log="${STATE_DIR}/${issue}.log"
+
+  log "$issue: resuming interrupted /do in $worktree"
+
+  (
+    exec >> "$issue_log" 2>&1
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] dispatch_resume: starting"
+
+    cd "$worktree" || { echo "ERROR: could not cd to $worktree"; exit 1; }
+
+    claude --print "Jira story $issue was partially implemented and interrupted. The worktree already exists at $worktree on branch $branch.
+
+Resume from the current state:
+1. Run \`git status\` to see what was done so far
+2. Run \`jira issue view $issue --raw\` to re-read the acceptance criteria
+3. Complete any unfinished implementation to satisfy all acceptance criteria
+4. For every package touched: rushx build, rushx lint, rushx test — fix any failures
+5. Commit all changes: git add -A && git commit -m 'feat: implement $issue'
+6. Push: git push --set-upstream origin $branch
+7. Create a draft PR: gh pr create -B main -t \"[$issue] $(echo "$branch" | sed 's|.*/||' | tr '-' ' ' | sed 's/\b\w/\u&/g')\" -b \"\$(cat .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || echo '')\" -d
+8. Link to Jira: jira issue link remote $issue \"\$(gh pr view --json url -q '.url')\" \"GitHub Pull Request\"
+
+Do not re-create the worktree. Work autonomously, no confirmations, do not open a browser."
+
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] dispatch_resume: claude exited"
+    log "$issue: resume complete"
+    rm -f "$lock"
+  ) &
+  echo $! > "$lock"
+  disown $!
+}
+
+# Dispatch claude to fix failing CI checks
+dispatch_ci_fix() {
+  local issue="$1" pr_number="$2" branch="$3" worktree="$4"
+  local lock
+  lock="$(lock_file "$issue")"
+
+  increment_attempts "$issue" "ci"
+  local attempt pr_url
+  attempt=$(get_attempts "$issue" "ci")
+  pr_url=$(gh pr view "$pr_number" --json url -q '.url' 2>/dev/null || echo "")
+
+  notify "🔧 $issue: CI failing — fix attempt $attempt of $MAX_CI_ATTEMPTS" "$issue" "Purr" "$pr_url"
+
+  (
+    log "$issue: CI fix attempt $attempt started"
+
+    # Collect failure logs from recent runs on this branch
+    local repo
+    repo=$(gh repo view --json nameWithOwner -q '.nameWithOwner' 2>/dev/null || echo "")
+    local failure_logs=""
+    if [[ -n "$repo" ]]; then
+      failure_logs=$(
+        gh run list \
+          --branch "$branch" \
+          --repo "$repo" \
+          --json databaseId,conclusion \
+          --jq '.[] | select(.conclusion == "failure") | .databaseId' \
+          2>/dev/null \
+        | head -3 \
+        | while read -r run_id; do
+            echo "=== Run $run_id ==="
+            gh run view "$run_id" --repo "$repo" --log-failed 2>/dev/null | head -150
+          done
+      )
+    fi
+
+    # Fall back to raw checks output if no run logs available
+    if [[ -z "$failure_logs" ]]; then
+      failure_logs=$(gh pr checks "$pr_number" 2>/dev/null || echo "(check output unavailable)")
+    fi
+
+    cd "$worktree"
+    claude_run "$issue" --print "PR #$pr_number on branch '$branch' has failing CI checks. This is fix attempt $attempt of $MAX_CI_ATTEMPTS.
+
+Failure logs:
+$failure_logs
+
+Fix the failures. Then for every package you touch: run rushx build, rushx lint, rushx test — fix any new failures before committing. Commit with message 'fix: resolve CI check failures' and push. No confirmations needed. Do not open a browser."
+
+    log "$issue: CI fix attempt $attempt complete"
+    rm -f "$lock"
+  ) &
+  echo $! > "$lock"
+  disown $!
+}
+
+# Dispatch claude to respond to reviewer feedback — either by replying to
+# questions as PR comments or by making code changes for change requests.
+dispatch_review_response() {
+  local issue="$1" pr_number="$2" branch="$3" worktree="$4"
+  local lock
+  lock="$(lock_file "$issue")"
+
+  increment_attempts "$issue" "review"
+  local attempt pr_url
+  attempt=$(get_attempts "$issue" "review")
+  pr_url=$(gh pr view "$pr_number" --json url -q '.url' 2>/dev/null || echo "")
+
+  notify "💬 $issue: responding to review feedback (round $attempt)" "$issue" "Purr" "$pr_url"
+
+  (
+    log "$issue: review response attempt $attempt started"
+
+    local repo
+    repo=$(gh repo view --json nameWithOwner -q '.nameWithOwner' 2>/dev/null || echo "")
+
+    # Collect all reviewer feedback — both CHANGES_REQUESTED and COMMENTED reviews
+    local review_comments inline_comments pr_diff
+    review_comments=$(gh pr view "$pr_number" --json reviews \
+      --jq '.reviews[] | select(.state == "CHANGES_REQUESTED" or .state == "COMMENTED") | "Reviewer: \(.author.login) [\(.state)]\n\(.body)"' \
+      2>/dev/null || echo "")
+
+    if [[ -n "$repo" ]]; then
+      inline_comments=$(gh api "repos/$repo/pulls/$pr_number/comments" \
+        --jq '.[] | "Reviewer: \(.user.login)\nFile: \(.path) Line: \(.line // .original_line // "?")\nComment: \(.body)"' \
+        2>/dev/null || echo "")
+    fi
+
+    pr_diff=$(gh pr diff "$pr_number" 2>/dev/null | head -600 || echo "")
+
+    cd "$worktree"
+    claude_run "$issue" --print "PR #$pr_number on branch '$branch' has reviewer feedback (round $attempt). Respond appropriately to each comment:
+
+- If a comment is a **question or a request for clarification**: reply to it directly as a PR comment using \`gh pr comment $pr_number --body \"...\"\` or the GitHub review comment reply API. Start every reply with the ✨ emoji so it's clear the response is from Claude. Do NOT make unnecessary code changes to answer a question.
+- If a comment **requests a code change**: make the change. Use the same judgment you would in an interactive session — fix what's clearly right, and for design calls make the choice that best fits the existing codebase patterns.
+- If you make code changes: run rushx build, rushx lint, rushx test for every package touched, then commit with 'fix: address PR review feedback' and push.
+- If you only answered questions (no code changes): do NOT commit or push.
+
+Review-level comments:
+$review_comments
+
+Inline comments:
+$inline_comments
+
+Current diff:
+$pr_diff
+
+No confirmations needed. Do not open a browser."
+
+    log "$issue: review response attempt $attempt complete"
+    rm -f "$lock"
+  ) &
+  echo $! > "$lock"
+  disown $!
+}
+
+# Trigger an auto-squash merge and handle all post-merge cleanup
+dispatch_merge() {
+  local issue="$1" pr_number="$2" branch="$3" worktree="$4" repo_root="$5"
+  local lock pr_url
+  lock="$(lock_file "$issue")"
+  pr_url=$(gh pr view "$pr_number" --json url -q '.url' 2>/dev/null || echo "")
+
+  notify "🔀 $issue: all checks pass — merging PR #$pr_number" "$issue" "Glass" "$pr_url"
+
+  (
+    log "$issue: merge started"
+
+    # Trigger the merge
+    gh pr merge "$pr_number" --auto --squash
+    jira issue move "$issue" "Ready To Merge" 2>/dev/null || true
+
+    # graph-sdk doc review (same logic as `git pr merge`)
+    if gh pr diff "$pr_number" --name-only 2>/dev/null | grep -q "^packages/graph-sdk/"; then
+      log "$issue: graph-sdk changes detected — running doc review"
+      local sdk_diff
+      sdk_diff=$(gh pr diff "$pr_number" -- packages/graph-sdk/ 2>/dev/null | head -500)
+      claude_run "$issue" --print "PR #$pr_number on branch $branch includes changes to packages/graph-sdk/. Review the Plugin Developer Guide at https://wiki.corp.adobe.com/pages/viewpage.action?pageId=3769393821 against the following diff and determine whether any documentation updates are needed. If so, create a Jira ticket in the GRAPH project describing exactly what needs to change and why. Add it to the same Epic as $issue. Do not add it to the active sprint. If no updates are needed, say so briefly. Do not ask for confirmations.
+
+$sdk_diff"
+    fi
+
+    # Poll for MERGED state (up to 10 minutes)
+    log "$issue: waiting for merge to complete..."
+    local waited=0
+    while [[ $waited -lt 600 ]]; do
+      local state
+      state=$(gh pr view "$pr_number" --json state -q '.state' 2>/dev/null || echo "")
+      if [[ "$state" == "MERGED" ]]; then
+        log "$issue: merged — running cleanup"
+        cleanup_after_merge "$issue" "$pr_number" "$branch" "$worktree" "$repo_root"
+        rm -f "$lock"
+        return
+      fi
+      sleep 30
+      (( waited += 30 ))
+    done
+
+    log "$issue: WARNING — merge timed out waiting for MERGED state after 10min"
+    notify "⚠️ $issue: merge triggered but not yet MERGED after 10 min — check manually" "$issue" "Basso" "$pr_url"
+    rm -f "$lock"
+  ) &
+  echo $! > "$lock"
+  disown $!
+}
+
+# Post-merge cleanup: Jira Done, worktree removal, branch deletion
+# Must be run with repo_root so git operations happen outside the worktree
+cleanup_after_merge() {
+  local issue="$1" pr_number="$2" branch="$3" worktree="$4" repo_root="$5"
+
+  jira issue move "$issue" "Done" 2>/dev/null || true
+
+  if [[ -d "$worktree" ]]; then
+    git -C "$repo_root" worktree remove "$worktree" --force 2>/dev/null || true
+    log "$issue: worktree removed ($worktree)"
+  fi
+
+  # Prune remote tracking refs then delete local branch (may already be gone)
+  git -C "$repo_root" fetch --prune 2>/dev/null || true
+  git -C "$repo_root" branch -D "$branch" 2>/dev/null || true
+
+  reset_attempts "$issue"
+  rm -f "$(lock_file "$issue")" "$(name_file "$issue")" "${STATE_DIR}/review-stuck-${issue}.sha" "${STATE_DIR}/review-responded-${issue}.ts" "${STATE_DIR}/pr-seen-${issue}.flag" "${STATE_DIR}/pr-ready-${issue}.flag"
+
+  local pr_url
+  pr_url=$(gh pr view "$pr_number" --json url -q '.url' 2>/dev/null || echo "")
+  notify "✅ $issue: merged, cleaned up, marked Done" "$issue" "Glass" "$pr_url"
+  log "$issue: cleanup complete"
+}
+
+# Dispatch claude to resolve merge conflicts with the base branch
+dispatch_conflict_resolution() {
+  local issue="$1" pr_number="$2" branch="$3" worktree="$4"
+  local lock
+  lock="$(lock_file "$issue")"
+
+  local pr_url
+  pr_url=$(gh pr view "$pr_number" --json url -q '.url' 2>/dev/null || echo "")
+  notify "⚠️ $issue: merge conflicts with main — resolving" "$issue" "Purr" "$pr_url"
+
+  (
+    log "$issue: conflict resolution started"
+
+    cd "$worktree"
+    claude_run "$issue" --print "PR #$pr_number on branch '$branch' has merge conflicts with the main branch.
+
+Resolve the conflicts:
+1. Run: git fetch origin main
+2. Run: git merge origin/main
+3. For each conflicted file, resolve the conflict in a way that preserves both the intent of this branch and the changes from main. Use your best judgment — prefer the approach that best fits the surrounding code.
+4. Stage resolved files with: git add <file>
+5. Complete the merge with: git commit (use the default merge commit message)
+6. For every package you touched, run rushx build, rushx lint, rushx test — fix any failures before continuing.
+7. Push: git push
+
+No confirmations needed. Do not open a browser."
+
+    log "$issue: conflict resolution complete"
+    rm -f "$lock"
+  ) &
+  echo $! > "$lock"
+  disown $!
+}
+
+# ── Core orchestration cycle ──────────────────────────────────────────────────
+
+process_pr() {
+  local issue="$1" pr_number="$2" branch="$3" worktree="$4" repo_root="$5" issue_name="${6:-}"
+  local label="$issue${issue_name:+ ($issue_name)}"
+
+  local pr_json
+  pr_json=$(gh pr view "$pr_number" --json state,reviewDecision,url,isDraft,mergeStateStatus,reviews 2>/dev/null || echo "{}")
+  local pr_state review_decision pr_url is_draft merge_state has_comments
+  pr_state=$(echo "$pr_json" | jq -r '.state // ""')
+  review_decision=$(echo "$pr_json" | jq -r '.reviewDecision // ""')
+  pr_url=$(echo "$pr_json" | jq -r '.url // ""')
+  is_draft=$(echo "$pr_json" | jq -r '.isDraft // true')
+  merge_state=$(echo "$pr_json" | jq -r '.mergeStateStatus // ""')
+  # Reviewers can leave comments without changing reviewDecision (stays REVIEW_REQUIRED).
+  # Check the individual reviews list so we don't miss comment-only feedback.
+  has_comments=$(echo "$pr_json" | jq -r '[.reviews[]? | select(.state == "COMMENTED" or .state == "CHANGES_REQUESTED")] | length > 0' 2>/dev/null || echo "false")
+
+  # Already merged or closed — clean up
+  if [[ "$pr_state" == "MERGED" || "$pr_state" == "CLOSED" ]]; then
+    log "$label: PR #$pr_number is $pr_state — cleaning up"
+    cleanup_after_merge "$issue" "$pr_number" "$branch" "$worktree" "$repo_root"
+    return
+  fi
+
+  # Branch behind or conflicted — must resolve before anything else
+  if [[ "$merge_state" == "DIRTY" ]]; then
+    log "$label: PR #$pr_number has merge conflicts (mergeStateStatus=DIRTY)"
+    dispatch_conflict_resolution "$issue" "$pr_number" "$branch" "$worktree"
+    return
+  fi
+
+  if [[ "$merge_state" == "BEHIND" ]]; then
+    log "$label: PR #$pr_number is behind main — attempting auto-update"
+    if ! gh pr update-branch "$pr_number" 2>/dev/null; then
+      log "$label: auto-update failed (conflicts) — dispatching conflict resolution"
+      dispatch_conflict_resolution "$issue" "$pr_number" "$branch" "$worktree"
+    else
+      log "$label: branch updated with main successfully"
+    fi
+    return
+  fi
+
+  # Check CI status
+  local checks_output
+  checks_output=$(gh pr checks "$pr_number" 2>/dev/null || echo "")
+  local pending_count fail_count
+  pending_count=$(echo "$checks_output" | grep -cEi '\b(pending|in_progress|queued|waiting|requested)\b' || true)
+  fail_count=$(echo "$checks_output"    | grep -cEi '\b(fail|timed_out)\b'                               || true)
+
+  # Approved + CI green → merge
+  if [[ "$review_decision" == "APPROVED" && "$pending_count" -eq 0 && "$fail_count" -eq 0 ]]; then
+    log "$label: PR #$pr_number approved + CI green → merging"
+    dispatch_merge "$issue" "$pr_number" "$branch" "$worktree" "$repo_root"
+    return
+  fi
+
+  # CI still running → wait
+  if [[ "$pending_count" -gt 0 ]]; then
+    log "$label: PR #$pr_number — $pending_count CI check(s) pending"
+    return
+  fi
+
+  # CI failing → fix (takes priority over review feedback)
+  if [[ "$fail_count" -gt 0 ]]; then
+    local ci_attempts
+    ci_attempts=$(get_attempts "$issue" "ci")
+    if [[ "$ci_attempts" -ge "$MAX_CI_ATTEMPTS" ]]; then
+      log "$label: CI fix cap reached ($MAX_CI_ATTEMPTS attempts)"
+      notify "❌ $issue: $fail_count CI check(s) still failing after $MAX_CI_ATTEMPTS attempts — needs manual attention" "$issue" "Basso" "$pr_url"
+      return
+    fi
+    log "$label: PR #$pr_number — $fail_count CI check(s) failing"
+    dispatch_ci_fix "$issue" "$pr_number" "$branch" "$worktree"
+    return
+  fi
+
+  # CI green — reset CI attempt counter in case it had previous failures
+  local prev_ci
+  prev_ci=$(get_attempts "$issue" "ci")
+  [[ "$prev_ci" -gt 0 ]] && { rm -f "$(attempts_file "$issue" "ci")"; log "$label: CI green — reset CI attempt counter"; }
+
+  # CI green + still a draft → notify once (user marks ready manually)
+  local ready_flag="${STATE_DIR}/pr-ready-${issue}.flag"
+  if [[ "$is_draft" == "true" && ! -f "$ready_flag" ]]; then
+    touch "$ready_flag"
+    notify "✅ $issue: CI passed — PR #$pr_number ready for your review" "$issue" "Glass" "$pr_url"
+    log "$label: CI green — notified (draft, awaiting manual ready)"
+    return
+  fi
+
+  # Changes requested or questions left → respond to review feedback.
+  # CHANGES_REQUESTED: reviewer wants code changes (and possibly has questions).
+  # COMMENTED / has_comments: reviewer left questions without blocking the PR.
+  if [[ "$review_decision" == "CHANGES_REQUESTED" || "$review_decision" == "COMMENTED" || "$has_comments" == "true" ]]; then
+
+    # Find the latest feedback timestamp across all reviews and inline comments.
+    # ISO 8601 timestamps sort correctly as strings, so string comparison is safe.
+    local repo latest_review_ts latest_comment_ts latest_feedback_ts
+    repo=$(gh repo view --json nameWithOwner -q '.nameWithOwner' 2>/dev/null || echo "")
+    latest_review_ts=$(echo "$pr_json" | jq -r \
+      '[.reviews[]? | select(.state == "COMMENTED" or .state == "CHANGES_REQUESTED") | .submittedAt] | max // ""')
+    if [[ -n "$repo" ]]; then
+      latest_comment_ts=$(gh api "repos/$repo/pulls/$pr_number/comments" \
+        --jq '[.[].created_at] | max // ""' 2>/dev/null || echo "")
+    fi
+    # Pick whichever timestamp is later
+    if [[ "$latest_review_ts" > "$latest_comment_ts" ]]; then
+      latest_feedback_ts="$latest_review_ts"
+    else
+      latest_feedback_ts="$latest_comment_ts"
+    fi
+
+    # Skip if we've already responded to everything up to this timestamp
+    local responded_file="${STATE_DIR}/review-responded-${issue}.ts"
+    local last_responded_ts
+    last_responded_ts=$(cat "$responded_file" 2>/dev/null || echo "")
+    if [[ -n "$last_responded_ts" && "$latest_feedback_ts" <= "$last_responded_ts" ]]; then
+      log "$label: PR #$pr_number — no new reviewer feedback since last response"
+      return
+    fi
+
+    # For CHANGES_REQUESTED, also apply stuck detection: if Claude has pushed
+    # code at the current SHA multiple times with no new reviewer activity, back off.
+    if [[ "$review_decision" == "CHANGES_REQUESTED" ]]; then
+      local head_sha stuck_file stuck_count stored_sha stored_count
+      head_sha=$(git -C "$worktree" rev-parse HEAD 2>/dev/null || echo "unknown")
+      stuck_file="${STATE_DIR}/review-stuck-${issue}.sha"
+      stored_sha=$(awk -F: '{print $1}' "$stuck_file" 2>/dev/null || echo "")
+      stored_count=$(awk -F: '{print $2}' "$stuck_file" 2>/dev/null || echo "0")
+      if [[ "$stored_sha" == "$head_sha" ]]; then
+        stuck_count=$(( stored_count + 1 ))
+      else
+        stuck_count=0
+      fi
+      echo "${head_sha}:${stuck_count}" > "$stuck_file"
+      if [[ "$stuck_count" -ge "$REVIEW_STUCK_THRESHOLD" ]]; then
+        log "$issue: review stuck — $stuck_count consecutive cycles with no new reviewer activity at $head_sha"
+        notify "⚠️ $issue: review conversation may be stuck — check the PR." "$issue" "Basso" "$pr_url"
+        return
+      fi
+    fi
+
+    # Record the timestamp we're responding to so we don't re-respond next cycle
+    echo "$latest_feedback_ts" > "$responded_file"
+
+    log "$label: PR #$pr_number — new reviewer feedback (review=$review_decision) → responding"
+    dispatch_review_response "$issue" "$pr_number" "$branch" "$worktree"
+    return
+  fi
+
+  # Clear review state when the review is resolved
+  rm -f "${STATE_DIR}/review-stuck-${issue}.sha"
+
+  log "$label: PR #$pr_number — CI green, review=$review_decision — nothing to do this cycle"
+}
+
+process_issue() {
+  local issue_name
+  issue_name=$(get_issue_name "$1" 2>/dev/null || echo "")
+  local issue="$1" repo_root="$2" active_count="$3"
+
+  clear_stale_lock "$issue"
+
+  local worktree="${repo_root}/.git/agent-worktrees/${issue}"
+
+  # No worktree → start work if under the parallel cap
+  if [[ ! -d "$worktree" ]]; then
+    if is_locked "$issue"; then
+      log "$issue: /do already in progress"
+      return
+    fi
+    if [[ "$active_count" -ge "$MAX_PARALLEL" ]]; then
+      log "$issue: at parallel cap ($MAX_PARALLEL) — deferring"
+      return
+    fi
+
+    # Check for unresolved blocking issues before starting work
+    local blockers
+    blockers=$(jira issue list \
+      --jql "issue in linkedIssues(\"$issue\", \"is blocked by\") AND status != Done" \
+      --plain --no-headers --columns KEY \
+      2>/dev/null | awk 'NF > 0 {print $1}' | tr '\n' ' ' | xargs || echo "")
+    if [[ -n "$blockers" ]]; then
+      log "$issue: blocked by unresolved issue(s): $blockers — deferring"
+      return
+    fi
+
+    log "$issue: no worktree found — dispatching /do"
+    dispatch_do "$issue" "$repo_root"
+    return
+  fi
+
+  # Worktree exists — find the branch
+  local branch
+  branch=$(git -C "$worktree" branch --show-current 2>/dev/null || echo "")
+  if [[ -z "$branch" ]]; then
+    log "$issue: worktree exists but HEAD is detached — skipping"
+    return
+  fi
+
+  # Find the open PR for this branch
+  local pr_number
+  pr_number=$(gh pr view "$branch" --json number -q '.number' 2>/dev/null || echo "")
+  if [[ -z "$pr_number" || "$pr_number" == "null" ]]; then
+    if is_locked "$issue"; then
+      log "$issue: worktree exists, /do still running (no PR yet)"
+      return
+    fi
+
+    # Orphaned worktree — /do was interrupted before opening a PR.
+    # Check whether any work was done (commits or uncommitted changes ahead of main).
+    local ahead_count
+    ahead_count=$(git -C "$worktree" rev-list origin/main..HEAD --count 2>/dev/null || echo "0")
+    local dirty
+    dirty=$(git -C "$worktree" status --short 2>/dev/null)
+
+    if [[ "$ahead_count" -eq 0 && -z "$dirty" ]]; then
+      # No work done — tear down and let /do restart clean next cycle
+      log "$issue: orphaned worktree with no work — removing and restarting"
+      git -C "$repo_root" worktree remove "$worktree" --force 2>/dev/null || true
+      git -C "$repo_root" branch -D "$branch" 2>/dev/null || true
+      git -C "$repo_root" push origin --delete "$branch" 2>/dev/null || true
+    else
+      # Work exists — resume from current state rather than starting over
+      log "$issue: orphaned worktree with work ($ahead_count commits, dirty=$( [[ -n "$dirty" ]] && echo yes || echo no)) — resuming"
+      dispatch_resume "$issue" "$worktree" "$branch"
+    fi
+    return
+  fi
+
+  # Log once when we first see a new PR (no notification yet — it's a draft)
+  local pr_seen_flag="${STATE_DIR}/pr-seen-${issue}.flag"
+  if [[ ! -f "$pr_seen_flag" ]]; then
+    touch "$pr_seen_flag"
+    log "$issue: PR #$pr_number first seen (draft) — monitoring CI"
+  fi
+
+  if is_locked "$issue"; then
+    log "$issue: PR #$pr_number — action already in progress"
+    return
+  fi
+
+  process_pr "$issue" "$pr_number" "$branch" "$worktree" "$repo_root" "$issue_name"
+}
+
+orchestrate_once() {
+  local repo_root="$1"
+  log "── cycle start ──"
+
+  local active
+  active=$(active_job_count)
+  log "Active jobs: $active / $MAX_PARALLEL"
+
+  # Report what each active job is currently doing
+  if [[ "$active" -gt 0 ]]; then
+    for lock in "${STATE_DIR}"/lock-*.pid; do
+      [[ -f "$lock" ]] || continue
+      local lpid lissue
+      lpid=$(cat "$lock" 2>/dev/null) || continue
+      lissue=$(basename "$lock" | sed 's/lock-\(.*\)\.pid/\1/')
+      if kill -0 "$lpid" 2>/dev/null; then
+        check_job_status "$lissue" "$lpid"
+      fi
+    done
+  fi
+
+  # Query Jira for stories/bugs with the plaid label assigned to the current user
+  local issues
+  issues=$(jira issue list \
+    --jql "project = GRAPH AND assignee = currentUser() AND labels = plaid AND status != Done AND issuetype in (Story, Bug)" \
+    --plain --no-headers --columns KEY \
+    2>/dev/null | awk 'NF > 0 {print $1}' || echo "")
+
+  if [[ -z "$issues" ]]; then
+    log "No matching Jira issues found this cycle"
+    log "── cycle end ──"
+    return
+  fi
+
+  log "Issues: $(echo "$issues" | tr '\n' ' ')"
+
+  while IFS= read -r issue; do
+    [[ -z "$issue" ]] && continue
+    process_issue "$issue" "$repo_root" "$active"
+    # Re-read active count after each dispatch (it may have incremented)
+    active=$(active_job_count)
+  done <<< "$issues"
+
+  log "── cycle end ──"
+}
+
+# ── Commands ──────────────────────────────────────────────────────────────────
+
+cmd_start() {
+  # Detect and save the repo root from CWD
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+  if [[ -z "$repo_root" ]]; then
+    echo "Error: run 'git orchestrate start' from inside your git repository"
+    exit 1
+  fi
+
+  mkdir -p "$STATE_DIR"
+  echo "$repo_root" > "$REPO_FILE"
+
+  # Deduplicate
+  if [[ -f "$PID_FILE" ]]; then
+    local old_pid
+    old_pid=$(cat "$PID_FILE")
+    if kill -0 "$old_pid" 2>/dev/null; then
+      echo "Orchestrator already running (pid $old_pid)"
+      echo "  Stop: git orchestrate stop"
+      echo "  Log:  $LOG_FILE"
+      exit 0
+    fi
+    rm -f "$PID_FILE"
+  fi
+
+  echo "Starting orchestrator for $repo_root"
+  echo "Polling every ${POLL_INTERVAL}s, max $MAX_PARALLEL parallel jobs"
+  echo "Log: $LOG_FILE"
+
+  (
+    log "Orchestrator started. Repo: $repo_root  Max parallel: $MAX_PARALLEL"
+
+    while true; do
+      local root
+      root=$(cat "$REPO_FILE" 2>/dev/null || echo "$repo_root")
+      orchestrate_once "$root" || log "WARNING: cycle encountered an error"
+      log "Sleeping ${POLL_INTERVAL}s..."
+      sleep "$POLL_INTERVAL"
+    done
+  ) &
+  local daemon_pid=$!
+  echo "$daemon_pid" > "$PID_FILE"
+  disown $daemon_pid
+
+  echo "Orchestrator running (pid $daemon_pid)"
+}
+
+cmd_stop() {
+  if [[ ! -f "$PID_FILE" ]]; then
+    echo "Orchestrator is not running"
+    exit 0
+  fi
+  local pid
+  pid=$(cat "$PID_FILE")
+  if kill "$pid" 2>/dev/null; then
+    echo "Orchestrator stopped (pid $pid)"
+    rm -f "$PID_FILE"
+  else
+    echo "Orchestrator not running (stale PID file removed)"
+    rm -f "$PID_FILE"
+  fi
+}
+
+cmd_status() {
+  echo "=== Orchestrator ==="
+  if [[ ! -f "$PID_FILE" ]]; then
+    echo "Status:  not running"
+  else
+    local pid
+    pid=$(cat "$PID_FILE")
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "Status:  running (pid $pid)"
+      echo "Repo:    $(cat "$REPO_FILE" 2>/dev/null || echo "unknown")"
+      echo "Poll:    every ${POLL_INTERVAL}s"
+    else
+      echo "Status:  stopped (stale PID — run 'git orchestrate start' to restart)"
+      rm -f "$PID_FILE"
+    fi
+  fi
+
+  echo ""
+  echo "=== Active Jobs ==="
+  local found=0
+  for lock in "${STATE_DIR}"/lock-*.pid; do
+    [[ -f "$lock" ]] || continue
+    local pid issue
+    pid=$(cat "$lock" 2>/dev/null) || continue
+    issue=$(basename "$lock" | sed 's/lock-\(.*\)\.pid/\1/')
+    if kill -0 "$pid" 2>/dev/null; then
+      local ci_att review_att
+      ci_att=$(get_attempts "$issue" "ci")
+      review_att=$(get_attempts "$issue" "review")
+      echo "  $issue  pid=$pid  ci_attempts=$ci_att  review_attempts=$review_att"
+      echo "    verbose log: ${STATE_DIR}/${issue}.log"
+      check_job_status "$issue" "$pid"
+      found=1
+    else
+      rm -f "$lock"
+    fi
+  done
+  [[ $found -eq 0 ]] && echo "  none"
+
+  echo ""
+  echo "=== Last 20 Log Lines ==="
+  tail -20 "$LOG_FILE" 2>/dev/null || echo "  (no log yet)"
+}
+
+cmd_once() {
+  mkdir -p "$STATE_DIR"
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null || cat "$REPO_FILE" 2>/dev/null || echo "")
+  if [[ -z "$repo_root" ]]; then
+    echo "Error: not in a git repository and no saved repo root"
+    exit 1
+  fi
+  echo "$repo_root" > "$REPO_FILE"
+  orchestrate_once "$repo_root"
+}
+
+showhelp() {
+  echo "Usage: git orchestrate <command>"
+  echo ""
+  echo "Commands:"
+  echo "  start    Start the background orchestrator daemon"
+  echo "           (run from inside your git repository)"
+  echo "  stop     Stop the daemon"
+  echo "  status   Show running state, active jobs, and recent log"
+  echo "  once     Run one orchestration cycle immediately (testing)"
+  echo ""
+  echo "The orchestrator polls Jira every ${POLL_INTERVAL}s and manages the full"
+  echo "story lifecycle: start work → fix CI → respond to reviews → merge → cleanup."
+  echo ""
+  echo "Logs:  $LOG_FILE"
+  echo "State: $STATE_DIR"
+}
+
+# ── Entry point ───────────────────────────────────────────────────────────────
+
+case "${1:-help}" in
+  start)  cmd_start ;;
+  stop)   cmd_stop ;;
+  status) cmd_status ;;
+  once)   cmd_once ;;
+  help|-h|--help) showhelp ;;
+  *)
+    echo "Unknown command: $1"
+    showhelp
+    exit 1
+    ;;
+esac

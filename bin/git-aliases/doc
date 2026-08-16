@@ -1,0 +1,14 @@
+#!/bin/bash
+
+sub_cmd="$1"
+
+if [ "$sub_cmd" = "search" ]; then
+  query="$2"
+  if [ -z "$query" ]; then
+    echo "Usage: git doc search <query>"
+    exit 1
+  fi
+  encoded_query=$(jq -rn --arg var "$query" '$var | @uri')
+  IFS=":" read -ra PARTS <<< "$(git remote get-url origin)"
+  open "https://${PARTS[0]/git@/}/search?q=$encoded_query+repo%3AHorizon%2Fhz+extension%3Amd&type=Code&ref=advsearch&l=&l="
+fi
