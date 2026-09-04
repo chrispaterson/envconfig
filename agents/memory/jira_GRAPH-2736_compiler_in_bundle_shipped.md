@@ -1,0 +1,28 @@
+---
+name: jira-graph-2736-compiler-in-bundle-shipped
+description: GRAPH-2736 compiler-in-bundle shipped + live-verified on core-nodes; two-part forward fix; tsc-resolution fix; remaining failures = GRAPH-2196 DOM libs
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: b12838d6-965c-419c-8421-919b7ecc5d3a
+  modified: 2026-08-29T00:08:06.169Z
+---
+
+GRAPH-2736 "ship @graph/plugin-compiler in the platform bundle" implemented & live-verified 2026-08-28 (PR #3306, branch paterson/GRAPH-2736/migrate-sdk-subcommands-versioned-bundles).
+
+**The forward fix is TWO parts** (a plan that only does the first is broken):
+1. Add `@graph/plugin-compiler` as a 2nd root of the platform closure in `common/scripts/platform-closure.mjs` (closure 9→11: adds compiler + `@graph/sdk-common`).
+2. Wire `node ../../common/scripts/pack-platform-tarball.mjs "$PWD"` into the `build` AND `_phase:build` scripts of `packages/graph-plugin-compiler/package.json` and `packages/graph-sdk-common/package.json`. WHY: the going-forward CI path `.github/actions/build-and-upload/action.yml` runs `rush build` then `stage-platform-tarballs.mjs`, which copies each workspace closure pkg's `dist/*.tgz` to S3. Without the pack step those two pkgs emit no tarball and CI staging throws ENOENT.
+
+Compiler + sdk-common stay `shouldPublish: false` — distribution is via bundle tarballs, never a registry (external CLI users can't reach the internal @graph Artifactory mirror). All @graph/@graph-services closure pkgs must ride in the bundle. 29 historical bundles at `/Users/paterson/platform-bundle-backfill/platform-bundles/` were patched once by `common/scripts/overlay-compiler-into-staged-bundles.mjs` (Services deliverable; idempotent; adds compiler+sdk-common+eslint-plugin).
+
+**Second bug found by the live core-nodes test** (was a WIP-commit vestige, not in the plan): `packages/graph-plugin-compiler/src/build/typecheck-plugin.ts` resolved `typescript/bin/tsc` from the PROJECT ROOT (which has no typescript) instead of the plugin dir. Fixed to `createRequire(path.join(pluginPath, PACKAGE_JSON_NAME))` — each plugin's node_modules symlinks to `.platform-dependencies/<major>.<minor>/node_modules` where typescript lives; also required because plugins in one project span platform versions. Now an Invariant in graph-plugin-compiler/AGENTS.md.
+
+**Live-verified on core-nodes** (canonical `graph-plugins-core/core-nodes`, branch `new-cli` — its package.json `sdk` script is wired to the local graph-cli, purpose-built dev-linked harness). Both `Cannot find module '@graph/plugin-compiler/cli.js'` and `Cannot find module 'typescript/bin/tsc'` gone; majority of plugins build. **Remaining 7 failures are all utility-*/widget-* plugins with DOM errors (HTMLCanvasElement/document/CanvasRenderingContext2D) + vitest-type errors in *.test.ts — genuine per-plugin-type tsconfig gaps = [[jira_GRAPH-2736_build_parity_bugs]] / GRAPH-2196 (DOM-lib tsconfig templates), NOT infra.**
+
+**Endpoint (download) mode ALSO live-verified 2026-08-28** via a local static server (no Services upload needed). Served a copy of the 29 patched bundles at `http://127.0.0.1:8799/platform/version/<major>.<minor>/` (python3 -u -m http.server; refreshed the compiler tarball to the tsc-fixed build first). `graph install --graph-url http://127.0.0.1:8799` downloaded the full closure for all 6 versions core-nodes uses (72 GETs) — each version's OWN historical runtime tarballs (2.1→platform-exports-2.4.0, 2.17→2.11.2) PLUS the single overlaid toolchain (compiler/sdk-common/eslint-plugin 1.0.0). Endpoint is unauthenticated (plain fetch, no Bearer; 403/404 = "not published"; rejects redirects). Compiler+tsc infra errors both 0 in endpoint build. The compiler-1.0.0 ran correctly against every historical platform-exports.
+Endpoint build fails MORE plugins than dev-linked (18 vs 7): extra failures are `TS2305 Module '@graph/platform-exports/node-plugin.js' has no exported member 'computed'/'isList'` etc. — current core-nodes source uses NEWER platform-exports APIs than the OLD historical types provisioned per the plugin's declared platformVersion. This is the plan's documented "single-toolchain-vs-historical-runtime" tradeoff + plugin-version drift, NOT infra. Dev-linked hides it because it provisions the CURRENT platform-exports for all versions.
+
+**CRITICAL TESTING GOTCHA:** the `packages/graph-cli/.bin/graph.js` wrapper FORCES `process.env.GRAPH_SDK_LINKED_DEV_BUILD="true"` whenever run from outside node_modules (i.e. linked from the worktree) — so EVERY run through the wrapper is dev-linked/dist mode, and `--graph-url` + endpoint mode are silently ignored. To test true endpoint mode from the monorepo, invoke `node packages/graph-cli/lib/index.js install --graph-url ...` DIRECTLY (bypasses the wrapper's env-force) with GRAPH_SDK_LINKED_DEV_BUILD unset. Endpoint-vs-dist branch is `platform-provision.ts` `gatherClosureTarballs`: `if (process.env.GRAPH_SDK_LINKED_DEV_BUILD !== undefined) fromDist else fromEndpoint`. There is NO download cache — provisionPlatformVersion always rm's versionDir and re-fetches.
+
+Gotcha: `ProgressLogger` (`graph-sdk-common/src/progress-logger.ts`) suppresses all output when stdout isn't a TTY. `script -q <file> ...` gives a pty, BUT can yield an empty capture file if the child exits fast — for a failing build, capture directly instead: `node <graph-cli>/.bin/graph.js build > out.txt 2>&1` (early stack traces still print to stderr regardless of TTY). Running `graph install`/`build` in an external checkout is sometimes blocked by the auto-mode classifier — needs a Bash permission grant.

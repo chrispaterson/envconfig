@@ -60,17 +60,51 @@ index: { include_paths: [], exclude_paths: [] }
 projects: { auto_detect: true, overrides: {}, domain_walls: hard }
 ```
 
-Template repo at `<scout-src>/scout_config/<name>.yaml` is seeded on attach and can be synced back with `scout admin sync-template`.
+Bundled templates under `scout_config/` are Scout maintainer assets, not normal
+autotune output. An autotune run for another repository must not modify a Scout
+source checkout.
+
+## Write-scope invariant
+
+Resolve the requested repository before doing any work:
+
+```bash
+REPO=$(cd <path> && git rev-parse --show-toplevel)
+```
+
+The normal autotune **persistent** write scope is only `$REPO/.scout/`:
+
+- `$REPO/.scout/scout.config.yaml` for the tuned repository configuration
+- `$REPO/.scout/evaluations/autotune-query-set.toml` for its reusable query set
+
+Put temporary sweep scripts and results in a dedicated `mktemp -d` directory
+and remove it at the end. Never infer a Scout source checkout from the current
+working directory, `SCOUT_SRC`, this skill's installation path, or the `scout`
+binary path. In particular, do not run `sync-template` and do not edit
+`scout_config/` or `crates/search_cli/src/repository_manager/mod.rs` while
+tuning an external repository.
+
+The sole exception is when `$REPO` is itself the Scout source repository,
+identified by both `$REPO/crates/search_cli/resources/AUTOTUNE-SKILL.md` and
+`$REPO/scout_config/`. In that case the Scout-owned query set and template may
+be updated because they are inside the requested target repository.
+
+Shell variables do not survive across separate host command calls. Record the
+resolved absolute values for `REPO`, `QS`, and `OUTDIR`, then redeclare them at
+the start of every later shell block or substitute the absolute values
+directly. Never run a write or recursive cleanup command with an unset,
+relative, or reconstructed path.
 
 ---
 
-## Learned-ranker compatibility (v0.9.117+)
+## Learned-ranker compatibility (v0.9.123+)
 
-The sole shipping v17 model is `bundled:v17`, a 67-feature, 2-layer / 8-head /
-`d_model=48` Listwise transformer trained with Seed 99 and anchored to the
-normalized upstream composite score. v16 remains bundled only for explicit
-rollback. Autotune always probes v17; it does not retain or sweep arbitrary
-model paths.
+The shipping model is `bundled:v18`, a refreshed-data retrain of the compact
+contextual-listwise residual architecture. The selected artifact consumes the
+same 67-column input as v17; v18-era graph-signal columns remain available to
+future models but are not inputs to this artifact. v17 and v16 remain bundled
+for explicit rollback. Autotune always probes v18; it does not retain or sweep
+arbitrary model paths.
 
 The runtime supports independent blends for `identifier`, `natural_language`,
 and `filtered` queries through `learned_ranker_blend_per_class`. The CLI keys
@@ -80,13 +114,13 @@ defaults.
 
 **Sweep protocol:**
 
-1. **Rounds 1–44 run with v17 at global blend 1.0 and no class overrides.** Sweep upstream params against the ranker-on baseline. Before starting, remove stale class overrides by setting each `blend_class.*` key to `-1`.
+1. **Rounds 1–44 run with v18 at global blend 1.0 and no class overrides.** Sweep upstream params against the ranker-on baseline. Before starting, remove stale class overrides by setting each `blend_class.*` key to `-1`.
 2. **Rounds 45–48 probe global blends `{0.25, 0.5, 0.75, 1.0}`** on top of the saved upstream compound, with a separately captured blend-0 baseline. Each evaluation already reports NDCG by query class. Because one query belongs to exactly one class, the four global probes reveal the response curve for all three classes in only four evaluations.
 3. **Persist a class-aware result.** Set global blend to `0`, then write the independently selected values to all three `blend_class.*` keys. Evaluate that compound twice before saving.
 
-**Calibration run (recommended before Phase 4).** Before sweeping, measure current-config performance at blend=1.0 and blend=0.0 with class overrides removed. This quantifies how much v17 contributes before upstream tuning and prevents a stale per-class config from contaminating the baseline.
+**Calibration run (recommended before Phase 4).** Before sweeping, measure current-config performance at blend=1.0 and blend=0.0 with class overrides removed. This quantifies how much v18 contributes before upstream tuning and prevents a stale per-class config from contaminating the baseline.
 
-**Baseline capture.** The Phase 4a baseline and rounds 1–44 use v17 at blend 1.0. Step 4e captures a second, ranker-off baseline after upstream winners are saved; that second baseline is the reference for class selection.
+**Baseline capture.** The Phase 4a baseline and rounds 1–44 use v18 at blend 1.0. Step 4e captures a second, ranker-off baseline after upstream winners are saved; that second baseline is the reference for class selection.
 
 **Why this differs from the earlier workflow.** A single global blend forces all
 query classes to accept the same trade-off. The v17 live panel showed that a
@@ -102,10 +136,25 @@ the evaluation count.
 
 Run these checks. STOP and report if any fail:
 
-1. **Path exists and is a git repo:**
+1. **Path exists and is a git repo; resolve the target and write scope:**
    ```bash
-   cd <path> && git rev-parse --show-toplevel
+   REPO=$(cd <path> && git rev-parse --show-toplevel)
+   TARGET_IS_SCOUT_SOURCE=0
+   if [ -f "$REPO/crates/search_cli/resources/AUTOTUNE-SKILL.md" ] &&
+      [ -d "$REPO/scout_config" ]; then
+     TARGET_IS_SCOUT_SOURCE=1
+   fi
+   QS="$REPO/.scout/evaluations/autotune-query-set.toml"
+   if [ "$TARGET_IS_SCOUT_SOURCE" = "1" ]; then
+     QS="$REPO/scout_config/evaluations/scout-query-set.toml"
+   fi
+   mkdir -p "$(dirname "$QS")"
+   OUTDIR=$(mktemp -d "${TMPDIR:-/tmp}/scout-autotune.XXXXXX")
+   : > "$OUTDIR/.scout-autotune-owned"
    ```
+   Use these resolved paths throughout the run. The caller's current working
+   directory is not a write target. If the workflow uses another shell call,
+   redeclare these exact absolute values first.
 
 2. **Scout daemon is running:**
    ```bash
@@ -120,16 +169,13 @@ Run these checks. STOP and report if any fail:
 
 4. **Check for existing config:**
    ```bash
-   CONFIG="<path>/.scout/scout.config.yaml"
+   CONFIG="$REPO/.scout/scout.config.yaml"
    if [ -f "$CONFIG" ]; then cat "$CONFIG"; else echo "NO_CONFIG"; fi
    ```
    If the config exists, **preserve it as the starting point** — all Phase 2 modifications build on top of it. If it already has a `tune:` section, note those as the current tuned values. Legacy `.scoutignore` / `.scoutconfig` are auto-migrated on attach; do not create new ones.
 
 5. **Check for existing query-set:**
    ```bash
-   # Query sets live in scout_config/evaluations/{repo-name}-query-set.toml (in the Scout source tree).
-   REPO_NAME=$(basename <path>)
-   QS="<scout-src>/scout_config/evaluations/${REPO_NAME}-query-set.toml"
    if [ -f "$QS" ]; then echo "Found: $QS"; else echo "NO_QUERY_SET"; fi
    ```
    If a query-set already exists, ask: **"Found existing query-set at `<path>`. Use it, or generate a new one?"**
@@ -142,11 +188,11 @@ Run these checks. STOP and report if any fail:
 
 Use Scout tools — NOT grep/glob:
 
-1. **`mcp__scout__list_repositories`** — confirm repo path and file count
-2. **`mcp__scout__architecture_overview`** — domains, entry points, hotspots
-3. **`mcp__scout__file_outline`** on root directory — top-level structure
-4. **`mcp__scout__deep_search`** with query `"project architecture and main entry points"` — understand the codebase
-5. **`mcp__scout__top_symbols`** — discover key types and functions
+1. **`scout list`** — confirm repo path and file count
+2. **`scout architecture-overview -r <path>`** — domains, entry points, hotspots
+3. **`scout file-outline . -r <path>`** — top-level structure
+4. **`scout investigate start "project architecture and main entry points" -r <path>`**, followed by one `scout investigate expand` batch — understand the codebase
+5. **`scout top-symbols -r <path>`** — discover key types and functions
 
 From this, determine:
 - **Language mix** (primary + secondary languages)
@@ -192,10 +238,10 @@ If it doesn't exist, generate one from scratch.
 
 ### Step 2c: Write the config and reload
 
-Edit `<path>/.scout/scout.config.yaml` directly (it's a regular YAML file) and then reload the daemon:
+Edit `$REPO/.scout/scout.config.yaml` directly (it's a regular YAML file) and then reload the daemon:
 
 ```bash
-scout admin refresh-config <path>
+scout admin refresh-config "$REPO"
 ```
 
 > `refresh-config` replaces the old `refresh-scoutignore` command. It re-reads the full YAML including the `tune:` section.
@@ -204,7 +250,10 @@ scout admin refresh-config <path>
 
 ## Phase 3: Query Set Generation
 
-Generate a query-set TOML for evaluating search quality. Save it at `<scout-src>/scout_config/evaluations/{repo-name}-query-set.toml` (inside the Scout source tree, alongside other eval files).
+Generate a query-set TOML for evaluating search quality. For a normal target,
+save it at `$REPO/.scout/evaluations/autotune-query-set.toml`. Only when the
+target is the Scout source repository itself, use
+`$REPO/scout_config/evaluations/scout-query-set.toml`.
 
 ### Step 3a: Design queries
 
@@ -228,7 +277,7 @@ Create **15-25 queries** across three classes:
 - Grade 1 (Relevant): Contains some related code
 - Grade 0 (Not relevant): Should not appear in results
 
-Use `mcp__scout__search`, `mcp__scout__go_to_definition`, and `mcp__scout__find_references` to determine ground truth files for each query.
+Use `scout search`, `scout go-to-definition`, and `scout find-references` to determine ground truth files for each query.
 
 ### Step 3b: Write query-set.toml
 
@@ -269,7 +318,7 @@ extensions = ["ts"]
 ### Step 3c: Validate the query set
 
 ```bash
-scout evaluate -q <query-set-path> -r <path>
+scout evaluate -q "$QS" -r "$REPO"
 ```
 
 If any queries score 0.0 across the board, the judgments are probably wrong — fix them before proceeding.
@@ -278,28 +327,38 @@ If any queries score 0.0 across the board, the judgments are probably wrong — 
 
 ## Phase 4: Parameter Sweep (48 rounds)
 
+Only one autotune may mutate a repository at a time. `set-tune` changes shared
+daemon state, so concurrent runs against the same repository contaminate each
+other's measurements. Stop if another session is tuning `$REPO`.
+
+Before the first `set-tune`, establish this failure invariant: any error,
+interrupt, or cancelled run before the final `save-tune` must execute
+`scout admin refresh-config "$REPO"` and report if restoration fails. Every
+generated script that calls `set-tune` must install an exit trap; do not leave
+experimental overrides active in the daemon.
+
 ### Step 4a: Establish baseline
 
 Normalize ranker state before capturing the baseline. A negative class value
 removes that override from the in-memory map:
 
 ```bash
-scout admin set-tune --path <path> learned_ranker_model_path bundled:v17
-scout admin set-tune --path <path> learned_ranker_blend 1.0
+scout admin set-tune --path "$REPO" learned_ranker_model_path bundled:v18
+scout admin set-tune --path "$REPO" learned_ranker_blend 1.0
 for class in identifier natural_language filtered; do
-  scout admin set-tune --path <path> "blend_class.$class" -1
+  scout admin set-tune --path "$REPO" "blend_class.$class" -1
 done
 ```
 
 ```bash
-scout evaluate -q <query-set-path> -r <path> --json > baseline.json 2>&1
+scout evaluate -q "$QS" -r "$REPO" --json > "$OUTDIR/baseline.json" 2>&1
 ```
 
 Extract and display baseline metrics:
 ```bash
 python3 -c "
 import json
-text = open('baseline.json').read()
+text = open('$OUTDIR/baseline.json').read()
 d = json.loads(text[text.find('{'):])
 agg = d['aggregate']
 print(f\"Baseline — NDCG@5: {agg['mean_ndcg_5']:.4f}  NDCG@10: {agg['mean_ndcg_10']:.4f}  MRR: {agg['mean_mrr']:.4f}\")
@@ -315,7 +374,7 @@ Sweep the most impactful parameters first. Each sweep tests a single parameter c
 
 **Sweep schedule (48 rounds):**
 
-> Rounds 1–44 run with `bundled:v17` at global blend 1.0 and no class overrides. Rounds 45–48 probe four non-zero blends on top of the saved upstream compound; Step 4e combines the three independently selected class optima.
+> Rounds 1–44 run with `bundled:v18` at global blend 1.0 and no class overrides. Rounds 45–48 probe four non-zero blends on top of the saved upstream compound; Step 4e combines the three independently selected class optima.
 
 | Round | Parameter | Values to test | Why |
 |-------|-----------|----------------|-----|
@@ -344,11 +403,11 @@ Sweep the most impactful parameters first. Each sweep tests a single parameter c
 | 45-48 | `learned_ranker_blend` class probes | 0.25, 0.5, 0.75, 1.0 | Measure all three class response curves in four shared evaluations after rounds 1–44 are compounded. A separate blend-0 evaluation is the class-selection baseline. |
 
 **Learned-ranker notes (rounds 45–48):**
-- Force `learned_ranker_model_path = "bundled:v17"`; model selection is not a sweep dimension.
+- Force `learned_ranker_model_path = "bundled:v18"`; model selection is not a sweep dimension.
 - Remove any existing class override before rounds 1–48 with `blend_class.<class> -1`, otherwise it takes precedence over the global probe.
 - Run the probes only after Step 4e has compounded and saved the upstream winners from rounds 1–44.
 - For each class, compare `{0, 0.25, 0.5, 0.75, 1.0}` using that class's `mean_ndcg_5`. Keep 0 unless the best non-zero value clears the class-size variance threshold. When candidates are within 0.002, prefer the lower blend.
-- The final config always carries `learned_ranker_model_path: bundled:v17`, global blend `0`, and explicit values for all three class keys. This makes opt-in behavior inspectable and prevents a caller/global default from silently enabling a rejected class.
+- The final config always carries `learned_ranker_model_path: bundled:v18`, global blend `0`, and explicit values for all three class keys. This makes opt-in behavior inspectable and prevents a caller/global default from silently enabling a rejected class.
 
 **Rank-by-attribute notes (rounds 31-44):**
 - Only meaningful when `bm25_legacy_mode: false` (default from v0.9.61).
@@ -359,7 +418,7 @@ Sweep the most impactful parameters first. Each sweep tests a single parameter c
 
 ### Step 4c: Generate and execute sweep script
 
-**Generate a bash script** to run all sweeps — this is far more efficient than individual tool calls. The script should:
+**Generate `$OUTDIR/autotune_sweep.sh`** to run all sweeps — this is far more efficient than individual tool calls. The script should:
 - Set each parameter via `set-tune`
 - Run eval and extract metrics to CSV
 - Reset to defaults between sweeps via `refresh-config`
@@ -373,13 +432,19 @@ Sweep the most impactful parameters first. Each sweep tests a single parameter c
 #!/bin/bash
 set -euo pipefail
 
-REPO="<absolute-path>"
-QS="<query-set-path>"
-OUTDIR="autotune_results"
-mkdir -p "$OUTDIR"
+REPO="$1"
+QS="$2"
+OUTDIR="$3"
+
+restore_persisted_tune() {
+  scout admin refresh-config "$REPO" >/dev/null
+}
+trap restore_persisted_tune EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 apply_ranker_baseline() {
-  scout admin set-tune --path "$REPO" learned_ranker_model_path bundled:v17 >/dev/null
+  scout admin set-tune --path "$REPO" learned_ranker_model_path bundled:v18 >/dev/null
   scout admin set-tune --path "$REPO" learned_ranker_blend 1.0 >/dev/null
   for class in identifier natural_language filtered; do
     scout admin set-tune --path "$REPO" "blend_class.$class" -1 >/dev/null
@@ -424,9 +489,13 @@ done
 echo "=== Sweep complete ==="
 ```
 
+The trap also runs after success, restoring the persisted starting state before
+winner analysis. If restoration fails, the script fails; do not suppress that
+error or continue to compound selection.
+
 Run the script with a generous timeout (each round takes ~30-60s depending on repo size):
 ```bash
-bash autotune_sweep.sh
+bash "$OUTDIR/autotune_sweep.sh" "$REPO" "$QS" "$OUTDIR"
 ```
 
 ### Step 4d: Analyze results and select winners
@@ -437,7 +506,7 @@ Analyze the CSV with variance-aware decision rules:
 python3 -c "
 import json, csv
 
-text = open('autotune_results/baseline.json').read()
+text = open('$OUTDIR/baseline.json').read()
 bd = json.loads(text[text.find('{'):])
 base = {
     'ndcg5': bd['aggregate']['mean_ndcg_5'],
@@ -450,7 +519,7 @@ class_counts = {cls: bd['by_class'][cls].get('query_count', 5)
                 for cls in bd['by_class']}
 
 winners = []
-with open('autotune_results/sweep_results.csv') as f:
+with open('$OUTDIR/sweep_results.csv') as f:
     for row in csv.DictReader(f):
         n5 = float(row['ndcg5'])
         delta = n5 - base['ndcg5']
@@ -494,15 +563,15 @@ After selecting winners (strict or relaxed):
 
 1. Set ALL winning parameter values together:
    ```bash
-   scout admin set-tune --path <path> <param1> <best_value1>
-   scout admin set-tune --path <path> <param2> <best_value2>
+   scout admin set-tune --path "$REPO" <param1> <best_value1>
+   scout admin set-tune --path "$REPO" <param2> <best_value2>
    # ... for each winner
    ```
 
 2. Evaluate the compound configuration (2 runs to check stability):
    ```bash
-   scout evaluate -q <query-set-path> -r <path> --json > compound_a.json 2>&1
-   scout evaluate -q <query-set-path> -r <path> --json > compound_b.json 2>&1
+   scout evaluate -q "$QS" -r "$REPO" --json > "$OUTDIR/compound_a.json" 2>&1
+   scout evaluate -q "$QS" -r "$REPO" --json > "$OUTDIR/compound_b.json" 2>&1
    ```
 
 3. Compare both compound runs against baseline. A real improvement should appear in both runs.
@@ -512,11 +581,11 @@ After selecting winners (strict or relaxed):
 5. **Try expanding**: if the compound is better than baseline, try adding the next-best candidate from the sweep results and re-evaluate. Stop when adding more parameters doesn't help.
 
 6. **Class-aware learned-ranker probes**: the upstream compound is now the
-   baseline for v17. Save upstream winners to disk, remove stale class
+   baseline for v18. Save upstream winners to disk, remove stale class
    overrides, capture the blend-0 result, then run four shared probes:
    ```bash
    scout admin save-tune "$REPO"
-   scout admin set-tune --path "$REPO" learned_ranker_model_path bundled:v17
+   scout admin set-tune --path "$REPO" learned_ranker_model_path bundled:v18
    for class in identifier natural_language filtered; do
      scout admin set-tune --path "$REPO" "blend_class.$class" -1
    done
@@ -538,7 +607,7 @@ After selecting winners (strict or relaxed):
 
 7. **Apply and verify the class compound**:
    ```bash
-   scout admin set-tune --path "$REPO" learned_ranker_model_path bundled:v17
+   scout admin set-tune --path "$REPO" learned_ranker_model_path bundled:v18
    scout admin set-tune --path "$REPO" learned_ranker_blend 0
    scout admin set-tune --path "$REPO" blend_class.identifier "$BEST_IDENT"
    scout admin set-tune --path "$REPO" blend_class.natural_language "$BEST_NL"
@@ -557,21 +626,27 @@ After selecting winners (strict or relaxed):
 
 ```bash
 # After the winning set-tune calls are in memory:
-scout admin save-tune <path>
+scout admin save-tune "$REPO"
 
 # Optional sanity reload — should be a no-op because the YAML matches in-memory state
-scout admin refresh-config <path>
+scout admin refresh-config "$REPO"
 ```
 
-Then **propagate the tuned config back to the Scout source tree** so the template tracks the winning values:
+Do not mirror an external repository's config into Scout. `save-tune` above is
+the final persistence step for normal autotune runs.
+
+Only when `TARGET_IS_SCOUT_SOURCE=1`, the target is the Scout repository itself
+and its bundled template may be refreshed:
 
 ```bash
-scout admin sync-template --repo <path> --scout-src <path-to-scout-src>
-# Or rely on SCOUT_SRC env var:
-#   SCOUT_SRC=/Users/acostin/Downloads/dev/scout scout admin sync-template --repo <path>
+if [ "$TARGET_IS_SCOUT_SOURCE" = "1" ]; then
+  scout admin sync-template --repo "$REPO" --scout-src "$REPO"
+fi
 ```
 
-This copies `<path>/.scout/scout.config.yaml` into `<scout-src>/scout_config/<name>.yaml`. The template name is resolved via git remote origin → directory name. Do not `cp` manually — `sync-template` handles the name resolution and preserves any header comments the template needs.
+Never substitute a separately discovered Scout checkout into `--scout-src`.
+That would turn a per-repository tuning run into an unrelated Scout source
+change.
 
 ### Step 4g: Verify persisted class state
 
@@ -581,13 +656,21 @@ global blend: the verified class compound is the autotune result.
 
 ### Step 4h: Clean up
 
-Remove temporary sweep artifacts:
+Remove the exact temporary directory created in Phase 1:
 ```bash
-rm -rf autotune_results/
-rm -f autotune_sweep.sh
+if [ -n "${OUTDIR:-}" ] &&
+   [ -d "$OUTDIR" ] &&
+   [ -f "$OUTDIR/.scout-autotune-owned" ] &&
+   [[ "$(basename "$OUTDIR")" == scout-autotune.* ]]; then
+  rm -rf -- "$OUTDIR"
+else
+  echo "Refusing unsafe autotune cleanup path: ${OUTDIR:-<unset>}" >&2
+  exit 1
+fi
 ```
 
-The query-set at `<scout-src>/scout_config/evaluations/` is intentionally kept — it's useful for future re-evaluation.
+The query set under the target repository is intentionally kept for future
+re-evaluation.
 
 ---
 
@@ -604,10 +687,10 @@ Present a summary to the user:
 
 ### Query Set
 - <N> queries (<N> identifier, <N> NL, <N> filtered)
-- Saved to: <scout-src>/scout_config/evaluations/<name>-query-set.toml
+- Saved to: `<target>/.scout/evaluations/autotune-query-set.toml`
 
 ### Parameter Sweep (48 rounds — 44 upstream + 4 shared class probes)
-| Metric    | Baseline | Tuned Upstream | Class-aware v17 | Delta (total) |
+| Metric    | Baseline | Tuned Upstream | Class-aware v18 | Delta (total) |
 |-----------|----------|----------------|-----------------|---------------|
 | NDCG@5    | 0.XXXX   | 0.XXXX         | 0.XXXX          | +0.XXXX       |
 | NDCG@10   | 0.XXXX   | 0.XXXX         | 0.XXXX          | +0.XXXX       |
@@ -619,7 +702,7 @@ Present a summary to the user:
 <list of upstream parameters that were changed from defaults, with values>
 
 ### Learned-ranker class blends
-- Model: `bundled:v17`
+- Model: `bundled:v18`
 - Global blend: `0.0`
 - Identifier: `0.XX`
 - Natural language: `0.XX`
@@ -627,15 +710,24 @@ Present a summary to the user:
 
 ### Saved to
 `tune:` section of `<path>/.scout/scout.config.yaml`
-Template mirrored into `<scout-src>/scout_config/<name>.yaml`
+No Scout source or bundled template files modified.
 ```
+
+For an autotune run whose target is Scout itself, replace the last two report
+lines with the target-local Scout query-set and template paths that were
+updated.
 
 ---
 
 ## Important Notes
 
 - **Run-to-run variance**: Expect ~±0.005 aggregate NDCG, but per-class variance scales inversely with query count. A class with 5 queries may swing ±0.015.
-- **Reset between sweeps**: Each upstream sweep tests ONE parameter change against the normalized v17 baseline. `scout admin refresh-config <repo>` reloads YAML and drops in-memory overrides, so immediately reapply model v17, global blend 1.0, and remove class overrides as shown in `apply_ranker_baseline`. Don't stack changes until the compound phase.
+- **Reset between sweeps**: Each upstream sweep tests ONE parameter change against the normalized v18 baseline. `scout admin refresh-config <repo>` reloads YAML and drops in-memory overrides, so immediately reapply model v18, global blend 1.0, and remove class overrides as shown in `apply_ranker_baseline`. Don't stack changes until the compound phase.
+- **Failure restoration**: If any phase exits before `save-tune`, reload the
+  persisted config with `refresh-config` before reporting. A failed restoration
+  is a blocking error, not cleanup noise.
+- **Concurrency**: Never run two autotunes against the same repository at once;
+  their in-memory `set-tune` values share one daemon slot.
 - **Existing config**: Always preserve existing `ignore` / `boost` / `dampen` rules. The user may have carefully tuned patterns. Only add to them.
 - **Query set quality matters more than quantity**: 15 well-judged queries beat 50 poorly-judged ones. Use Scout tools to verify ground truth.
 - **The daemon must be running throughout**: Parameter changes via `set-tune` modify in-memory state on the daemon. If the daemon restarts, the in-memory overrides are lost (the saved `tune:` section in YAML is still loaded on startup).
@@ -643,7 +735,8 @@ Template mirrored into `<scout-src>/scout_config/<name>.yaml`
   - `set-tune` uses `--path <path>` (flag form).
   - `save-tune` takes `<path>` as a **positional** argument.
   - `refresh-config` takes `<path>` as a **positional** argument.
-  - `sync-template` uses `--repo` and `--scout-src` flags.
+  - `sync-template` uses `--repo` and `--scout-src` flags, but autotune invokes
+    it only when the requested target repository is Scout itself.
 
 ---
 

@@ -6,9 +6,8 @@ alias ll='ls -GlA'
 alias l='ls -Gl'
 
 # Always open files in vertical split mode
-#alias vi='vim -O'
-
-alias vimrc="vim $HOME/.vimrc"
+alias vi='vim -O'
+alias vimrc='vim $HOME/.vimrc'
 
 alias find-inspect="ps aux | grep \"node --inspect-brk\" | grep -v grep"
 
@@ -19,6 +18,7 @@ ENV_FILE=$HOME/.env
 
 if [ -f "$ENV_FILE" ]; then
 
+  # shellcheck source=./.env
   . "$ENV_FILE"
 fi
 
@@ -27,6 +27,7 @@ export NVM_DIR="$HOME/.nvm"
 nvm_file="$(brew --prefix nvm)/nvm.sh"
 
 if [ -f "$nvm_file" ]; then
+  # shellcheck source=/opt/homebrew/opt/nvm/nvm.sh
   . "$nvm_file"
 else
   echo "Unable to source nvm.sh from $nvm_file"
@@ -37,5 +38,3 @@ cdr() {
   cd "$(git rev-parse --show-toplevel)" || return
 }
 export cdr
-
-export do

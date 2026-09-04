@@ -13,7 +13,35 @@
 #   branch from current branch with GitHub issue 123
 
 set -e
+source "${HOME}/bin/git-aliases/lib"
 username="$(whoami)"
+
+# Pull option flags out of the args first so they can precede or follow the
+# positionals. -y/--yes drives lib's confirm helpers; -t/--title lets the
+# caller supply the semantic branch name directly, skipping the AI naming call.
+b_filtered_args=()
+provided_name=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -y|--yes)
+      export GIT_ALIAS_YES=1
+      shift
+      ;;
+    -t|--title|-n|--name)
+      provided_name="$2"
+      shift 2
+      ;;
+    -t=*|--title=*|-n=*|--name=*)
+      provided_name="${1#*=}"
+      shift
+      ;;
+    *)
+      b_filtered_args+=("$1")
+      shift
+      ;;
+  esac
+done
+set -- "${b_filtered_args[@]}"
 
 # Handle -d/--delete early before the main arg-parsing loop
 if [[ "$1" == "-d" || "$1" == "--delete" ]]; then
@@ -24,11 +52,20 @@ if [[ "$1" == "-d" || "$1" == "--delete" ]]; then
     branch_to_delete=$(git branch --show-current)
   fi
 
-  read -p "Delete branch '$branch_to_delete' locally and on origin? [y/N] " -n 1 -r
-  echo
-  if ! [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "Aborted."
-    exit 0
+  # Deletion is destructive: only skip the prompt when the caller explicitly
+  # passed -y. A missing TTY alone must not silently delete a branch.
+  if assume_yes; then
+    :
+  elif no_tty; then
+    echo "Refusing to delete '$branch_to_delete' non-interactively without -y/--yes." >&2
+    exit 1
+  else
+    read -p "Delete branch '$branch_to_delete' locally and on origin? [y/N] " -n 1 -r
+    echo
+    if ! [[ $REPLY =~ ^[Yy]$ ]]; then
+      echo "Aborted."
+      exit 0
+    fi
   fi
 
   # Remove worktree if one is checked out on this branch
@@ -62,6 +99,8 @@ while [[ $# -gt 0 ]]; do
       echo
       echo "Options:"
       echo "  -d, --delete [BRANCH]   Delete local + remote branch (defaults to current)"
+      echo "  -t, --title TITLE       Semantic branch name (skips AI naming); slugified"
+      echo "  -y, --yes               Auto-confirm prompts (for non-interactive/agent use)"
       echo "  -h, --help              Show this help"
       echo
       echo "Arguments (by format):"
@@ -71,6 +110,8 @@ while [[ $# -gt 0 ]]; do
       echo "Examples:"
       echo "  git b main ISSUE-123     branch from main with Jira issue ISSUE-123"
       echo "  git b . 123              branch from current branch with GitHub issue 123"
+      echo "  git b -t 'Add validation' ISSUE-123   name the branch directly, no AI call"
+      echo "  git b -y -t fix-button 123            non-interactive, agent-friendly"
       echo "  git b -d                 delete current branch locally and on origin"
       echo "  git b -d my-branch       delete my-branch locally and on origin"
       echo
@@ -131,9 +172,7 @@ if [[ "$base_branch" =~ / ]] && [[ -z "$issue_number" ]]; then
     branch_tail="${base_branch#*/}"
     worktree_path="$git_root/../$branch_tail"
 
-    read -p "Create worktree for existing branch '$base_branch' at $worktree_path? [Y/n] " -n 1 -r
-    echo
-    if ! [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]; then
+    if ! confirm "Create worktree for existing branch '$base_branch' at $worktree_path?"; then
       echo "It's cool, we all make mistakes..."
       exit 0
     fi
@@ -153,11 +192,17 @@ if [[ "$base_branch" =~ / ]] && [[ -z "$issue_number" ]]; then
       rush update
       rush build
     fi
+    echo "Worktree: $worktree_path"
+    echo "Branch: $base_branch"
     exit 0
   fi
 fi
 
 if [[ -z "$issue_number" ]]; then
+  if no_tty; then
+    echo "No issue provided and no TTY to prompt on. Pass an issue key, e.g. git b main GRAPH-123." >&2
+    exit 1
+  fi
   echo "Issue number?"
   read -r issue_number
 fi
@@ -175,10 +220,18 @@ fi
 
 jira_issue_info=""
 gh_issue=""
-branch_semantic_name=""
 summary=""
-if [[ -n "$issue_number" ]]; then
-  # Fetch issue summary
+branch_semantic_name=""
+
+# A caller-supplied title (-t/--title) short-circuits naming: the invoking
+# agent usually already has the context to name the branch, so this avoids both
+# the summary fetch and the nested AI call below.
+if [[ -n "$provided_name" ]]; then
+  branch_semantic_name=$(slugify "$provided_name")
+fi
+
+# Fetch the issue summary only when we still need it to name the branch.
+if [[ -z "$branch_semantic_name" && -n "$issue_number" ]]; then
   if [[ "$issue_type" == "jira" ]]; then
     echo "Fetching Jira summary..."
     jira_issue_info=$(jira issue view "$issue_number" --raw 2>/dev/null)
@@ -190,8 +243,8 @@ if [[ -n "$issue_number" ]]; then
   fi
 fi
 
-# Use AI to create a branch name
-if [[ -n "$summary" ]]; then
+# Use AI to create a branch name (only when no title was supplied).
+if [[ -z "$branch_semantic_name" && -n "$summary" ]]; then
 	if command -v claude >/dev/null 2>&1; then
 		echo "Generating branch name from summary with AI ✨"
 		branch_semantic_name=$(claude --print "Generate a short git branch name (lowercase, hyphens, no spaces, max 4-5 words) for this issue: $summary. Output ONLY the branch name, nothing else." 2>/dev/null | tail -1 | tr -d '\n' | xargs) || branch_semantic_name=""
@@ -203,11 +256,23 @@ fi
 
 # If AI failed, ask for a human-readable name
 if [[ -z "$branch_semantic_name" ]]; then
-  echo
-  echo "human-readable name?"
-  read -r hr_name
-  # Replace spaces with '-'
-  branch_semantic_name=${hr_name//[ ]/-}
+  if no_tty; then
+    # No one to prompt: derive a slug from the issue summary, falling back to
+    # the issue number, so the script never blocks in an agent context.
+    if [[ -n "$summary" ]]; then
+      branch_semantic_name=$(slugify "$summary")
+    fi
+    if [[ -z "$branch_semantic_name" ]]; then
+      branch_semantic_name="${issue_number:-work}"
+    fi
+    echo "AI branch name unavailable; using derived slug: $branch_semantic_name"
+  else
+    echo
+    echo "human-readable name?"
+    read -r hr_name
+    # Replace spaces with '-'
+    branch_semantic_name=${hr_name//[ ]/-}
+  fi
 fi
 
 if [[ -n "$issue_number" ]]; then
@@ -224,14 +289,9 @@ else
   worktree_path="$git_root/../$branch_semantic_name"
 fi
 
-read -p "Create branch $branch_name (worktree: $worktree_path) from $base_branch? [Y/n] " -n 1 -r
-echo    # move to a new line
-
-if ! [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]
-then
+if ! confirm "Create branch $branch_name (worktree: $worktree_path) from $base_branch?"; then
   echo "It's cool, we all make mistakes..."
   exit
-
 fi
 
 git worktree add -b "$branch_name" "$worktree_path" "$base_branch"
@@ -260,3 +320,8 @@ if [[ -f "$(git rev-parse --show-toplevel)/rush.json" ]]; then
   rush update
   rush build
 fi
+
+# Emit the resulting location on a stable, greppable line so an agent (or the
+# `do` skill) can capture the worktree without re-deriving the path.
+echo "Worktree: $worktree_path"
+echo "Branch: $branch_name"

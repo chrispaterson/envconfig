@@ -15,6 +15,9 @@ fi
 git submodule init
 git submodule update
 
+# Run the humanize submodule's installer
+$project_dir/humanize/install.sh all
+
 # Requires a make for vim jsdoc to work
 cd .vim/pack/lib/start/vim-jsdoc/
 make install
@@ -24,7 +27,7 @@ cd $home_dir
 for FILE in $(ls -A $project_dir)
 do
 
-  if ! [[ $FILE == ".git" || $FILE == ".gitmodules" || $FILE =~ ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" || $FILE =~ ".DS_Store" || $FILE =~ "font" || $FILE =~ ".txt" ]]; then
+  if ! [[ $FILE == ".git" || $FILE == ".gitmodules" || $FILE == "humanize" || $FILE =~ ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" || $FILE =~ ".DS_Store" || $FILE =~ "font" || $FILE =~ ".txt" ]]; then
 
     # if the file exists and is not a symbolic link, if it is a symbolic link
     # then we've been here before

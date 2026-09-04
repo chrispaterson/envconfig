@@ -1,11 +1,11 @@
 ---
 name: graph-3159-add-sdk-license-text-to-built-sdk-artifacts
-description: "Ticket memory for GRAPH-3159: decisions, context, and origin notes"
+description: "GRAPH-3159 SHIPPED (draft PR #3586): Adobe SDK license-grant banner on @adobe/graph-cli built output via tsdown banner + --config-loader unrun"
 metadata: 
   node_type: memory
   type: project
   originSessionId: e9182b6e-01ce-427e-897c-180f3e9edd11
-  modified: 2026-07-28T00:42:39.659Z
+  modified: 2026-09-01T19:03:45.070Z
 ---
 
 # GRAPH-3159 — Add SDK license text to built SDK artifacts
@@ -31,3 +31,17 @@ AI initial read was 3.1 (parameterizing the existing hardcoded rule + new config
 
 ### 2026-07-27 — Confirmed no overlap with GRAPH-3264
 [[jira_GRAPH-3264]] (short-form `// © YYYY Adobe...` header, token-cost driven) migrated `packages/graph-sdk/src` along with the rest of the repo to the short-form header — that's a source-level, repo-wide convention change. This ticket's rescoped AC is about the SDK's *built/distributed artifacts* carrying the separate Legal-mandated SDK license-grant text — a different layer (build output vs. source) and a different reason (Legal compliance vs. token cost). User confirmed directly: no real overlap. See [[adobe_copyright_header_policy.md]].
+
+## IMPLEMENTATION — SHIPPED 2026-09-01 (draft PR #3586)
+
+**Final scope decision (user, 2026-09-01):** target **only `@adobe/graph-cli`** (the npm-published CLI) — NOT the other 3 SDK packages, NOT platform-exports/plugin-types, NOT legacy graph-sdk. Single **fixed copyright year 2023** (earliest commit / first-creation), NOT per-file git year. **The 2.1 storypoint estimate and the "packages/graph-sdk raw-src ESLint override" plan above are STALE** — final impl is a build-output banner on graph-cli only. Branch `paterson/GRAPH-3159/sdk-license-header-artifacts`.
+
+**Mechanism:** `packages/graph-cli/src/sdk-license-banner.ts` exports `SDK_LICENSE_BANNER` (`/*! Copyright 2023 Adobe. All Rights Reserved. … Adobe permits you to use, modify, and distribute this file in accordance with the terms of the Adobe license agreement accompanying it. */`, verbatim AC sentence). `tsdown.config.ts` sets `banner: SDK_LICENSE_BANNER`. graph-cli tsconfig is `noEmit:true`, so heft emits nothing — the whole `lib/` is just tsdown's bundled `lib/index.js`(+map), no shebang; banner becomes the file header.
+
+**KEY GOTCHA — `tsdown --config-loader unrun`:** importing a `src/*.ts` module INTO `tsdown.config.ts` fails with tsdown's default config loader ("Cannot find module …sdk-license-banner / Try setting --config-loader to unrun") because it resolves the `.js` specifier literally and no compiled `.js` exists under `noEmit`. Fix: build scripts (`build`, `_phase:build`, `build:watch`) pass `tsdown --config-loader unrun`. Applies to any future SDK config that imports shared TS.
+
+**Test gotcha:** graph-cli `vitest.setup.ts` does `vi.mock("node:fs", …)` with **memfs** — a unit test CANNOT `readFileSync` real build output (ENOENT). So the test asserts the exported constant, not the built file.
+
+**ESLint trap:** `graph/copyright-header` auto-STRIPS any block comment containing the literal `ADOBE CONFIDENTIAL` (treats it as a legacy header). Comments explaining this work must reword to "internal confidential-source block". String literals / test titles are exempt (rule inspects comments only).
+
+**Impact:** Compatible for graph-plugins-core (CLI app changed, consumed as binary, no `@graph/*` library API surface; bundle functionally identical apart from leading comment). rush change type = `patch`.

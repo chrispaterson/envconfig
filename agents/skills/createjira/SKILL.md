@@ -69,6 +69,20 @@ In Scope:
 * [item 2]
 ```
 
+### Wiki markup gotchas
+
+Bodies are **Jira wiki markup** (the CLI does not convert Markdown). Common breakages:
+
+- **Never put literal `{`, `}`, `[`, or `]` inside a `{{monospace}}` span.** Jira still parses `{...}` as a macro and `[...]` as a link *inside* monospace, which shatters the span (the text renders raw and the following line breaks out into a `<p>`). This bites when quoting code: `{{createTempProject(names, { opts })}}` and `{{spawnSync(node, [cli, ...args])}}` both break. Reword to drop the braces/brackets from the span (e.g. `{{createTempProject}}` + prose), or escape each with a backslash (`\{`, `\}`, `\[`, `\]`).
+- `[text]` anywhere in prose is a **link**, not literal brackets — escape or reword when you mean literal `[...]` (e.g. a `[plugins...]` CLI arg).
+- **A hyphen at a token boundary triggers strikethrough.** Jira renders `-phrase-` as struck-through, so a CLI flag like `--changelog` (or `-v/--verbose`) gets eaten: one flag's hyphen pairs with another's, striking the text between — and this happens **even inside `{{monospace}}`**, pairing across span boundaries. Escape every boundary hyphen as `\-` (renders as a literal `-` in both prose and monospace, no visible backslash). Word-internal hyphens (`graph-cli`, `GRAPH-1234`) are safe and must stay unescaped or they break issue auto-linking. A working escape regex: replace any `-` that is **not** between two `[A-Za-z0-9]` with `\-`.
+- **Do not author bodies with `jira ... create -b/-T`.** `issue create`/`epic create` run the body through a Markdown→wiki conversion that mangles raw wiki markup (escapes `--`→`\-\-`, `+`→`\+`, eats `<tags>` in `{{}}`). Create with a placeholder body, then set the real wiki via REST `PUT /rest/api/2/issue/KEY` `{"fields":{"description":"..."}}` (or `jira issue edit --body`, which does not convert).
+- Verify before trusting a render: fetch `expand=renderedFields` via REST and check the HTML for `class="error"`, stray `{{`, `<del>`/`line-through`, or unexpected `<p>` breaks. See `jira-access` for the token/REST pattern.
+
+### Cross-issue references
+
+**Never mention the relationship between issues in body text** — no other issue keys, no "blocks / blocked by / child of / superseded by / see Epic GRAPH-1234 / child Stories A–H" prose in a description. Those relationships belong in Jira's native features (**Epic Link**, **issue links** like Blocks/Relates), which are flexible, changeable, and rendered by Jira's UI. Prose copies drift out of sync and leave people unsure which place to trust. Express the structure with links; keep each description self-contained about *its own* work. (Historical/context references to other tickets also go in as links, not prose.)
+
 ## Workflow
 
 1. Parse issue type (`Story`, `Bug`, `Epic`) and any user-supplied Epic key or "add to sprint" intent.

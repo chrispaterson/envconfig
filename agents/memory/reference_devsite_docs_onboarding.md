@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: 73e84529-3201-49bd-bcc3-c37b2cc068b4
-  modified: 2026-08-12T23:53:44.175Z
+  modified: 2026-08-24T21:30:28.698Z
 ---
 
 To publish documentation on developer.adobe.com, onboard through the "Developer Website" (DevSite) system, distinct from developer.adobe.com/developer-console (API/project management tool) and adobeprerelease.com (Creative Cloud beta-app access community).
@@ -28,3 +28,5 @@ Separately, `git.corp.adobe.com/AdobeDocs` (private/internal repo, corp GitHub) 
 **Why:** DevSite (external, public GitHub, Gatsby/Helix, Fastly CDN) and Parliament (internal, corp GitHub, Jenkins, database-backed) are separate systems — a 2026 investigation (see Confluence "Developer Documentation" strategy page, space AdobeCloudPlatform) found merging them not viable due to differing security/build requirements, so the onboarding path depends on whether the docs are for external (public) or internal (behind-firewall) audiences.
 
 **How to apply:** When Project Graph SDK docs need to go live on developer.adobe.com, use the public Gatsby/AdobeDocs path above, not the corp-internal Parliament workflow.
+
+**Update 2026-08-24 — onboarding done for Graph.** This process completed for Project Graph via [[jira_DEVSITE-2511]] (Done, 2026-08-13): repo `AdobeDocs/firefly-graph` created, branded "Firefly Graph" (not "Project Graph"), public and standalone (not under Firefly Services). paterson has repo admin access via non-corp GitHub account `chrispaterson`. Stage: `https://developer-stage.adobe.com/firefly-graph/`; final public URL `developer.adobe.com/firefly-graph`. Content-authoring work is tracked separately in [[jira_GRAPH-3863]].

@@ -271,3 +271,63 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 # >>> scout completion >>>
 command -v scout >/dev/null 2>&1 && eval "$(scout generate-shell-completion zsh)"
 # <<< scout completion <<<
+
+# ---------------------------------------------------------------------------
+# Terminal tab titles
+#
+# Terminal.app takes its tab title from the OSC 1 escape sequence. Emitting an
+# empty title hands naming back to Terminal's own default (working directory /
+# active process), so that doubles as the "reset" value. _TERM_TAB_TITLE
+# remembers a manually set title so the ssh wrapper can restore it on exit.
+# ---------------------------------------------------------------------------
+_TERM_TAB_TITLE=""
+
+_term_set_tab_title() {
+  [[ -t 1 ]] || return
+  printf '\e]1;%s\a' "$1"
+}
+
+# title "some name"  -> rename the tab; bare `title` clears it back to default.
+title() {
+  _TERM_TAB_TITLE="$*"
+  _term_set_tab_title "$_TERM_TAB_TITLE"
+}
+
+# Name the tab after the remote host for the duration of an ssh session.
+ssh() {
+  local dest="" host="" arg
+  local -i skip=0 ret=0
+
+  for arg in "$@"; do
+    if (( skip )); then
+      skip=0
+      continue
+    fi
+    case "$arg" in
+      # Options whose value is the following argument; skip that argument so a
+      # value like a port or config file is never mistaken for the destination.
+      -*[bBcDEeFIiJLlmOoPpQRSWw]) skip=1 ;;
+      -*) ;;
+      *) dest="$arg"; break ;;
+    esac
+  done
+
+  # Destinations may arrive as host, user@host, or ssh://user@host:port/path.
+  host="${dest#ssh://}"
+  host="${host%%/*}"
+  host="${host##*@}"
+  host="${host%%:*}"
+
+  if [[ -n "$host" ]]; then
+    _term_set_tab_title "$host"
+  fi
+
+  command ssh "$@"
+  ret=$?
+
+  if [[ -n "$host" ]]; then
+    _term_set_tab_title "$_TERM_TAB_TITLE"
+  fi
+
+  return $ret
+}

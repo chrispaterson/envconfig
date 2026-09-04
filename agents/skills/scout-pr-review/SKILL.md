@@ -1,6 +1,6 @@
 ---
 name: scout-pr-review
-description: Review a pull request using Scout's semantic analysis tools. Works on any repo with Scout attached. Blast-radius assessment via `impact`, architectural analysis via `investigate`, test-gap detection via `affected_tests`, memory-informed context via `memory_search`, dead-code check after changes, correctness + security review including agent-integration/supply-chain posture (permission grants, hook installs, network destinations, telemetry gates, update paths, transcript access). Reads existing PR review threads to flag adverse advice and amplify good suggestions; honors `.scout/review-policy.md` for repo-specific rules. Posts findings as inline diff comments pinned to specific lines via `gh api /reviews`. Produces a structured verdict with severity-rated findings. Use when asked to review a PR, review changes, or check a branch before merge.
+description: Review a pull request or branch with Scout's semantic analysis. Starts with bounded `review_pr` evidence, then targets unresolved or high-risk areas with impact, investigate, affected-test, memory, and dead-code analysis. Decomposes very large PRs into cohesive behavioral themes and tracks every changed file in a coverage ledger. Reviews correctness, architecture, security, test quality, agent integration, and supply-chain posture, including permissions, hooks, network, telemetry, updates and transcript access. Reads existing review threads to identify adverse advice and amplify useful suggestions; honors `.scout/review-policy.md` for repository-specific rules. Posts severity-rated inline findings pinned to changed lines and produces a structured verdict with coverage, evidence gaps, and validation status. Use when asked to review a pull request, review changes, audit a branch, check work before merge, inspect a large PR, assess correctness or security risks, or run `/scout-pr-review`.
 ---
 
 # Scout PR Review
@@ -13,30 +13,39 @@ Run in any repository with Scout attached and indexed.
 
 ## Tool routing (read first)
 
-Some Scout tools are MCP-only — no `scout` CLI equivalent. Call them as MCP tools (`mcp__scout__*`), never as Bash:
+Follow the active Scout transport. In an MCP-less Agent Skills session, load
+the `scout` skill and run CLI commands through the host shell; never attempt an
+MCP tool. This document uses host-neutral `scout.<name>` notation in some
+examples. Translate it to these CLI forms:
 
-**MCP-only** (calling via `scout <name>` WILL FAIL):
-- `mcp__scout__changes_detect`
-- `mcp__scout__changes_affected_tests` — CLI `scout affected-tests` exists and returns formatted text; MCP returns structured JSON. Prefer MCP for parsing.
-- `mcp__scout__investigate`
-- `mcp__scout__investigate_expand`
-- `mcp__scout__impact`
-- `mcp__scout__dead_code`
-- `mcp__scout__memory_search`
+| Operation | MCP-less CLI |
+|---|---|
+| `scout.review_pr` | `scout review-pr -r <repo> -s compare -b <base>` |
+| `scout.changes_detect` | `scout changes-detect -r <repo> -s compare -b <base>` |
+| `scout.changes_affected_tests` | `scout affected-tests -r <repo> -s compare -b <base>` |
+| `scout.investigate` | `scout investigate start "<query>" -r <repo> --intent change` |
+| `scout.investigate_expand` | `scout investigate expand <bundle_id> <targets...>` |
+| `scout.impact` | `scout impact <symbol> -r <repo>` |
+| `scout.dead_code` | `scout dead-code -r <repo>` |
+| `scout.memory_search` | `scout memory search "<query>" -r <repo>` |
 
-**Both forms work** (pick whichever fits): `scout list`, `scout attach`, `scout detach`, `scout call-graph`, `scout find-references`, `scout keyword-search`, `scout regex-search`, `scout file-outline`, `scout go-to-definition`, `scout explain-symbol`, `scout top-symbols`, `scout search`, `scout coderank`, `scout doctor`.
+Use `scout <command> --help` for exact flags. Do not guess a CLI spelling from
+the host-neutral notation.
 
-## Track phases with TaskCreate
+## Track phases
 
-PR review spans 9 phases and is a prime victim of context compaction. Before Phase 1, create one task per phase so progress survives compaction:
+PR review spans multiple phases and is a prime victim of context compaction.
+Before Phase 1, use the host's task/todo facility when one is available and
+create one item per phase. If the host has no task facility, maintain the same
+ledger in your working context:
 
 ```
-TaskCreate(subject: "Phase 1: map change surface", ...)
-TaskCreate(subject: "Phase 2: architectural context", ...)
-...
+Phase 1: map change surface
+Phase 2: architectural context
+…
 ```
 
-Mark in_progress when starting, completed when done. If any phase surfaces a finding, record it as a separate task so it isn't lost.
+Mark in_progress when starting, completed when done. If any phase surfaces a finding, record it as a separate task so it isn't lost. In thematic mode, also create one task per theme and one final cross-theme integration task; do not replace the phase tasks with the theme tasks.
 
 ## Phase budget
 
@@ -44,50 +53,81 @@ Mark in_progress when starting, completed when done. If any phase surfaces a fin
 |---|---|---|
 | Setup | 1-3 min | Skip worktree for read-only review |
 | 0. Policy + existing threads | 1-2 min | `.scout/review-policy.md` + `gh api .../comments` |
-| 1. Change surface | 2 min | One `changes_detect` call |
-| 2. Architectural context | 3-5 min | One `investigate` + one `memory_search` |
-| 3. Blast radius | 3-8 min | `impact` on every risky symbol from Phase 1, batched and triaged by CodeRank |
+| 1. Change surface | 2 min | One whole-PR `review_pr` call |
+| 1A. Thematic decomposition | 3-8 min | Very large PRs only; 3-7 themes + coverage ledger |
+| 2. Architectural context | 3-5 min | Standard: one pass; thematic: one focused pass per theme |
+| 3. Blast radius | 3-8 min | Packet impact first; targeted `impact` for unresolved/high-risk symbols per theme |
 | 4. Architectural fit | 2-5 min | Only if phase 2 found patterns to compare against |
-| 5. Correctness | 5-15 min | **Scales with commit count and diff size — walk every commit** |
+| 5. Correctness | 5-15 min | **Scales with commit count and diff size — cover every commit** |
 | 6. Test quality | 3-5 min | Focus on changed public symbols |
 | 7. Security | 2-5 min | Checklist, not prose |
 | 8. Lint | 1-2 min | One command |
 | 9. Affected tests | 1-10 min | Depends on suite speed |
 
-If the total budget exceeds 60 min the PR is too big — recommend splitting in the verdict. Large commit counts (50+) or >1000-line diffs stretch Phase 5 proportionally: budget ~30 s per commit of reading time, plus the normal per-hunk correctness work. Never shrink coverage to fit the clock — a partial review that skips commits is worse than an honest "this PR needs to be split."
+If the total budget exceeds 60 min, switch to thematic mode rather than treating the PR as one undifferentiated stream. Still recommend splitting in the verdict when themes cannot be reviewed independently, shared contracts dominate the change, or validation cannot isolate the risk. Large commit counts (50+) or >1000-line diffs stretch Phase 5 proportionally: budget ~30 s per commit of reading time, plus the normal per-hunk correctness work. Never shrink coverage to fit the clock — a partial review that skips commits or themes is worse than an honest "this PR needs to be split."
 
 ---
 
 ## Setup
 
-**Most reviews do NOT need a worktree.** Review read-only from the current workspace using `git diff main...<branch>`. Create a worktree only if:
-- The PR has merge conflicts with main (you need to see the merged state)
+**Most reviews do NOT need a worktree.** Review read-only from the current workspace using the fetched remote base and head refs. Create a worktree only if:
+- The PR has merge conflicts with its base branch (you need to see the merged state)
 - You intend to run the code locally (not just read it)
 - The PR touches build/config in a way that invalidates the current index
 
 **Default (no worktree):**
 ```bash
-# 1. Identify the PR
+# 1. Identify the PR and retain its exact remote refs
+PR_BASE=$(gh pr view <number> --json baseRefName --jq .baseRefName)
+PR_HEAD=$(gh pr view <number> --json headRefName --jq .headRefName)
+BASE_REF="origin/$PR_BASE"
+HEAD_REF="origin/$PR_HEAD"
 gh pr view <number> --json headRefName,baseRefName,title,body,additions,deletions,changedFiles,commits
+PR_SIZE=$(gh pr view <number> --json additions,deletions,changedFiles \
+  --jq '[.additions, .deletions, .changedFiles] | @tsv')
+IFS=$'\t' read -r PR_ADDITIONS PR_DELETIONS PR_CHANGED_FILES <<<"$PR_SIZE"
 
-# 2. Confirm Scout has main indexed
+# 2. Confirm Scout has the repository indexed
 scout list | grep <repo-name>
 
-# 3. Fetch and enumerate EVERY commit in the PR (not just the tip)
-git fetch origin <branch>
-COMMITS=$(git rev-list --reverse main..origin/<branch>)
+# 3. Fetch both refs and enumerate EVERY commit in the PR (not just the tip)
+git fetch origin "$PR_BASE" "$PR_HEAD"
+COMMITS=$(git rev-list --reverse "$BASE_REF..$HEAD_REF")
 COMMIT_COUNT=$(echo "$COMMITS" | wc -l | tr -d ' ')
 echo "PR has $COMMIT_COUNT commit(s) — review ALL of them"
 
-# Oldest → newest, full subject line (no --oneline truncation)
-git log --reverse --format='%h %s%n    %an, %ad%n' --date=short main..origin/<branch>
+# Size the bounded review packet and select a review mode from the largest
+# pressure signal. The MCP surface clamps max_chars to 24,000 bytes.
+PR_CHANGED_LINES=$((PR_ADDITIONS + PR_DELETIONS))
+REVIEW_MODE=standard
+if (( PR_CHANGED_LINES > 2000 || PR_CHANGED_FILES > 50 || COMMIT_COUNT > 40 )); then
+  REVIEW_MAX_CHARS=24000
+  REVIEW_MODE=thematic
+elif (( PR_CHANGED_LINES > 500 || PR_CHANGED_FILES > 20 || COMMIT_COUNT > 15 )); then
+  REVIEW_MAX_CHARS=18000
+else
+  REVIEW_MAX_CHARS=12000
+fi
+echo "Review mode: $REVIEW_MODE; packet budget: $REVIEW_MAX_CHARS bytes ($PR_CHANGED_LINES changed lines, $PR_CHANGED_FILES files, $COMMIT_COUNT commits)"
 
-# Aggregate diff (use for Phase 1+ Scout tools)
-git diff main...origin/<branch> --stat
-git diff main...origin/<branch>
+# Oldest → newest, full subject line (no --oneline truncation)
+git log --reverse --format='%h %s%n    %an, %ad%n' --date=short "$BASE_REF..$HEAD_REF"
+if [[ "$REVIEW_MODE" == "thematic" ]]; then
+  # Commit-to-path inventory for the Phase 1A coverage ledger.
+  git log --reverse --format='commit %H %s' --name-status "$BASE_REF..$HEAD_REF"
+fi
+
+# Inventory the aggregate diff. In thematic mode, defer full source reads to
+# the theme lanes instead of flooding one context with the entire patch.
+git diff "$BASE_REF...$HEAD_REF" --stat
+git diff "$BASE_REF...$HEAD_REF" --name-status
+git diff "$BASE_REF...$HEAD_REF" --numstat
+if [[ "$REVIEW_MODE" == "standard" ]]; then
+  git diff "$BASE_REF...$HEAD_REF"
+fi
 ```
 
-**Cover every commit — do not stop at the tip.** A PR with 50 commits gets a 50-commit review, not a 10-commit review. The aggregate `git diff` above is the right input for Scout tools (`changes_detect`, `investigate`, `impact`) because they operate on the squashed delta. But when reading the change (Phase 5 onward) walk the list commit-by-commit:
+**Cover every commit — do not stop at the tip.** A PR with 50 commits gets a 50-commit review, not a 10-commit review. The aggregate delta is the right input for Scout tools (`review_pr`, `investigate`, targeted `impact`) because they operate on the squashed change. In standard mode, walk the list commit-by-commit:
 
 ```bash
 # Review every commit, oldest first. Do NOT truncate the list.
@@ -98,6 +138,12 @@ for sha in $COMMITS; do
 done | less      # or pipe into your review notes
 ```
 
+In thematic mode, Phase 1A assigns each changed path and commit to a cohesive
+theme. Each lane reads the final diff for its assigned paths and the relevant
+path-filtered portion of every commit that touched them. The integration pass
+reviews mixed-theme commits and shared boundaries. This preserves complete
+coverage without making every lane reread the whole PR.
+
 Flag:
 - Commits that mix unrelated changes (refactor + feature + fix in one commit)
 - Commits that introduce and then revert the same code (noise — suggest squashing)
@@ -105,11 +151,14 @@ Flag:
 - Commits whose message contradicts what the diff actually does
 - Large commits (>300 lines) with no rationale in the message
 
-If the PR has more than ~50 commits, the review budget grows linearly — adjust the phase timings below and warn in the verdict that splitting would make review tractable. Do NOT skip commits to fit a budget.
+If the PR has more than ~50 commits, thematic mode is mandatory. The review
+budget still grows with real change volume; themes organize coverage but do not
+justify sampling. Warn in the verdict when splitting would make the change
+meaningfully safer or more tractable.
 
 **If you need a worktree:**
 ```bash
-git worktree add /tmp/scout-review-<id> origin/<branch>
+git worktree add /tmp/scout-review-<id> "$HEAD_REF"
 # Scout auto-attaches within 5s; poll once:
 for i in 1 2 3 4 5 6; do
   scout list 2>/dev/null | grep -q "scout-review-<id>" && break
@@ -146,43 +195,145 @@ Read them. Note:
 
 ## Phase 1: Change Surface
 
-One call. Establishes the symbols, files, and surfaces the PR touches.
+One bounded call. Establishes the changed roots, impact, affected tests, and
+changed-surface dead-code evidence without immediately repeating its
+constituent analyses.
+
+Use the `REVIEW_MAX_CHARS` selected during Setup: 12,000 bytes for ordinary
+PRs, 18,000 when changed lines, files, or commits cross the large-PR threshold,
+and the tool maximum of 24,000 for very large PRs. The largest pressure signal
+wins so a low-line-count PR spread across many files or commits is not
+undersized.
 
 ```
-mcp__scout__changes_detect(
+scout.review_pr(
   repository: "<repo>",
   scope: "compare",
-  base_ref: "main"
+  base_ref: "<BASE_REF from Setup, normally origin/main>",
+  max_depth: 3,
+  max_chars: <REVIEW_MAX_CHARS from Setup>
 )
 ```
 
 Record from the response:
+- **Evidence status**: `INCOMPLETE`, bounded change analysis, unknown probes,
+  source truncation, and omitted rows are follow-up obligations, not negative evidence.
 - **Scope match**: Do the changed symbols match what the PR description claims? Flag undeclared scope creep (unrelated symbols changed) and missing scope (description says X but X isn't touched).
 - **Starred symbols (★)**: high-reference, high-blast-radius. These become Phase 3 targets.
 - **Deleted symbols**: potential dangling references. These become Phase 3 targets.
 - **New public symbols**: permanent API commitments.
 - **Affected surfaces / domains**: cross-cutting signal — multiple surfaces touched = architectural change, even if each surface's diff is small.
+- **Affected tests**: note every changed symbol with zero visible affected tests and
+  whether test rows were omitted or the source response was truncated.
+- **Changed-surface dead code**: candidate-only evidence; unknown or unprobed
+  text-reference counts are not proof of absence.
 
-Also run:
-```bash
-scout affected-tests -r <repo> -s compare -b main
+Do **not** immediately repeat `changes_detect`, `changes_affected_tests`, or
+`dead_code`. Call a constituent tool only when `review_pr` reports an
+incomplete, unknown, omitted, or risky evidence slot that matters to the
+verdict. Use the same fetched `BASE_REF`.
+
+---
+
+## Phase 1A: Very-Large PR Thematic Decomposition
+
+Run this phase when `REVIEW_MODE=thematic`. Also promote a nominally standard
+review to thematic mode after Phase 1 when the packet shows size-driven
+omissions and the change spans at least four distinct domains or execution
+surfaces. A single unknown probe is not enough to trigger thematic mode.
+
+Build **normally 3-7 large, cohesive themes** from:
+
+- The PR title/body and commit subjects (claimed intent)
+- `review_pr` domains, changed roots, affected flows, and convergence points
+- File/line inventory and commit-to-path relationships
+- Runtime or architectural responsibility
+
+A theme is a behavior or responsibility such as "index persistence migration,"
+"MCP request routing," or "CLI and configuration surface" — never an arbitrary
+equal-sized batch of files. Keep a feature's implementation, tests, fixtures,
+docs, and configuration in the same theme. Prefer fewer substantial themes;
+split only when the parts have genuinely different contracts or failure modes.
+Create an explicit integration theme for shared schemas, migrations, feature
+flags, permissions, or boundary adapters that couple two or more themes.
+Do not invent three themes for a genuinely single-purpose mechanical change.
+If more than seven irreducible themes remain, process them in bounded waves and
+recommend splitting the PR rather than hiding the tail in "miscellaneous."
+
+Create and maintain this ledger before launching any focused review:
+
+| Theme | Intent | Primary paths | Commits | Risky symbols | Shared boundaries | Evidence status |
+|---|---|---|---|---|---|---|
+| `<name>` | `<behavior>` | `<exact paths>` | `<SHAs>` | `<symbols>` | `<contracts>` | complete/incomplete |
+
+Coverage rules:
+
+1. Every changed path has exactly one primary theme. Shared files may appear as
+   secondary context in other themes, but one lane owns their final-hunk review.
+2. Every commit maps to at least one theme. A mixed commit maps to every theme
+   whose hunks it changes and is also inspected by the integration owner.
+3. Every packet row for a changed, deleted, public, or starred symbol maps to a
+   theme. Cross-theme convergence points map to the integration theme.
+4. Unassigned paths, commits, hunks, risky symbols, or size-driven omissions
+   block the verdict. "Miscellaneous" is not an acceptable catch-all theme.
+
+### Focused theme lanes
+
+If Scout-capable review agents are available, run independent themes in
+parallel (normally no more than four at once); otherwise process them
+sequentially in the current context. Do not delegate a theme to an agent that
+cannot call Scout. Give each lane the exact base/head refs, PR intent, policy,
+existing-thread notes, primary and shared paths, relevant commits, risky
+symbols, and the applicable rows from the Phase 1 packet.
+
+`review_pr` is whole-diff scoped; it has no path filter. Route it deliberately:
+
+- Reuse the Phase 1 packet when it is current and complete for the theme.
+- A theme lane may call `review_pr` once when it did not receive a current
+  packet, when the original packet used less than 24,000 bytes and omitted
+  evidence for that theme (retry at 24,000), or when its source state changed.
+- A theme may run `review_pr` against a narrower delta only when that exact
+  theme already exists as a real checkout/ref with a truthful base and head.
+  Do not rewrite history or cherry-pick a synthetic theme branch just to make
+  the tool appear theme-scoped.
+- Never rerun the same 24,000-byte `review_pr` call against the same source
+  state after it returns the same omissions. Switch to targeted `investigate`,
+  `impact`, `changes_affected_tests`, or `dead_code` follow-ups instead.
+
+Each lane then applies Phases 2-7 to its theme and returns:
+
+```markdown
+### Theme: <name>
+- Scope reviewed: <paths, commits, risky symbols>
+- `review_pr`: <reused/called/not needed>; evidence <complete/incomplete>
+- Cross-theme contracts checked: <list>
+- Findings: <severity + exact path:line>
+- Test gaps: <list>
+- Unresolved evidence: <list or none>
 ```
-Or (for structured JSON): `mcp__scout__changes_affected_tests`. Note every changed symbol with **zero** affected tests — those become Phase 6 targets.
+
+The main reviewer owns the final integration pass: reconcile duplicate or
+conflicting findings, trace shared contracts end-to-end, verify every ledger
+row is complete, and run lint plus affected tests once for the whole PR. Theme
+lanes do not issue independent verdicts.
 
 ---
 
 ## Phase 2: Architectural Context
 
-Before judging anything, understand the territory. Two parallel calls:
+Before judging anything, understand the territory. In standard mode, make
+these two calls in parallel. In thematic mode, run one focused `investigate`
+per theme using its behavior and exact paths; share or batch memory results
+when themes overlap rather than issuing duplicate lookups.
 
 ```
-mcp__scout__investigate(
+scout.investigate(
   query: "<the feature/module the PR modifies>",
   repository: "<repo>",
   intent: "change"
 )
 
-mcp__scout__memory_search(
+scout.memory_search(
   query: "<same feature/module>",
   repository: "<repo>"
 )
@@ -196,9 +347,9 @@ mcp__scout__memory_search(
 - **Unexpected connections**: callers or callees the author may not have considered
 - **Existing patterns**: error handling, naming, module organization in this area
 
-**Drill via `investigate_expand`** (MCP-only, batch 6-12 targets per call — file ranges and `asset:<id>` expansions are FREE):
+**Drill via `investigate_expand`** (batch 4-10 distinct regions per call — adjacent same-file ranges merge into one block; file ranges and `asset:<id>` expansions are free in the bundle; send another expand for unread files):
 ```
-mcp__scout__investigate_expand(
+scout.investigate_expand(
   bundle_id: "<id from investigate>",
   targets: ["SymbolA", "SymbolB", "src/module/changed.rs:50-120", "asset:<id>", ...]
 )
@@ -208,14 +359,15 @@ mcp__scout__investigate_expand(
 
 ## Phase 3: Blast Radius
 
-Blast-radius analysis covers **every commit in the PR** — not just the tip, not just the latest few. The `changes_detect` call in Phase 1 already operates on the full `main..origin/<branch>` delta, so its output is the complete set of risky symbols across the entire PR. Feed all of them into `impact`.
+Blast-radius analysis covers **every commit in the PR** — not just the tip, not just the latest few. The `review_pr` call in Phase 1 operates on the full fetched base-to-head delta and already includes bounded impact evidence for changed roots. In thematic mode, assign each risky symbol to its owning lane and reserve cross-theme callers and convergence nodes for the integration pass.
 
-Risky symbols = changed-public + starred (★) + deleted + signature-changed + behavior-changed. These come from Phase 1's `changes_detect` response. Do not filter by commit range — a regression in the first commit of a 50-commit PR is just as shippable as one in the last commit.
+Risky symbols = changed-public + starred (★) + deleted + signature-changed + behavior-changed. Start with packet rows. If changed roots were omitted, call `changes_detect` once to recover the unresolved set. Do not filter by commit range — a regression in the first commit of a 50-commit PR is just as shippable as one in the last commit.
 
-Use `impact` — the purpose-built tool. CodeRank-weighted risk, tiered by confidence. One call per risky symbol:
+Use targeted `impact` only where the packet left caller evidence omitted,
+ambiguous, incomplete, or unusually risky. CodeRank-weighted risk is tiered by confidence:
 
 ```
-mcp__scout__impact(
+scout.impact(
   symbol: "<symbol>",
   repository: "<repo>",
   direction: "upstream",
@@ -224,7 +376,12 @@ mcp__scout__impact(
 )
 ```
 
-If the risky-symbol set is large (>15), batch via `explain_symbol(symbols: [...])` first to see which callers overlap — a single shared caller across many symbols is often the real blast-radius story. Then call `impact` on the remaining distinct targets. If the set is very large (>40 symbols), still cover them all, but budget accordingly: `impact` is cheap individually (sub-second) and Scout's symbol graph is already loaded, so the real cost is your reading time on the results. Triage by CodeRank score — highest-impact first — but do not skip the tail.
+If the unresolved risky-symbol set is large (>15), batch via
+`explain_symbol(symbols: [...])` first to see which callers overlap — a single
+shared caller across many symbols is often the real blast-radius story. Then
+call `impact` on the remaining distinct unresolved targets. The packet still
+counts omitted roots and impact rows, so do not mistake its byte cap for
+coverage or silently skip the tail.
 
 For each risky symbol, verify:
 - **Signature changes**: every caller handles the new contract. Check each caller, not "callers were updated."
@@ -235,7 +392,7 @@ For each risky symbol, verify:
 
 **Also run `dead_code` after the change** to catch orphans the deletion/rename created:
 ```
-mcp__scout__dead_code(
+scout.dead_code(
   repository: "<repo>",
   path_prefix: "<modified area>",
   min_confidence: 0.7
@@ -253,7 +410,7 @@ Checks:
 - **Pattern consistency**: error handling, naming, module organization match Phase 2's patterns? Deviations justified?
 - **Near-duplicates**: use `search` (semantic) not just `keyword_search`, since duplicates often have different names:
   ```
-  mcp__scout__search(query: "<what the new function does — natural language>", repository: "<repo>")
+  scout.search(query: "<what the new function does — natural language>", repository: "<repo>")
   ```
 - **Premature abstraction**: new trait/interface/base class has ≥2 concrete users? If 1, inline it.
 - **File growth**: `file_outline` on modified files. 50+ symbols is a smell — but only flag if this PR caused the growth.
@@ -263,12 +420,29 @@ Checks:
 
 ## Phase 5: Correctness
 
-Read the actual changed code. **Walk EVERY commit in the PR, oldest first** — the list from the Setup block's `$COMMITS` variable. Do not stop at the tip. Do not sample. Do not trust the squashed diff to reveal intent — intermediate commits often show an author trying approach A, reverting it, then shipping approach B; that history matters for judging whether A's concerns have been fully addressed in B.
+Read the actual changed code. **Cover EVERY commit in the PR, oldest first** —
+the list from the Setup block's `$COMMITS` variable. Do not stop at the tip or
+sample. Do not trust only the squashed diff to reveal intent — intermediate
+commits often show an author trying approach A, reverting it, then shipping
+approach B; that history matters for judging whether A's concerns have been
+fully addressed in B.
 
-For each commit:
+In standard mode, read each commit directly:
 ```bash
 git show "$sha"
 ```
+
+In thematic mode, each lane reads the final aggregate diff for its primary
+paths, then the relevant portion of every assigned commit:
+
+```bash
+git diff "$BASE_REF...$HEAD_REF" -- <theme-primary-paths>
+git show "$sha" -- <theme-primary-paths>
+```
+
+The integration owner reads every mixed-theme commit's full stat and diff
+around shared boundaries. Mark a commit complete only after all of its changed
+paths are covered across the theme ledger.
 Then for each modified function in that commit, work adversarially — checklist form:
 
 - [ ] **Inputs**: empty string, zero, negative, nil/null, max-size, unicode, concurrent duplicate calls
@@ -290,7 +464,11 @@ Use `explain_symbol` on modified functions to see their callers + callees in one
 - [ ] **Absolute behavioral rules**: instruction text avoids hard "never/always" constraints that can conflict with higher-priority host/system guidance (e.g. Codex requiring progress updates); scope them as defaults that yield to the host.
 - [ ] **Docs + memory in sync**: README/CLAUDE.md and any `.scout/memory/*` entry surfaced by `memory_search` match the new implementation. Stale **memory** is worse than stale docs — it actively misleads the next agent reviewing this exact area. Grep canonical-source claims (constant names, file paths, workflows) against the code and flag contradictions.
 
-**If the commit count is large**, track progress explicitly: create a `TaskCreate(subject: "Phase 5 commit N/M: <sha> <subject>")` per commit and mark each completed as you finish it. This makes a partial review recoverable across compaction.
+**If the commit count is large**, track progress by theme first:
+create or update a host task named `Phase 5 theme N/M: <name>`, with assigned
+commit and path counts in its description. Without a host task facility, add
+the same entry to the working ledger. Add per-commit entries only for a theme
+with more than 20 commits or when compaction recovery needs finer checkpoints.
 
 ---
 
@@ -373,7 +551,23 @@ flag first:
 
 ## Phase 8: Lint
 
-Identify the linter from repo config and run it:
+Lint is a mandatory review gate. Do not issue a verdict when it was skipped or
+when the latest result covers an older source state.
+
+For Scout, force the running dev-watch process to lint every workspace crate
+and target, then require `rc=0 phase=clippy`:
+
+```bash
+./scripts/dev-watch-ctl.sh clippy
+./scripts/smartsleep.sh
+```
+
+Do not accept a throttled `phase=build` result. If dev-watch is unavailable,
+run `./scripts/check-clippy.sh`, which performs the standalone full pass. The
+forced watcher gate is validation-only and must never run `clippy --fix` or
+otherwise modify source during a review.
+
+For other repositories, identify the linter from repo config and run it:
 
 ```bash
 # Rust
@@ -396,8 +590,13 @@ Confirm the tests Phase 1 identified actually pass on this branch.
 
 **Preferred** (Scout repo ships this; many forks too):
 ```bash
-SCOPE=compare BASE_REF=main ./scripts/test-affected.sh
+SCOPE=compare BASE_REF="$BASE_REF" ./scripts/test-affected.sh
 ```
+
+`compare` diffs from the merge base with the fetched remote `BASE_REF`, so it covers the branch's
+own changes and ignores commits that landed on the base after the fork. Keep
+`compare` for a PR review — it is deliberately PR-wide. `SCOPE=commit` narrows
+to the last commit alone and is for local iteration, not review sign-off.
 
 **Fallback** — if the script doesn't exist, run the full suite instead. Do NOT construct ad-hoc `grep | xargs` pipelines to pass tests to the runner; they silently skip tests with special characters and give false "all pass" signal.
 
@@ -415,6 +614,7 @@ Report:
 
 ### Summary
 <2-4 sentences: what the PR does, scope match, overall risk level>
+- Review mode: <standard / thematic with N themes>
 
 ### Change Surface
 - <N> symbols changed, <N> new, <N> deleted
@@ -430,6 +630,16 @@ Report:
 
 ### Prior Knowledge Surfaced
 - <memory entries cited from Phase 2, or "none relevant">
+
+### Thematic Coverage
+(Include only for thematic reviews.)
+
+| Theme | Paths/commits covered | `review_pr` evidence | Findings | Unresolved |
+|---|---|---|---|---|
+| `<name>` | `<counts>` | reused/called; complete/incomplete | `<counts by severity>` | `<list or none>` |
+
+- Cross-theme integration: <contracts and convergence points checked>
+- Unassigned paths/commits/risky symbols: none (required for a verdict)
 
 ### Findings
 
@@ -457,6 +667,9 @@ Findings without a `path:line` go into the overall body instead.
 ### Affected-Test Run
 - <N> affected tests ran; <F> failed — or "all passed"
 - Failures: <list with file:line and error, or "none">
+
+### Lint
+- <command/gate used and result; a skipped or stale lint result blocks verdict>
 
 ### Security
 - <flagged items with severity, or "No issues found">

@@ -42,12 +42,12 @@ showhelp()
   echo "ready    [<pr>]     Moves PR from draft to ready state and transitions Jira issue status to In Review"
 }
 
-# Strip -y/--yes flag from args before positional parsing
-auto_confirm=0
+# Strip -y/--yes flag from args before positional parsing. Export GIT_ALIAS_YES
+# so lib's confirm()/assume_yes() helpers pick it up.
 filtered_args=()
 for arg in "$@"; do
   if [[ "$arg" == "-y" || "$arg" == "--yes" ]]; then
-    auto_confirm=1
+    export GIT_ALIAS_YES=1
   else
     filtered_args+=("$arg")
   fi
@@ -57,9 +57,19 @@ set -- "${filtered_args[@]}"
 command="$1"
 branch_maybe="$2"
 
+# Open a PR in the browser for a human, or just print its URL when there is no
+# TTY (an agent can't see a browser tab, and opening one may block or fail).
+open_or_print_pr() {
+  if no_tty; then
+    gh pr view "$@" --json url -q '.url'
+  else
+    gh pr view "$@" -w
+  fi
+}
+
 # If called with just a number, view that PR in the browser
 if [[ "$command" =~ ^[0-9]+$ && -z "$branch_maybe" ]]; then
-  gh pr view "$command" --web
+  open_or_print_pr "$command"
   exit 0
 fi
 
@@ -266,7 +276,7 @@ esac
 
 # No subcommand: open existing PR or create then open
 if [[ "$pr_number" =~ ^[0-9]+$ && "$pr_state" == "OPEN" ]]; then
-  gh pr view -w
+  open_or_print_pr
   exit 0
 fi
 
@@ -283,17 +293,13 @@ if [[ $pr_number =~ ^no.*$ || "$pr_state" == "CLOSED" ]]; then
   semantic_name=$(node -e "console.log(\"$semantic_name\".split('-').map((word) => word.replace(/^[a-z]/, (lower) => lower.toUpperCase())).join(' '))")
   title="$semantic_name"
 
-  if [[ $auto_confirm -eq 1 ]]; then
-    echo "Creating Pull Request: $title (auto-confirmed)"
-  else
-    read -p "Create Pull Request: $title? [Y/n]" -n 1 -r
-    if ! [[ $REPLY =~ ^[Yy]$ || -z $REPLY ]]; then
-      echo
-      echo "It's cool, we all make mistakes..."
-      echo
-      exit
-    fi
+  if ! confirm "Create Pull Request: $title?"; then
+    echo
+    echo "It's cool, we all make mistakes..."
+    echo
+    exit
   fi
+  echo "Creating Pull Request: $title"
 
   git fetch
   # actually create the PR
@@ -306,4 +312,4 @@ if [[ $pr_number =~ ^no.*$ || "$pr_state" == "CLOSED" ]]; then
   fi
 fi
 
-gh pr view -w
+open_or_print_pr

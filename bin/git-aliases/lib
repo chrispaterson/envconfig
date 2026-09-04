@@ -1,6 +1,52 @@
 #!/bin/bash
 # Shared utilities for git-aliases scripts. Source this file, do not execute.
 
+# --- Non-interactive / agent-friendly execution --------------------------
+#
+# These scripts serve two callers: a human at a terminal, and an agent (or
+# pipeline) shelling out with no TTY. The helpers below let a single code
+# path serve both — prompts are skipped and browsers are never opened when
+# there is nothing to prompt on, so the script can never block.
+
+# True when the caller pre-approved side effects via -y/--yes. Scripts export
+# GIT_ALIAS_YES=1 when they parse that flag. This is the ONLY thing that
+# authorizes destructive actions (e.g. branch deletion) without a prompt;
+# a missing TTY alone must not.
+assume_yes() {
+  [[ -n "${GIT_ALIAS_YES:-}" ]]
+}
+
+# True when no interactive terminal is attached (an agent or pipe is driving),
+# so there is no one to answer a prompt and no browser worth opening.
+no_tty() {
+  ! { [[ -t 0 ]] && [[ -t 1 ]]; }
+}
+
+# Slugify a string into a git-branch-safe segment: lowercase, alphanumerics
+# collapsed to single hyphens, trimmed of leading/trailing hyphens, capped at
+# 40 chars. Usage: slug=$(slugify "Add Plugin Validation")  # -> add-plugin-validation
+slugify() {
+  echo "$1" \
+    | tr '[:upper:]' '[:lower:]' \
+    | tr -cs 'a-z0-9' '-' \
+    | sed -E 's/^-+//; s/-+$//' \
+    | cut -c1-40 \
+    | sed -E 's/-+$//'
+}
+
+# Yes/no prompt defaulting to Yes, for NON-destructive actions. Auto-confirms
+# when -y was passed or when there is no TTY. Returns 0 for yes, 1 for no.
+# Usage: confirm "Create the thing?" && do_thing
+confirm() {
+  local prompt="$1" reply
+  if assume_yes || no_tty; then
+    return 0
+  fi
+  read -p "$prompt [Y/n] " -n 1 -r reply
+  echo
+  [[ $reply =~ ^[Yy]$ || -z $reply ]]
+}
+
 # Run a command with a terminal spinner.
 # Command stdout is buffered and printed after the command completes so it
 # does not interleave with the spinner frames.

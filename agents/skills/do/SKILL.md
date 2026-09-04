@@ -40,7 +40,10 @@ find ~/projects/adobe/project-graph -maxdepth 1 -type d -name "*GRAPH-XXX*"
 ```
 
 - **Found** — set that directory as the working directory for all subsequent steps.
-- **Not found** — run `git b GRAPH-XXX` to create it, then set the resulting directory as the working directory.
+- **Not found** — run `git b -y -t "<short semantic name>" GRAPH-XXX` to create it.
+  - `-y` runs the script non-interactively (auto-confirms prompts, no browser, fails fast instead of blocking on input).
+  - `-t` supplies the branch name directly. Fetch the issue first (step 3 — you need it anyway) and derive a short kebab-friendly name from the summary. Passing it here means the script skips both the summary re-fetch and the nested `claude --print` call it would otherwise spawn just to name the branch. If for some reason you don't have a name, omit `-t` and the script will fall back to naming it itself.
+  - Parse the `Worktree: <path>` line it prints on success and set that as the working directory.
 
 #### 3. Fetch the Issue
 
@@ -154,15 +157,25 @@ Check the worktree directory name to determine which repo this is:
 - **Is `graph`** — run the `core-impact` skill to verify downstream sub-packages aren't broken. Pass the diff from step 4 so core-impact can skip its own change-surface analysis. If any sub-packages are **Breaking**, fix the issues before proceeding to the PR.
 - **Any other repo** — run a build to confirm the changes compile cleanly:
 
+#### 10. Rush Change Files
+
+Skip this step if the repo is not Rush-managed (no `rush.json` at the repo root). Otherwise, CI runs `rush change --verify` on every PR and fails the build if any changed package lacks a change description — so a change file must exist before the PR is opened.
+
+**Do not run `rush change` interactively or with `--bulk`** (it prompts and blocks in a non-interactive session). Instead, follow the same workaround as the `pr-summary` skill's "Changelog files (rush change)" section: write the change file(s) directly under `common/changes/<scope>/<unscoped-package-name>/<branch-slug>_<YYYY-MM-DD-HH-MM>.json`, one per modified package, then commit and push. See that section for the exact JSON format, the `comment`/`type` rules, and how to reconcile stale change files.
+
+Verify locally before pushing: `node common/scripts/install-run-rush.js change --verify` should report no missing change descriptions.
+
 ---
 
 ### Phase 3 — Pull Request
 
-#### 10. Create Draft PR
+#### 11. Create Draft PR
 
 ```bash
-git pr
+git pr -y
 ```
+
+The `-y` flag auto-confirms creation and, with no TTY, prints the PR URL instead of opening a browser. Report that URL to the user.
 
 ---
 
@@ -175,3 +188,4 @@ git pr
 | `rush update` fails   | Warn; proceed but note stale deps                 |
 | Build/lint/test fails | Fix before creating PR; do not create a broken PR |
 | Jira operations fail  | Warn but do not block — continue to PR            |
+| `rush change --verify` fails | Write the missing change file(s) per step 10; do not create a PR without it — CI blocks on it |

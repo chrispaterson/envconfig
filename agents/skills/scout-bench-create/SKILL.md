@@ -13,7 +13,7 @@ Examples:
 - `/scout-bench-create .` (current directory)
 - `/scout-bench-create ~/dev/my-project`
 
-**Target path handling:** Resolve `<path>` to an absolute path at the start (e.g. `/Users/dev/my-project`). Pass `repository: "<absolute-path>"` to every `mcp__scout__*` tool call and `-r <path>` to every Scout CLI operation. Write output files under `<path>/.scout/evaluations/`. Validate with `scout evaluate -r <path> -q <path>/.scout/evaluations/<repo>-query-set.toml`.
+**Target path handling:** Resolve `<path>` to an absolute path at the start (e.g. `/Users/dev/my-project`) and pass `-r <path>` to every Scout CLI operation. Write output files under `<path>/.scout/evaluations/`. Validate with `scout evaluate -r <path> -q <path>/.scout/evaluations/<repo>-query-set.toml`.
 
 The repository must be attached and indexed (`scout list` shows it as "Watching").
 
@@ -64,10 +64,10 @@ Run autotune first for structural quality, then bench-create for domain-specific
 
 Use Scout tools to understand the repo's shape. This helps suggest relevant queries.
 
-1. `mcp__scout__architecture_overview(repository: "<absolute-path>")` — domains, entry points, hotspots
-2. `mcp__scout__top_symbols(repository: "<absolute-path>")` — most architecturally central symbols (CodeRank)
-3. `mcp__scout__top_files(repository: "<absolute-path>")` — most important files
-4. `mcp__scout__list_flows(repository: "<absolute-path>")` — detected execution flows
+1. `scout architecture-overview -r <absolute-path>` — domains, entry points, hotspots
+2. `scout top-symbols -r <absolute-path>` — most architecturally central symbols (CodeRank)
+3. `scout coderank -r <absolute-path>` — most important files
+4. `scout list-flows -r <absolute-path>` — detected execution flows
 
 Present a summary:
 ```
@@ -130,10 +130,10 @@ For each query, establish ground truth by grading files:
 ### Process per query
 
 **For identifier queries:**
-1. Run `mcp__scout__go_to_definition(symbol: "<name>", repository: "<absolute-path>")`
+1. Run `scout go-to-definition <name> -r <absolute-path>`
 2. Present the top 10-15 candidate files to the engineer
 3. Engineer assigns grades (typically 8-12 files per query)
-4. **Verify every path exists:** `mcp__scout__file_outline(files: ["<path>"], repository: "<absolute-path>")` — if it fails, the path is stale/wrong. Remove it.
+4. **Verify every path exists:** run `scout file-outline <path> -r <absolute-path>` for each candidate — if it fails, the path is stale/wrong. Remove it.
 
 **For natural language and filtered queries (domain-knowledge first):**
 
@@ -143,10 +143,10 @@ Both NL and filtered queries use `search`, which is non-deterministic — Scout 
    > "Based on your knowledge of this codebase, what 2-3 files would you expect to be most relevant for this question?"
 2. Record those files as the engineer's domain-knowledge anchors (grade 2-3).
 3. Run the query via Scout:
-   - NL → `mcp__scout__search(query: "<question>", repository: "<absolute-path>")`
-   - Filtered → `mcp__scout__search(query: "<terms>", extensions: [...], paths: [...], repository: "<absolute-path>")`
+   - NL → `scout search "<question>" -r <absolute-path>`
+   - Filtered → `scout search "<terms>" -r <absolute-path> -e <ext> -p <path>`
 4. Present Scout's top 10-15 results for additional grading — the engineer may upgrade, add, or mark results as irrelevant (grade 0).
-5. **Verify every path exists** (domain-knowledge and Scout-surfaced alike) using `mcp__scout__file_outline(files: ["<path>"], repository: "<absolute-path>")`.
+5. **Verify every path exists** (domain-knowledge and Scout-surfaced alike) with `scout file-outline <path> -r <absolute-path>`.
 
 This ensures the judgment set includes files the engineer knows *should* appear, even if Scout fails to retrieve them — making the benchmark capable of exposing recall gaps.
 

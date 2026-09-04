@@ -19,5 +19,8 @@ metadata:
 
 ## Decisions
 
+### 2026-08-24 — Long-term fix deferred; scoped interim fix chosen instead
+Moving `forPluginType` fully into `manifest.json` would require a major version bump in `platform-exports`, which isn't wanted right now — so that migration is deferred, not abandoned. Short-term direction: extract the manifest only for utility plugins (i.e. run the TS extraction step, scoped to just the `utility` plugin type, at install time) so `install()` can read `forPluginType` without needing the full `platform-exports` major bump.
+
 ### 2026-07-29 — Created, assigned, sprinted
 Filed as a Story under Epic GRAPH-2601, assigned to paterson, added to Graph Sprint 26 (7/27–8/07, sprint id 221356).

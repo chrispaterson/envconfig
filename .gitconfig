@@ -78,5 +78,5 @@
 	trustExitCode = false
 [difftool "p4mergetool"]
 	cmd = /Applications/p4merge.app/Contents/Resources/launchp4merge $LOCAL $REMOTE
-[url "github.com:Adobe-CreativeCloud"]
+[url "git@github-adobe:Adobe-CreativeCloud"]
   insteadOf = git@github.com:Adobe-CreativeCloud

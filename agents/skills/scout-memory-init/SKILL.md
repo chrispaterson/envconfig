@@ -15,6 +15,21 @@ Examples:
 
 The repository must be attached and indexed in Scout (`scout list` shows it as "Watching").
 
+Choose one control path at the start and keep it for the run:
+
+- If every required MCP tool is visible, use the MCP calls below.
+- In an MCP-less or reduced-toolset session, use the matching `scout ...` CLI
+  command for any hidden discovery or maintenance tool. Core intentionally
+  omits tools such as `memory_infer`, `memory_list`, `memory_lint`,
+  `architecture_overview`, `top_files`, `top_symbols`, and `list_flows`; do not
+  try to recover them through deferred-tool selection.
+
+`memory_infer(...)`, `memory_write(...)`, and similar function-style blocks
+below describe MCP payloads. The MCP write field is `kind`; the CLI equivalent
+is `scout memory write --entity-type`. Typed CLI links are repeatable
+`--relationship TYPE=TARGET` flags, and source references are repeatable
+`--source-ref PATH[:LINE]` flags.
+
 ---
 
 ## Design Rules
@@ -23,9 +38,19 @@ The repository must be attached and indexed in Scout (`scout list` shows it as "
 2. **Singleton architecture-overview.** If one exists, update in place (supersedes chain is noise).
 3. **No git-churn hotspots.** Skip change-churn analysis. Focus on durable structural/behavioral knowledge.
 4. **Auto-link across phases.** Flow/hub/pattern memories must set `relationships: [{type: "applies_to", target: "<domain concept title>"}]` so the graph is traversable.
-5. **Quality over quantity.** Target ~55-90 entries total across all phases. Skip anything self-evident from the directory name alone.
-6. **Aliases are mandatory on concept/hub entries.** Every entry written by Phase 1, 1.5, and 4 MUST end its `content` with an `Aliases / also known as: <canonical>, <alias_1>, ...` line AND mirror every alias as a lowercased tag. This is what `scout admin rebuild-synonyms` parses to bridge user vocabulary to codebase identifiers. No aliases → silent coverage gap.
-6. **Never invent names.** Only reference symbols, files, and domains that Scout actually returned.
+5. **Quality over quantity.** Scale the total budget to the indexed repository:
+   12-25 entries for up to 500 files, 25-50 for 501-5,000 files, and 40-75 for
+   larger repositories. Treat phase targets below as large-repository maxima,
+   stop when the useful concepts are covered, and never exceed 90 entries.
+6. **Aliases are mandatory on concept/hub entries.** Every concept written by
+   Phase 1 or 1.5 and every hub written by Phase 1.5 or 4 MUST end its `content`
+   with an `Aliases / also known as: <canonical>, <alias_1>, ...` line and
+   mirror every alias as a lowercased tag. Do not manufacture aliases for
+   observations or discoveries that have no real synonym.
+7. **Never invent names.** Only reference symbols, files, and domains that Scout actually returned.
+8. **Record provenance.** Every write must set `source: "inferred"` and include
+   the strongest supporting repo-relative paths in `sources`. Use exact
+   `file:line` references when Scout returned line numbers.
 
 ---
 
@@ -39,7 +64,7 @@ Before anything else:
    ```
    If not a repo, stop and report.
 
-2. **Scout attached?** Call `mcp__scout__list_repositories`. The target path must appear. If missing, stop and ask the user to `scout attach <path>` first.
+2. **Scout attached?** Run `scout list`. The target path must appear. If missing, stop and ask the user to `scout attach <path>` first.
 
 3. **Initialize memory bank** if not already:
    ```bash
@@ -47,23 +72,29 @@ Before anything else:
    ```
    This is idempotent — safe to run if `.scout/memory/` already exists.
 
-4. **Check for existing memories.** Call `memory_list` on the repository. If >5 entries already exist, ask the user whether to (a) append to the existing bank, (b) wipe and reseed, or (c) abort. Default to (a).
+4. **Check for existing memories.** Run `scout memory list -r <path>`. If more
+   than five entries already exist, ask whether to append, replace, or abort.
+   Default to append. Replacement requires explicit confirmation and must move
+   the existing `.scout/memory/` to a timestamped
+   `.scout/memory.backup-<UTC>/` before reinitializing; never delete an existing
+   bank in place.
 
 Only proceed to Phase 1 once all four checks pass.
 
 ---
 
-> **Valid `entity_type` values — the binary rejects anything else:** `concept`,
+> **Valid MCP `kind` values — the binary rejects anything else:** `concept`,
 > `observation`, `discovery`, `decision`, `pattern`, `procedure`, `person`,
 > `project`, `episode`. The category names used in the phases below (hub-file,
 > flow, binary, build, test-pattern, doc-reference) are *descriptive only* —
-> always pass a valid `entity_type` and keep the category as a tag. Mapping used
+> always pass a valid `kind` and keep the category as a tag. The CLI spells this
+> field `--entity-type`. Mapping used
 > below: hub-file → `observation`, binary/doc-reference → `concept`,
 > flow/build → `procedure`, test-pattern → `pattern`.
 
 ## Phase 1 — Structural Inference (memory_infer)
 
-Run Scout's built-in structural analysis:
+Run Scout's built-in structural analysis with `scout memory infer <path>`.
 
 ```
 memory_infer(repository=<path>)
@@ -71,9 +102,9 @@ memory_infer(repository=<path>)
 
 This returns CodeRank domain clustering, coupling pairs, and top symbols with guidance on writing concept/observation/discovery memories. Follow its rules:
 
-- **concept** entries (entity_type="concept", tier="knowledge", confidence 0.6-0.7): one per non-obvious domain. Describe layer (api/domain/infra/util) + key entry points.
-- **observation** entries (entity_type="observation", tier="knowledge", confidence 0.5-0.6): one per high-coupling pair (strength > 0.3). Explain what types cross the boundary and why.
-- **discovery** entries (entity_type="discovery", tier="working", confidence 0.5): one per low-cohesion domain (cohesion < 0.3). Name the concern, suggest a split.
+- **concept** entries (kind="concept", tier="knowledge", confidence 0.6-0.7): one per non-obvious domain. Describe layer (api/domain/infra/util) + key entry points.
+- **observation** entries (kind="observation", tier="knowledge", confidence 0.5-0.6): one per high-coupling pair (strength > 0.3). Explain what types cross the boundary and why.
+- **discovery** entries (kind="discovery", tier="working", confidence 0.5): one per low-cohesion domain (cohesion < 0.3). Name the concern, suggest a split.
 
 Target: 15-25 entries from this phase. Skip domains with fewer than 50 files AND cohesion ≥ 0.9 (pure vendored/single-purpose trees contribute nothing useful).
 
@@ -99,7 +130,7 @@ the generic save path wasn't covered.
 
 ### 1.5a. Top symbols — concept coverage for identifiers
 
-1. Call `mcp__scout__top_symbols(repository=<path>, limit=30)`.
+1. Run `scout top-symbols -r <path> -l 30`.
 2. Filter to symbols **not already mentioned** in any Phase 1 entry's
    tags, aliases, or title. (Call `memory_list` once at the start of
    this phase; build a lowercase set of all tags + alias tokens
@@ -113,7 +144,7 @@ the generic save path wasn't covered.
 ```
 memory_write(
   title="Concept: <umbrella name>",       # e.g. "Concept: Document Model (TImageDocument family)"
-  entity_type="concept",
+  kind="concept",
   tier="knowledge",
   confidence=0.65,
   tags=["<domain-tag>", "<symbol-names-as-tags>", ...],  # MIRROR every alias as a tag
@@ -122,7 +153,9 @@ memory_write(
            they live, and ends with:>
 
 Aliases / also known as: <canonical_symbol>, <short_name>, <abbrev>, <conceptual_synonym>, ...",
-  relationships=[{"type": "applies_to", "target": "<Phase 1 domain concept title>"}]
+  relationships=[{"type": "applies_to", "target": "<Phase 1 domain concept title>"}],
+  source="inferred",
+  sources=["<repo-relative-file:line>", ...]
 )
 ```
 
@@ -141,7 +174,7 @@ Same pattern, but for files instead of symbols. Catches cases where
 the file matters but its top symbol is generic (e.g. `UImageFormat.h`
 exports `TImageFormat` — the file is the story, not the class).
 
-1. Call `mcp__scout__top_files(repository=<path>, limit=20)`.
+1. Run `scout coderank -r <path> -t 20`.
    The output is now sorted by **centrality** (CodeRank × √sym_count+1)
    as of v0.9.73 — leaf utilities like `MathFunctions.h` no longer
    dominate; the top is real hub files. Use that ranking.
@@ -152,7 +185,7 @@ exports `TImageFormat` — the file is the story, not the class).
 ```
 memory_write(
   title="Hub: <file-basename>",
-  entity_type="observation",
+  kind="observation",
   tier="knowledge",
   confidence=0.65,
   tags=["hub", "<domain-tag>", "<basename-as-tag>", "<key-symbol-tags>"],
@@ -161,7 +194,9 @@ memory_write(
            When you edit here: <one-line scenario>.
 
 Aliases / also known as: <basename>, <basename-no-ext>, <key_symbols...>, <conceptual_name>",
-  relationships=[{"type": "applies_to", "target": "<owning domain concept>"}]
+  relationships=[{"type": "applies_to", "target": "<owning domain concept>"}],
+  source="inferred",
+  sources=["<full repo-relative path>", ...]
 )
 ```
 
@@ -189,18 +224,20 @@ Produce **one** `architecture-overview` memory — the "first read" entry for ev
 2. Gather from existing state:
    - Top 5 domains by file count (from Phase 1 data)
    - Top 3 coupling hotspots (highest strengths)
-   - Call `mcp__scout__architecture_overview(repository=<path>)` for cohesion metrics
-   - Call `mcp__scout__top_files(repository=<path>, limit=10)` for CodeRank anchors
+   - Run `scout architecture-overview -r <path>` for cohesion metrics
+   - Run `scout coderank -r <path> -t 10` for CodeRank anchors
 3. Write a single memory:
 
 ```
 memory_write(
   title="Architecture Overview",
-  entity_type="concept",
+  kind="concept",
   tier="knowledge",
   confidence=0.8,
   tags=["overview", "architecture", "start-here"],
-  content="<~600-800 token synthesis covering: 1) one-line repo purpose, 2) top 5 domains with 1-line purpose each, 3) top 3 coupling hotspots with 'why it matters', 4) primary type system(s), 5) pointer to first-to-read files>"
+  content="<~600-800 token synthesis covering: 1) one-line repo purpose, 2) top 5 domains with 1-line purpose each, 3) top 3 coupling hotspots with 'why it matters', 4) primary type system(s), 5) pointer to first-to-read files>",
+  source="inferred",
+  sources=["<representative repo-relative paths>", ...]
 )
 ```
 
@@ -212,18 +249,20 @@ This memory is the landing page. Future agents running `memory_search "architect
 
 Captures what *runs*, which structural inference misses entirely.
 
-1. Call `mcp__scout__list_flows(repository=<path>, limit=30)`.
+1. Run `scout list-flows -r <path> -n 30`.
 2. For each flow group (cluster flows sharing an entry kind + domain), write one `flow` memory:
 
 ```
 memory_write(
   title="Flow: <verb phrase>",   # e.g. "Flow: PDF Open Pipeline"
-  entity_type="procedure",
+  kind="procedure",
   tier="knowledge",
   confidence=0.65,
   tags=["flow", "<domain-tag>", "<kind>"],
   content="Entry point: <symbol> at <file:line>. Dispatches through: <3-5 key callees>. Criticality: <score>. Why an agent edits here: <one line>.",
-  relationships=[{"type": "applies_to", "target": "<Phase 1 domain concept title>"}]
+  relationships=[{"type": "applies_to", "target": "<Phase 1 domain concept title>"}],
+  source="inferred",
+  sources=["<entry-point-file:line>", ...]
 )
 ```
 
@@ -232,12 +271,14 @@ memory_write(
 ```
 memory_write(
   title="Binary: <name>",        # e.g. "Binary: Distiller"
-  entity_type="concept",
+  kind="concept",
   tier="knowledge",
   confidence=0.65,
   tags=["binary", "entry-point"],
   content="Path: <root dir>. Entry: <main file>. Purpose: <one line>. Build target: <if known>.",
-  relationships=[{"type": "applies_to", "target": "<owning domain concept>"}]
+  relationships=[{"type": "applies_to", "target": "<owning domain concept>"}],
+  source="inferred",
+  sources=["<main file:line>", ...]
 )
 ```
 
@@ -251,19 +292,23 @@ Target: 5-15 flow memories + 3-10 binary memories. Combine flows that share the 
 
 For each of the top 5 domains from Phase 2:
 
-1. Call `mcp__scout__top_files(repository=<path>, path_prefix="<domain-root-or-representative-path>", limit=5)`.
-2. Pick the 2-3 files whose purpose isn't obvious from the filename. Call `mcp__scout__file_outline` on each.
+1. Run `scout coderank -r <path>` and select five CodeRank anchors under the domain root.
+2. Pick the 2-3 files whose purpose isn't obvious from the filename. Run `scout file-outline <file> -r <path>` on each.
 3. Write one `hub-file` memory per file:
 
 ```
 memory_write(
   title="Hub: <file-basename>",
-  entity_type="observation",
+  kind="observation",
   tier="knowledge",
   confidence=0.6,
-  tags=["hub", "<domain-tag>"],
-  content="Path: <full path>. CodeRank: <score>. Exports: <2-3 key symbols>. When you edit here: <scenario>.",
-  relationships=[{"type": "applies_to", "target": "<domain concept>"}]
+  tags=["hub", "<domain-tag>", "<basename>", "<key-symbol-aliases>"],
+  content="Path: <full path>. CodeRank: <score>. Exports: <2-3 key symbols>. When you edit here: <scenario>.
+
+Aliases / also known as: <basename>, <basename-no-ext>, <key_symbols...>, <conceptual_name>",
+  relationships=[{"type": "applies_to", "target": "<domain concept>"}],
+  source="inferred",
+  sources=["<full repo-relative path>", ...]
 )
 ```
 
@@ -271,18 +316,20 @@ Target: 8-15 hub-file memories.
 
 ### 4b. Parallel patterns (directory templates)
 
-1. Call `mcp__scout__investigate(repository=<path>, query="parallel patterns and directory templates", intent="understand")`.
+1. Run `scout investigate start "parallel patterns and directory templates" -r <path> --intent understand`, then expand the strongest returned targets.
 2. Scout surfaces detected `parallel_patterns` with pattern_id + member list. For each pattern with ≥4 members:
 
 ```
 memory_write(
   title="Pattern: <template shape>",  # e.g. "Pattern: Filter<Name>/ sibling dirs"
-  entity_type="pattern",
+  kind="pattern",
   tier="procedures",
   confidence=0.7,
   tags=["pattern", "scaffolding", "<domain-tag>"],
-  content="Template: <shape>. Members: <N siblings>. Reference sibling: <one representative>. To add a new member, use Scout's propose_shell tool with pattern_id=<id> and new_name=<NewName>. Files typically touched: <file list>.",
-  relationships=[{"type": "applies_to", "target": "<owning concept>"}]
+  content="Template: <shape>. Members: <N siblings>. Reference sibling: <one representative>. To add a member, inspect that sibling and follow the listed file shape. If the full MCP surface visibly exposes propose_shell, it may preview the scaffold with pattern_id=<id>; there is no propose_shell CLI command. Files typically touched: <file list>.",
+  relationships=[{"type": "applies_to", "target": "<owning concept>"}],
+  source="inferred",
+  sources=["<representative sibling paths>", ...]
 )
 ```
 
@@ -305,11 +352,13 @@ Also check for `.harness/init.sh`, `build.sh`, `scripts/build*`. Write one `buil
 ```
 memory_write(
   title="Build System",
-  entity_type="procedure",
+  kind="procedure",
   tier="procedures",
   confidence=0.7,
   tags=["build", "workflow"],
-  content="Primary: <cmake|msbuild|gradle|...>. Entry command: <./build.sh | cmake --build . | ...>. Config files: <paths>. Known caveats: <if detected, e.g. requires Xcode 26, Windows-only, etc.>."
+  content="Primary: <cmake|msbuild|gradle|...>. Entry command: <./build.sh | cmake --build . | ...>. Config files: <paths>. Known caveats: <if detected, e.g. requires Xcode 26, Windows-only, etc.>.",
+  source="inferred",
+  sources=["<build config paths>", ...]
 )
 ```
 
@@ -321,11 +370,13 @@ memory_write(
 ```
 memory_write(
   title="Test Framework: <name>",
-  entity_type="pattern",
+  kind="pattern",
   tier="procedures",
   confidence=0.65,
   tags=["testing", "<framework-tag>"],
-  content="Scope: <what it covers>. Location: <path pattern>. Typical test file shape: <one line>. How to run: <command or entry point>. When to use this framework vs others in the repo: <one line>."
+  content="Scope: <what it covers>. Location: <path pattern>. Typical test file shape: <one line>. How to run: <command or entry point>. When to use this framework vs others in the repo: <one line>.",
+  source="inferred",
+  sources=["<test config or representative test paths>", ...]
 )
 ```
 
@@ -333,18 +384,20 @@ Target: 1-4 test-pattern memories (most repos have 1-2; polyglot/legacy repos ma
 
 ### 5c. Documentation pointers
 
-1. Call `mcp__scout__docs_stats(repository=<path>)`. If the repo has indexed docs:
-   - Call `mcp__scout__docs_topic_clusters(repository=<path>, max_clusters=8)`.
+1. Run `scout doc-stats -r <path>`. If the repo has indexed docs:
+   - Run `scout topic-clusters -r <path> -n 8`.
    - For each cluster with a clear central doc (highest in-degree), write one `doc-reference` memory:
 
 ```
 memory_write(
   title="Docs: <cluster topic>",
-  entity_type="concept",
-  tier="reference",
+  kind="concept",
+  tier="knowledge",
   confidence=0.6,
   tags=["docs", "<topic-tag>"],
-  content="Central doc: <path>. Topic: <one line>. Related docs: <2-3 siblings>. Read this before: <scenario>."
+  content="Central doc: <path>. Topic: <one line>. Related docs: <2-3 siblings>. Read this before: <scenario>.",
+  source="inferred",
+  sources=["<central doc>", "<related doc>", ...]
 )
 ```
 
@@ -353,15 +406,18 @@ memory_write(
 ```
 memory_write(
   title="Docs: <filename>",
-  entity_type="concept",
-  tier="reference",
+  kind="concept",
+  tier="knowledge",
   confidence=0.7,
   tags=["docs", "root"],
-  content="Path: <path>. Purpose: <one-line from the first heading or summary>. Read before: <scenario>."
+  content="Path: <path>. Purpose: <one-line from the first heading or summary>. Read before: <scenario>.",
+  source="inferred",
+  sources=["<path>"]
 )
 ```
 
-If `docs_stats` returns zero indexed docs, skip this phase silently.
+If `docs_stats` returns zero indexed docs, write no documentation memories and
+record a zero for Phase 5c in the final summary.
 
 Target: 2-10 doc-reference memories.
 
@@ -396,9 +452,12 @@ Then call `memory_lint(repository=<path>)` and surface any warnings (stale, cont
 
 ## Invocation Rules
 
-- **Every phase ends with at least one `memory_write` call.** If a phase produces zero useful memories, say so explicitly in the summary — silence is ambiguous.
+- **Zero-output phases are valid.** Do not create filler to satisfy a phase.
+  Record an explicit zero and reason in the summary.
 - **Confidence calibration.** Concept/overview: 0.7-0.8. Observation/flow/hub/pattern/test: 0.6-0.7. Discovery/hotspot: 0.5. Never exceed 0.8 — leave room for "written" (human-authored) entries later.
-- **Source field.** Every entry written by this skill uses `source: "inferred"`. Never set `source: "written"` — that's reserved for human/agent explicit capture.
+- **Source field.** Every entry written by this skill uses `source: "inferred"`
+  plus at least one exact repo-relative source reference. Never set
+  `source: "written"` — that is reserved for explicit human/agent capture.
 - **Tag hygiene.** Use consistent tags across phases: `architecture`, `overview`, `flow`, `hub`, `pattern`, `build`, `testing`, `docs`, plus per-domain tags drawn from Phase 1 entries.
 - **Stop conditions.** Abort with a clear report if: Scout isn't attached, repository isn't indexed, `memory.init` fails, or any phase's Scout call returns an error three times in a row.
 - **Do not spawn subagents.** This skill runs in the main session only — memory_write is stateful and subagent context isn't shared back.
