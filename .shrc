@@ -11,7 +11,7 @@ alias vimrc='vim $HOME/.vimrc'
 
 alias find-inspect="ps aux | grep \"node --inspect-brk\" | grep -v grep"
 
-export PATH="$PATH:/opt/homebrew/bin:$HOME/bin:$HOME/node_bin/node_modules/.bin:$HOME/.config/yarn/global/node_modules/.bin:$HOME/.local/bin"
+export PATH="$PATH:/opt/homebrew/bin:$HOME/bin:$HOME/node_bin/node_modules/.bin:$HOME/.config/yarn/global/node_modules/.bin:$HOME/.local/bin:$HOME/.bun/bin"
 export EDITOR="vim"
 export JAVA_HOME="/usr/bin/java"
 ENV_FILE=$HOME/.env

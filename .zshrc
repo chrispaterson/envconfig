@@ -272,6 +272,7 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 command -v scout >/dev/null 2>&1 && eval "$(scout generate-shell-completion zsh)"
 # <<< scout completion <<<
 
+<<<<<<< Updated upstream
 # ---------------------------------------------------------------------------
 # Terminal tab titles
 #
@@ -331,3 +332,6 @@ ssh() {
 
   return $ret
 }
+
+# Added by cua-driver-rs installer — see https://github.com/trycua/cua
+export PATH="/Users/chrispaterson/.local/bin:$PATH"
