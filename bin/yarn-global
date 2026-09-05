@@ -1,9 +1,10 @@
 #!/bin/bash
-
-if [[ -z $(command -v yarn) ]]; then
-
-  npm install -g yarn
-
-fi
-
-yarn global add pnpm ts-prune j2m bash-language-server sort-package-json eslint@9 prettier
+# Keep existing global tools; install only missing CLI packages so uninstall can own additions.
+set -euo pipefail
+packages=(yarn pnpm ts-prune j2m bash-language-server sort-package-json eslint@9 prettier)
+for package in "${packages[@]}"; do
+  name=${package%@*}
+  if ! npm list --global "$name" --depth=0 >/dev/null 2>&1; then
+    npm install --global "$package"
+  fi
+done

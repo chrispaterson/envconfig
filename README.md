@@ -119,9 +119,26 @@ location if you still need them on PATH.
 
 `./uninstall` removes only home and per-skill links pointing to this checkout,
 then restores available known home entries from the new backup directory and
-legacy `.bak`, including dotfiles. Occupied destinations are preserved. It keeps
-packages, private configuration, harness state, and skill-migration backups;
-it does not reverse changes made by third-party package/submodule installers.
+legacy `.bak`, including dotfiles. Occupied destinations are preserved. New installs record ownership in `~/.envconfig-install.json`, including partial
+installations. Uninstall also reverses recorded skill migrations, unsets the hook
+configuration it added, deinitializes newly initialized submodule checkouts, removes
+new global npm packages and Homebrew formulae/dependencies/taps, and removes directories
+it created when empty. If this install bootstrapped Homebrew, it removes Homebrew
+only once no other packages remain. Modified submodules or dependencies now required
+by other packages are preserved by the underlying tools; uninstall reports the failure
+and retains its receipt for retry. Private settings and subsequent user additions remain.
 
-Validate with `shellcheck install uninstall lib/home-links.sh` and
+The receipt stays local; do not delete it before uninstalling. Older installs have no
+package ownership record: uninstall removes identifiable checkout links (including
+humanize/ai-check across all three skill locations) and restores available home backups,
+but cannot safely infer which old dependencies it added. It reports this limitation.
+Previously installed global Yarn packages are not silently adopted or removed.
+Global CLI packages now use npm and are installed only when missing, preserving
+existing versions. The humanize submodule's overwrite-based installer is no longer run.
+The obsolete build step for the missing vim-jsdoc directory has been removed.
+Git's cached submodule objects and package-manager caches are not user installations;
+they are left to Git/package-manager maintenance rather than recursively deleting
+shared cache directories.
+
+Validate with `shellcheck install uninstall lib/home-links.sh bin/yarn-global` and
 `python3 -m unittest discover -s tests -p 'test_*.py'`.

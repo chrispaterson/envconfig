@@ -1,0 +1,221 @@
+#!/usr/bin/env python3
+"""Record installation additions and undo only recorded dependency ownership."""
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+os.environ['HOMEBREW_NO_AUTOREMOVE'] = '1'
+os.environ['HOMEBREW_NO_INSTALL_CLEANUP'] = '1'
+os.environ['HOMEBREW_NO_AUTO_UPDATE'] = '1'
+os.environ['PATH'] = os.environ.get('PATH', '') + os.pathsep + '/opt/homebrew/bin:/usr/local/bin'
+
+PROJECT = Path(__file__).resolve().parents[1]
+HOME = Path.home()
+if len(sys.argv) > 1 and sys.argv[1] == 'install':
+    for index, argument in enumerate(sys.argv[2:], start=2):
+        if argument == '--home' and index + 1 < len(sys.argv):
+            HOME = Path(sys.argv[index + 1]).expanduser().absolute()
+        elif argument.startswith('--home='):
+            HOME = Path(argument.split('=', 1)[1]).expanduser().absolute()
+os.environ['HOME'] = str(HOME)
+STATE = HOME / '.envconfig-install.json'
+NPM_PACKAGES = {'yarn', 'pnpm', 'ts-prune', 'j2m', 'bash-language-server',
+                'sort-package-json', 'eslint', 'prettier'}
+ROOTS = [HOME / name for name in ('.agents', '.claude', '.codex')]
+
+
+def run(args, **kwargs):
+    """Run a command and preserve failures instead of interpreting them as empty inventory."""
+    return subprocess.run(args, check=True, text=True, **kwargs)
+
+
+def output(args):
+    return run(args, stdout=subprocess.PIPE).stdout
+
+
+def brew_inventory():
+    if not shutil.which('brew'):
+        return {'brew': False, 'formulae': [], 'taps': []}
+    return {'brew': True,
+            'prefix': output(['brew', '--prefix']).strip(),
+            'formulae': output(['brew', 'list', '--formula', '--full-name']).splitlines(),
+            'taps': output(['brew', 'tap']).splitlines()}
+
+
+def npm_inventory():
+    if not shutil.which('npm'):
+        return []
+    return list(json.loads(output(['npm', 'list', '--global', '--depth=0', '--json'])).get('dependencies', {}))
+
+
+def backups():
+    return {str(p) for root in ROOTS if root.is_dir() for p in root.glob('skills-backup-*/restore.json')}
+
+
+def save(state):
+    temp = STATE.with_suffix('.tmp')
+    if STATE.is_symlink() or temp.is_symlink():
+        raise RuntimeError('Refusing a symlinked install receipt')
+    temp.write_text(json.dumps(state, indent=2) + '\n')
+    temp.chmod(0o600)
+    temp.replace(STATE)
+
+
+def load():
+    if STATE.is_symlink():
+        raise RuntimeError('Refusing a symlinked install receipt')
+    state = json.loads(STATE.read_text()) if STATE.exists() else {'project': str(PROJECT)}
+    if state['project'] != str(PROJECT):
+        raise RuntimeError(f"Install receipt belongs to {state['project']}; use that checkout")
+    return state
+
+
+def snapshot(full):
+    result = {'backups': sorted(backups())}
+    if full:
+        result.update(brew_inventory())
+        result['npm'] = npm_inventory()
+        hook = subprocess.run(['git', '-C', str(PROJECT), 'config', '--local', '--get', 'core.hooksPath'],
+                              text=True, stdout=subprocess.PIPE, check=False)
+        if hook.returncode not in (0, 1):
+            raise RuntimeError('Cannot inspect repository hooks')
+        result['hook'] = hook.stdout.strip() if hook.returncode == 0 else None
+        result['submodules'] = [line.split()[1] for line in
+                                output(['git', '-C', str(PROJECT), 'submodule', 'status']).splitlines()
+                                if line and not line.startswith('-')]
+    return result
+
+
+def reconcile(state):
+    before = state.get('pending')
+    if before is None:
+        return
+    after = snapshot('npm' in before)
+    for key in ('formulae', 'taps', 'npm', 'backups', 'submodules'):
+        if key in before:
+            additions = set(after[key]) - set(before[key])
+            if key == 'npm':
+                additions &= NPM_PACKAGES
+            state[key] = sorted(set(state.get(key, [])) | additions)
+    if before.get('brew') is False and after.get('brew'):
+        state['installed_brew'] = True
+        state['brew_prefix'] = after['prefix']
+    if 'hook' in before and before['hook'] is None and after['hook'] == '.githooks':
+        state['installed_hook'] = True
+    state.pop('pending')
+    save(state)
+
+
+def install(args):
+    state = load()
+    reconcile(state)
+    full = not args
+    tracked_dirs = [HOME / '.envconfig-backups'] + [p for root in ROOTS for p in (root, root / 'skills')]
+    state['directories'] = sorted(set(state.get('directories', [])) |
+                                  {str(p) for p in tracked_dirs if not p.exists() and not p.is_symlink()})
+    state['pending'] = snapshot(full)
+    save(state)
+    env = dict(os.environ, ENVCONFIG_TRACKING='1')
+    try:
+        return subprocess.run(['bash', str(PROJECT / 'install'), *args], env=env, check=False).returncode
+    finally:
+        # Preserve ownership even when an install exits halfway through.
+        reconcile(state)
+
+
+def restore_skill_backups(state):
+    for filename in list(reversed(state.get('backups', []))):
+        record_path = Path(filename)
+        if not record_path.exists():
+            raise RuntimeError(f'Missing migration receipt: {record_path}')
+        record = json.loads(record_path.read_text())
+        original, saved = Path(record['original']), Path(record['backup'])
+        if original.name == 'skills' and original.is_dir() and not original.is_symlink():
+            # Root migration creates per-entry links back to the previous target.
+            previous_target = Path(record['symlink_target'])
+            target = (original.parent / previous_target).resolve()
+            for entry in list(original.iterdir()):
+                if entry.is_symlink() and entry.readlink() == target / entry.name:
+                    entry.unlink()
+            original.rmdir()  # Refuse to remove subsequent user additions.
+        if original.exists() or original.is_symlink():
+            raise RuntimeError(f'Cannot restore skill backup; path is occupied: {original}')
+        saved.rename(original)
+        record_path.unlink()
+        record_path.parent.rmdir()
+        state['backups'].remove(filename)
+        save(state)
+
+
+def uninstall():
+    known = STATE.exists()
+    state = load()
+    reconcile(state)
+    # Finish file cleanup while Python and the shell toolchain are still available.
+    run(['bash', str(PROJECT / 'uninstall')], env=dict(os.environ, ENVCONFIG_TRACKING='1'))
+    restore_skill_backups(state)
+    # Dependents are removed before their runtimes. Failed removals retain the receipt.
+    for package in list(state.get('npm', [])):
+        if package in npm_inventory():
+            run(['npm', 'uninstall', '--global', package])
+        state['npm'].remove(package)
+        save(state)
+    if state.get('formulae'):
+        current = set(brew_inventory()['formulae'])
+        owned = sorted(set(state['formulae']) & current)
+        if owned:
+            run(['brew', 'uninstall', '--formula', *owned])
+        state['formulae'] = []
+        save(state)
+    for tap in list(state.get('taps', [])):
+        if tap in brew_inventory()['taps']:
+            run(['brew', 'untap', tap])
+        state['taps'].remove(tap)
+        save(state)
+    if state.get('installed_brew'):
+        if shutil.which('brew'):
+            if brew_inventory()['formulae'] or output(['brew', 'list', '--cask']).strip():
+                raise RuntimeError('Homebrew now contains other packages; preserving it and the receipt')
+            if output(['brew', '--prefix']).strip() != state.get('brew_prefix'):
+                raise RuntimeError('Homebrew prefix changed; preserving installation')
+            # Only bootstrap-owned, now-empty Homebrew may be removed.
+            script = output(['curl', '-fsSL', 'https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh'])
+            run(['/bin/bash', '-s', '--', '--force', '--skip-cache-and-logs',
+                 '--path', state['brew_prefix']], input=script)
+        state['installed_brew'] = False
+        save(state)
+    if state.get('installed_hook'):
+        hook = subprocess.run(['git', '-C', str(PROJECT), 'config', '--local', '--get', 'core.hooksPath'],
+                              text=True, stdout=subprocess.PIPE, check=False)
+        if hook.returncode == 0 and hook.stdout.strip() == '.githooks':
+            run(['git', '-C', str(PROJECT), 'config', '--local', '--unset', 'core.hooksPath'])
+        state['installed_hook'] = False
+        save(state)
+    for submodule in list(state.get('submodules', [])):
+        run(['git', '-C', str(PROJECT), 'submodule', 'deinit', '--', submodule])
+        state['submodules'].remove(submodule)
+        save(state)
+    for name in sorted(state.get('directories', []), key=lambda x: len(Path(x).parts), reverse=True):
+        path = Path(name)
+        if path.is_dir() and not path.is_symlink():
+            try:
+                path.rmdir()
+            except OSError:
+                print(f'Preserved nonempty directory: {path}')
+    if STATE.exists():
+        STATE.unlink()
+    if not known:
+        print('Legacy install: removed identifiable links; package ownership was never recorded.')
+    print('Uninstall complete. Pre-existing dependencies and subsequent user data were preserved.')
+    return 0
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(install(sys.argv[2:]) if sys.argv[1] == 'install' else uninstall())
+    except (OSError, ValueError, KeyError, RuntimeError, subprocess.CalledProcessError) as error:
+        print(f'Lifecycle operation failed (receipt retained): {error}', file=sys.stderr)
+        sys.exit(1)

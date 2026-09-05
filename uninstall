@@ -6,6 +6,10 @@ home_dir=${HOME:?HOME must be set}
 backup_dir=$home_dir/.envconfig-backups
 [[ $# -eq 0 ]] || { printf 'Usage: %s\n' "$0" >&2; exit 2; }
 
+if [[ ${ENVCONFIG_TRACKING:-} != 1 ]]; then
+  exec python3 "$project_dir/bin/envconfig-lifecycle" uninstall
+fi
+
 # shellcheck source=lib/home-links.sh
 source "$project_dir/lib/home-links.sh"
 uninstall_home_links
@@ -17,12 +21,15 @@ import sys
 
 project, home = map(Path, sys.argv[1:])
 source = project / 'agents' / 'skills'
-for root in [home / '.agents' / 'skills', home / '.claude' / 'skills']:
+for root in [home / '.agents' / 'skills', home / '.claude' / 'skills', home / '.codex' / 'skills']:
     if root.is_symlink() or root.parent.is_symlink() or not root.is_dir():
         continue
     for entry in root.iterdir():
-        if entry.is_symlink() and entry.resolve() == source / entry.name:
-            entry.unlink()
+        if entry.is_symlink():
+            target = entry.resolve()
+            if target == source / entry.name or (
+                entry.name in {'humanize', 'ai-check'} and target == project / 'humanize' / entry.name
+            ):
+                entry.unlink()
 PY
 printf 'Removed links owned by this checkout and restored available home-file backups.\n'
-printf 'Packages, private configuration, harness state, and skill-migration backups were retained.\n'

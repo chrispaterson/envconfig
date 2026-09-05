@@ -19,7 +19,7 @@ class HomeInstallTests(unittest.TestCase):
         self.home = self.base / 'home with spaces'
         self.repo.mkdir()
         self.home.mkdir()
-        for name in ['install', 'uninstall', 'lib/home-links.sh', 'bin/install-agent-skills']:
+        for name in ['install', 'uninstall', 'lib/home-links.sh', 'bin/install-agent-skills', 'bin/envconfig-lifecycle']:
             target = self.repo / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(REPO / name, target)
@@ -47,6 +47,10 @@ class HomeInstallTests(unittest.TestCase):
         self.assertEqual((self.home / '.profile').read_text(), 'personal profile')
         self.assertFalse((self.home / 'CLAUDE.md').is_symlink())
         self.assertFalse((self.home / '.agents/skills/remember').is_symlink())
+        self.assertFalse((self.home / '.envconfig-install.json').exists())
+        self.assertFalse((self.home / '.agents').exists())
+        self.assertFalse((self.home / '.claude').exists())
+        self.assertFalse((self.home / '.envconfig-backups').exists())
         self.assertEqual(self.run_script('uninstall').returncode, 0)
 
     def test_preserves_private_git_configuration_and_unrelated_links(self):

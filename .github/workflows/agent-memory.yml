@@ -10,6 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: shellcheck install uninstall lib/home-links.sh
+      - run: shellcheck install uninstall lib/home-links.sh bin/yarn-global
       - run: sh bin/check-agent-memory
       - run: python3 -m unittest discover -s tests -p 'test_*.py'

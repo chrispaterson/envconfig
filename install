@@ -9,12 +9,24 @@ cd "$project_dir"
 case ${1:-} in
   --agent-skills-only)
     shift
+    for argument in "$@"; do
+      if [[ $argument == --check ]]; then
+        exec python3 "$project_dir/bin/install-agent-skills" "$@"
+      fi
+    done
+    if [[ ${ENVCONFIG_TRACKING:-} != 1 ]]; then
+      exec python3 "$project_dir/bin/envconfig-lifecycle" install --agent-skills-only "$@"
+    fi
     exec python3 "$project_dir/bin/install-agent-skills" "$@"
     ;;
   --links-only|'') ;;
   *) printf 'Usage: %s [--links-only | --agent-skills-only [options]]\n' "$0" >&2; exit 2 ;;
 esac
 [[ $# -le 1 ]] || { printf 'Unexpected arguments\n' >&2; exit 2; }
+
+if [[ ${ENVCONFIG_TRACKING:-} != 1 ]]; then
+  exec python3 "$project_dir/bin/envconfig-lifecycle" install "$@"
+fi
 
 # shellcheck source=lib/home-links.sh
 source "$project_dir/lib/home-links.sh"
@@ -25,8 +37,9 @@ if [[ ${1:-} != --links-only ]]; then
     git config --local core.hooksPath .githooks
   fi
   git submodule update --init
-  "$project_dir/humanize/install.sh" all
-  make -C "$project_dir/.vim/pack/lib/start/vim-jsdoc" install
+  # Use the conflict-preserving shared installer instead of the submodule's destructive installer.
+  python3 "$project_dir/bin/install-agent-skills" \
+    --source "$project_dir/agents/skills" --source "$project_dir/humanize"
 fi
 
 install_home_links
