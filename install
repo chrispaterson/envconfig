@@ -6,6 +6,12 @@ RELATIVE_project_dir=./${project_dir#"$home_dir/"}
 
 cd $project_dir
 
+# Enable this repository's memory guard without replacing an existing hook setup.
+if ! git config --get core.hooksPath >/dev/null 2>&1 &&
+   [ ! -f "$(git rev-parse --git-path hooks/pre-commit)" ]; then
+  git config --local core.hooksPath .githooks
+fi
+
 # Back up any existing files
 if [[ ! -d .bak ]]; then
   mkdir .bak
@@ -27,7 +33,7 @@ cd $home_dir
 for FILE in $(ls -A $project_dir)
 do
 
-  if ! [[ $FILE == ".git" || $FILE == ".gitmodules" || $FILE == "humanize" || $FILE =~ ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" || $FILE =~ ".DS_Store" || $FILE =~ "font" || $FILE =~ ".txt" ]]; then
+  if ! [[ $FILE == ".git" || $FILE == ".gitmodules" || $FILE == ".github" || $FILE == ".githooks" || $FILE == "tests" || $FILE == "humanize" || $FILE =~ ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" || $FILE =~ ".DS_Store" || $FILE =~ "font" || $FILE =~ ".txt" ]]; then
 
     # if the file exists and is not a symbolic link, if it is a symbolic link
     # then we've been here before

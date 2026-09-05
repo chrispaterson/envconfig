@@ -1,0 +1,12 @@
+#!/bin/sh
+# Check the index so forced additions cannot bypass the memory ignore rule.
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+tracked_memory=$(git -C "$repo_root" ls-files --cached -- agents/memory)
+
+if [ -n "$tracked_memory" ]; then
+  printf '%s\n' 'Agent memory must stay in private GBrain, outside this public repository.' >&2
+  printf '%s\n' 'Unstage files under agents/memory before committing.' >&2
+  exit 1
+fi

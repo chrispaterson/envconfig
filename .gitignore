@@ -7,3 +7,6 @@ node_modules
 .vim/plugged
 
 **/.claude/settings.local.json
+
+# Runtime agent knowledge belongs in private GBrain.
+/agents/memory/
