@@ -1,5 +1,6 @@
 """Exercise the guard against a real Git index, without touching user files."""
 
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -11,6 +12,7 @@ CHECK = Path(__file__).resolve().parents[1] / "bin" / "check-agent-memory"
 
 class MemoryGuardTests(unittest.TestCase):
     def setUp(self):
+        self.env = dict(os.environ, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM='1')
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -21,12 +23,12 @@ class MemoryGuardTests(unittest.TestCase):
 
     def git(self, *args):
         return subprocess.run(
-            ["git", *args], cwd=self.root, check=True, capture_output=True
+            ["git", *args], cwd=self.root, check=True, capture_output=True, env=self.env
         )
 
     def check(self, cwd=None):
         return subprocess.run(
-            ["sh", str(CHECK)], cwd=cwd or self.root, capture_output=True
+            ["sh", str(CHECK)], cwd=cwd or self.root, capture_output=True, env=self.env
         ).returncode
 
     def test_normal_skill_and_untracked_memory_are_allowed(self):

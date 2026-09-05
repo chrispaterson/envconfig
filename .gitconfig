@@ -4,9 +4,7 @@
 	ac = ! $HOME/bin/git-aliases/ac
 	amend = ! $HOME/bin/git-aliases/amend
 	authors = ! $HOME/bin/git-aliases/authors
-	checks = ! $HOME/bin/git-aliases/pr -c
 	count-lines = ! $HOME/bin/git-aliases/count-lines
-	do = ! $HOME/bin/git-aliases/do
 	doc = ! $HOME/bin/git-aliases/doc
 	dt = difftool
   forget = ! $HOME/bin/git-aliases/forget
@@ -16,21 +14,15 @@
 	rename-tag = ! $HOME/bin/git-aliases/rename-tag
 	root = ! $HOME/bin/git-aliases/root
 	set-author = ! $HOME/bin/git-aliases/set-author
-  b = ! $HOME/bin/git-aliases/b
   base = ! $HOME/bin/git-aliases/base 
   delete = ! $HOME/bin/git-aliases/delete
   cleanup = ! $HOME/bin/git-aliases/cleanup
   commands = ! $HOME/bin/git-aliases/commands
   last-change = log -1 -p
-  plan = ! $HOME/bin/git-aliases/plan 
-  pr = ! $HOME/bin/git-aliases/pr 
-  prenv = ! $HOME/bin/git-aliases/prenv
   psh = ! $HOME/bin/git-aliases/psh 
   squash = ! $HOME/bin/git-aliases/squash
-  start = ! $HOME/bin/git-aliases/start
   unwind = ! $HOME/bin/git-aliases/unwind
   update = ! $HOME/bin/git-aliases/update
-	orchestrate = ! $HOME/bin/git-aliases/orchestrate
 [checkout]
   defaultRemote = origin
 [diff]
@@ -54,17 +46,13 @@
 	helper = store
 [core]
 	ignorecase = true
-	excludesfile = /Users/paterson/.gitignore
+	excludesfile = ~/.gitignore
 [user]
 	name = Chris Paterson
-	email = paterson@adobe.com
 [pull]
 [credential "https://github.com"]
 	helper = 
-	helper = !/opt/homebrew/bin/gh auth git-credential
-[credential "https://git.corp.adobe.com"]
-	helper = 
-	helper = !/usr/local/bin/gh auth git-credential
+	helper = !gh auth git-credential
 [filter "lfs"]
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
@@ -78,8 +66,6 @@
 	trustExitCode = false
 [difftool "p4mergetool"]
 	cmd = /Applications/p4merge.app/Contents/Resources/launchp4merge $LOCAL $REMOTE
-[url "git@github-adobe:Adobe-CreativeCloud"]
-  insteadOf = git@github.com:Adobe-CreativeCloud
 [credential "https://gist.github.com"]
 	helper = 
-	helper = !/opt/homebrew/bin/gh auth git-credential
+	helper = !gh auth git-credential

@@ -87,7 +87,7 @@ vi() {
 }
 
 # pnpm
-export PNPM_HOME="/Users/paterson/Library/pnpm/global/5"
+export PNPM_HOME="$HOME/Library/pnpm/global/5"
 case ":$PATH:" in
   *":$PNPM_HOME/bin:"*) ;;
   *) export PATH="$PNPM_HOME/bin:$PATH" ;;
@@ -258,7 +258,7 @@ _git-b() {
 }
 
 # bun completions
-[ -s "/Users/paterson/.bun/_bun" ] && source "/Users/paterson/.bun/_bun"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 # bun
 export BUN_INSTALL="$HOME/.bun"
@@ -272,7 +272,6 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 command -v scout >/dev/null 2>&1 && eval "$(scout generate-shell-completion zsh)"
 # <<< scout completion <<<
 
-<<<<<<< Updated upstream
 # ---------------------------------------------------------------------------
 # Terminal tab titles
 #
@@ -334,4 +333,4 @@ ssh() {
 }
 
 # Added by cua-driver-rs installer — see https://github.com/trycua/cua
-export PATH="/Users/chrispaterson/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"

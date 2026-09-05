@@ -8,7 +8,7 @@ import tempfile
 import json
 
 
-def install(sources, home, check=False, migrate=False):
+def install(sources, home, check=False, migrate=False, relink_sources=()):
     """Validate all sources and destinations before creating missing links.
 
     Sources are additive: duplicate names from different directories are errors.
@@ -35,6 +35,7 @@ def install(sources, home, check=False, migrate=False):
     missing = []
     errors = []
     migrations = []
+    relinks = []
     for root in roots:
         invalid_parent = False
         for ancestor in [home, root.parent]:
@@ -64,6 +65,12 @@ def install(sources, home, check=False, migrate=False):
             destination = root / name
             if destination.is_symlink() and destination.resolve() == source:
                 continue
+            if (destination.is_symlink()
+                    and any(destination.readlink() == legacy / name for legacy in relink_sources)):
+                # Only explicitly identified old links may be replaced; directories stay protected.
+                relinks.append(destination)
+                missing.append((destination, source))
+                continue
             if destination.exists() or destination.is_symlink():
                 if migrate:
                     # A source inside a moved directory would break its own replacement link.
@@ -82,6 +89,8 @@ def install(sources, home, check=False, migrate=False):
     if check and missing:
         raise ValueError('\n'.join(f"Missing link: {dest}" for dest, _ in missing))
     if not check:
+        for destination in relinks:
+            destination.unlink()
         for original, entries in migrations:
             # Backups sit beside skills/, outside harness discovery and outside source repos.
             parent = original.parent if entries is not None else original.parent.parent
@@ -107,6 +116,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, action='append',
                         help='Skill directory; repeat for public/private sources. Default: repository agents/skills.')
+    parser.add_argument('--relink-source', type=Path, action='append', default=[],
+                        help='Replace exact absolute per-skill links from this former source after migration.')
     parser.add_argument('--home', type=Path, default=Path.home(),
                         help='Target home directory (default: current user).')
     parser.add_argument('--check', action='store_true', help='Verify links without changing files.')
@@ -117,7 +128,8 @@ def main():
         parser.error('--check cannot be combined with --migrate-existing')
     sources = args.source or [Path(__file__).resolve().parents[1] / 'agents' / 'skills']
     try:
-        install(sources, args.home.expanduser().absolute(), args.check, args.migrate_existing)
+        install(sources, args.home.expanduser().absolute(), args.check, args.migrate_existing,
+                [path.expanduser().absolute() for path in args.relink_source])
     except (OSError, ValueError, RuntimeError) as error:
         print(f"Skill installation failed: {error}", file=sys.stderr)
         return 1

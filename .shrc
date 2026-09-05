@@ -38,3 +38,8 @@ cdr() {
   cd "$(git rev-parse --show-toplevel)" || return
 }
 export cdr
+
+# Optional machine configuration lives outside the public checkout.
+if [ -f "$HOME/.config/envconfig/local.sh" ]; then
+  . "$HOME/.config/envconfig/local.sh"
+fi

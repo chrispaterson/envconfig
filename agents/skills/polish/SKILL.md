@@ -14,7 +14,7 @@ Run a cleanup pass over the current branch's changes to catch loose ends before 
 
 If a diff and file list were passed in by the caller (e.g. the `do` skill), use them directly and skip this step.
 
-Otherwise, use `gh pr diff` (see `~/agents/skills/github-access/SKILL.md`) to get the authoritative diff for this branch — this compares against the remote base branch and avoids false positives from a stale local `main`. Also run `gh pr diff --name-only` to get the file list.
+Otherwise, use `gh pr diff` (see `~/.agents/skills/github-access/SKILL.md`) to get the authoritative diff for this branch — this compares against the remote base branch and avoids false positives from a stale local `main`. Also run `gh pr diff --name-only` to get the file list.
 
 If no PR exists yet, fall back to `git diff main...HEAD` and `git diff main...HEAD --name-only`, but note that local `main` may be behind the remote.
 
@@ -110,7 +110,7 @@ Handle only the items the user approves. For each:
      git checkout -b <descriptive-branch-name>
      git push -u origin <descriptive-branch-name>
      ```
-     Name the branch after the work being split out (e.g. `paterson/GRAPH-XXXX/scheduler-refactor`). Push it so the remote has a copy.
+     Name the branch after the work being split out (e.g. `user/ISSUE-123/scheduler-refactor`). Push it so the remote has a copy.
   2. **Return** — switch back to the original branch: `git checkout -`
   3. **Revert** — remove the split-out changes from the current branch using `git checkout origin/main -- <paths>` or targeted edits.
   4. **File ticket** — use the `createjira` skill to create the Jira story. In the ticket description, include:

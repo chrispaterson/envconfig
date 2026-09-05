@@ -74,8 +74,7 @@ the installer preserves stale links for review. Keep secrets, sessions, caches,
 and durable memory out of both configuration repositories. GBrain supplies
 shared durable knowledge; connect it separately in each harness.
 
-Start a fresh session after installation. Confirm `remember`, `getcontext`, and
-`storypoint` appear in each harness's skill list, then ask each harness to retrieve
+Start a fresh session after installation. Confirm the intended public and optional private skills appear in each harness's skill list, then ask each harness to retrieve
 the same known GBrain page. Link checks verify installation, not authentication or
 brain connectivity. Codex's AGENTS.md and Claude's CLAUDE.md, MCP configuration,
 permissions, and hooks remain separate harness configuration. In particular, the
@@ -83,3 +82,16 @@ Claude auto-memory mirror and Codex transcript hook retain their existing roles.
 
 Discovery references: [official OpenAI documentation](https://learn.chatgpt.com/docs/build-skills)
 and [Claude Code documentation](https://code.claude.com/docs/en/skills).
+
+
+After a verified migration to another source, use `--relink-source /absolute/former/source`
+with the final `--source` list to replace only per-skill symlinks whose literal targets
+match that former source. All sources and conflicts are checked before any link is
+removed. Actual directories and differently targeted links are preserved. `--check`
+reports links still needing replacement without modifying them.
+
+Machine-specific shell settings can live in `~/.config/envconfig/local.sh`, which
+`.shrc` sources if present. Keep local Git includes in a regular `~/.gitconfig`
+that includes this checkout's `.gitconfig`; do not write private settings through
+a symlink into this repository. Configure your own Git email locally, scoped to
+appropriate repositories. Public-only skill installation requires no private checkout.

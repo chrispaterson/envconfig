@@ -9,7 +9,7 @@ user-invocable: true
 ## Purpose
 Analyze the current branch's diff against its base using git blame to identify who previously authored the changed lines. Present a ranked list of suggested reviewers and, when the user confirms, assign them to the PR via `gh`.
 
-**`gh` syntax:** `~/agents/skills/github-access/SKILL.md`.
+**`gh` syntax:** `~/.agents/skills/github-access/SKILL.md`.
 
 ## Required commands
 - `git branch --show-current`

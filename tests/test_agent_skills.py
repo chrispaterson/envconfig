@@ -119,13 +119,33 @@ class AgentSkillsTests(unittest.TestCase):
         self.assertEqual(len(list(root.parent.glob('skills-backup-*/skills'))), 1)
         self.assertEqual(self.run_install('--check').returncode, 0)
 
+    def test_relink_only_exact_old_links_after_preflight(self):
+        root = self.home / '.agents/skills'
+        root.mkdir(parents=True)
+        former = self.base / 'former'
+        (root / 'remember').symlink_to(former / 'remember')
+        result = self.run_install('--relink-source', str(former))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((root / 'remember').resolve(), self.source / 'remember')
+        self.assertEqual(self.run_install('--check').returncode, 0)
+
+    def test_relink_preserves_different_target(self):
+        root = self.home / '.agents/skills'
+        root.mkdir(parents=True)
+        other = self.base / 'unrelated'
+        (root / 'remember').symlink_to(other)
+        result = self.run_install('--relink-source', str(self.base / 'former'))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((root / 'remember').readlink(), other)
+
     def test_migrate_broken_entry_keeps_link_text(self):
         root = self.home / '.agents/skills'
         root.mkdir(parents=True)
         (root / 'remember').symlink_to('../missing')
         result = self.run_install('--migrate-existing')
         self.assertEqual(result.returncode, 0, result.stderr)
-        saved = list(root.parent.glob('skills-backup-*/remember'))
+        saved = [backup / 'remember' for backup in root.parent.glob('skills-backup-*')
+                 if (backup / 'remember').is_symlink()]
         self.assertEqual(len(saved), 1)
         self.assertEqual(str(saved[0].readlink()), '../missing')
 

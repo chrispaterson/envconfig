@@ -7,7 +7,7 @@ user-invocable: true
 # Commit Staged
 
 ## Purpose
-Analyze only staged changes, generate a detailed commit message (to feed `/pr-summary` when it reviews commit history), then run `git commit`. Do not stage or touch unstaged or untracked files.
+Analyze only staged changes, generate a detailed commit message (to support later review of commit history), then run `git commit`. Do not stage or touch unstaged or untracked files.
 
 ## Required commands
 - `git status`
@@ -20,7 +20,7 @@ Do not run `git add` or `git add -A`.
 - Only what is already staged will be committed.
 
 ## Commit message requirements
-As detailed as possible—enough context for the agent running `/pr-summary` to understand what changed and why. Include:
+As detailed as possible—enough context for a reviewer to understand what changed and why. Include:
 - What was changed: files, APIs, behavior.
 - Why: goal or fix.
 - Any non-obvious implications.
