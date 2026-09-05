@@ -48,9 +48,8 @@ Search the configured private GBrain for the exact issue key using `search`, the
 
 Use MCP tools when available. For CLI fallback, first supply `export PATH="$HOME/.bun/bin:$HOME/.local/bin:$PATH"`, then use the equivalent installed `gbrain` commands, consulting their help as needed.
 
-During migration, also read `~/agents/memory/jira_<KEY>.md` if present to recover context not yet in the brain. Treat it as a legacy source: do not write it, overwrite newer brain decisions with it, or imply it is current. Flag material conflicts. New decisions are saved through `/remember` directly to GBrain.
 
-If GBrain is unavailable, say that retrieval failed; do not report "no memory". Continue with available legacy, Jira, and Git context. An empty successful lookup simply means no relevant brain notes were found.
+If GBrain is unavailable, say that retrieval failed; do not report "no memory". Continue with available Jira and Git context. An empty successful lookup simply means no relevant brain notes were found.
 
 ### Step 3 — Fetch the Jira Ticket
 
@@ -100,7 +99,7 @@ Output a structured summary in this format:
 <Bulleted gaps between AC and current diff — be specific>
 
 ### Memory Notes
-<Relevant GBrain decisions with page citations; label any legacy-only notes or retrieval failure>
+<Relevant GBrain decisions with page citations; label any retrieval failure>
 
 ### Open Questions / Flags
 <Any risks, TODOs, or decisions noted in the diff or memory>
@@ -123,5 +122,5 @@ Ready — ask me anything about GRAPH-XXX or continue the implementation.
 | No open PR, no local commits ahead | Note "No PR and no commits yet — nothing implemented" |
 | `gh` not authenticated | Warn; skip PR diff step and continue with Jira context |
 | `jira` fails (auth or CLI) | Report; stop or continue with PR + memory only per user preference |
-| No relevant brain notes or legacy file | Show "None" |
+| No relevant brain notes | Show "None" |
 | GBrain lookup fails | State retrieval failed; continue with available context |

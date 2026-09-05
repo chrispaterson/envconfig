@@ -10,3 +10,6 @@ node_modules
 
 # Runtime agent knowledge belongs in private GBrain.
 /agents/memory/
+
+# Python test bytecode is local runtime state.
+__pycache__/

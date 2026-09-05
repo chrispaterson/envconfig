@@ -40,7 +40,6 @@ Search the exact issue key with `search`; also check the legacy token `jira_<KEY
 
 Prefer the existing maintained page for the exact issue. Imported source pages and session transcripts are supporting evidence, not the maintained destination. If only those exist, preserve them and create a subject page linked to that evidence. Consult the brain's `RESOLVER.md`, relevant directory README, and active schema to select a stable, subject-based slug and valid type. Include the exact issue key in the title and aliases so `/getcontext` can find it.
 
-During migration, read `~/agents/memory/jira_<KEY>.md` if it exists. Reconcile unique origin context, preservation branches, and decisions into the brain page; do not copy its index or overwrite newer brain knowledge with older notes. Retain dates and attribution and identify unresolved conflicts. Leave the legacy file unchanged.
 
 Fetch missing ticket metadata only when needed, using the installed Jira access skill. A Jira failure need not block saving a clear user-provided decision for a known issue; omit unverified metadata.
 
