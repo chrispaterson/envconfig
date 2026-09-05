@@ -83,6 +83,15 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(original.resolve(), previous)
         self.assertFalse(backup.exists())
 
+    def test_different_npm_runtime_stops_before_any_cleanup(self):
+        self.mod.save(dict(project=str(self.mod.PROJECT), npm=['pnpm'], npm_prefix='/original'))
+        with patch.object(self.mod, 'output', return_value='/different'), \
+             patch.object(self.mod, 'run') as run:
+            with self.assertRaisesRegex(RuntimeError, 'prefix changed'):
+                self.mod.uninstall()
+            run.assert_not_called()
+        self.assertTrue(self.mod.STATE.exists())
+
     def test_bootstrap_brew_preserves_subsequent_packages(self):
         self.mod.save(dict(project=str(self.mod.PROJECT), installed_brew=True))
         with patch.object(self.mod.shutil, 'which', return_value='/brew'), \

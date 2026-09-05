@@ -78,6 +78,7 @@ def snapshot(full):
     if full:
         result.update(brew_inventory())
         result['npm'] = npm_inventory()
+        result['npm_prefix'] = output(['npm', 'prefix', '--global']).strip() if shutil.which('npm') else None
         hook = subprocess.run(['git', '-C', str(PROJECT), 'config', '--local', '--get', 'core.hooksPath'],
                               text=True, stdout=subprocess.PIPE, check=False)
         if hook.returncode not in (0, 1):
@@ -100,6 +101,10 @@ def reconcile(state):
             if key == 'npm':
                 additions &= NPM_PACKAGES
             state[key] = sorted(set(state.get(key, [])) | additions)
+    if state.get('npm') and after.get('npm_prefix'):
+        state['npm_prefix'] = after['npm_prefix']
+    if state.get('formulae') and after.get('prefix'):
+        state['brew_prefix'] = after['prefix']
     if before.get('brew') is False and after.get('brew'):
         state['installed_brew'] = True
         state['brew_prefix'] = after['prefix']
@@ -109,9 +114,20 @@ def reconcile(state):
     save(state)
 
 
+def verify_prefixes(state):
+    # Different Node versions and Homebrew installations have separate ownership.
+    if state.get('npm') and state.get('npm_prefix'):
+        if output(['npm', 'prefix', '--global']).strip() != state['npm_prefix']:
+            raise RuntimeError('npm global prefix changed; activate the original runtime before continuing')
+    if state.get('formulae') and state.get('brew_prefix'):
+        if output(['brew', '--prefix']).strip() != state['brew_prefix']:
+            raise RuntimeError('Homebrew prefix changed; activate the original installation before continuing')
+
+
 def install(args):
     state = load()
     reconcile(state)
+    verify_prefixes(state)
     full = not args
     tracked_dirs = [HOME / '.envconfig-backups'] + [p for root in ROOTS for p in (root, root / 'skills')]
     state['directories'] = sorted(set(state.get('directories', [])) |
@@ -154,6 +170,7 @@ def uninstall():
     known = STATE.exists()
     state = load()
     reconcile(state)
+    verify_prefixes(state)
     # Finish file cleanup while Python and the shell toolchain are still available.
     run(['bash', str(PROJECT / 'uninstall')], env=dict(os.environ, ENVCONFIG_TRACKING='1'))
     restore_skill_backups(state)
