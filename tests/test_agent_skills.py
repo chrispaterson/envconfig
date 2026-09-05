@@ -87,6 +87,62 @@ class AgentSkillsTests(unittest.TestCase):
         self.assertEqual(list(target.iterdir()), [])
         self.assertFalse((self.home / '.agents').exists())
 
+    def test_migrate_directory_preserves_custom_content(self):
+        root = self.home / '.agents/skills'
+        old = self.skill(root, 'remember')
+        (old / 'custom.md').write_text('work-machine customization')
+        unrelated = self.skill(root, 'unrelated')
+        result = self.run_install('--migrate-existing')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        backups = list(root.parent.glob('skills-backup-*/remember/custom.md'))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(backups[0].read_text(), 'work-machine customization')
+        self.assertFalse(unrelated.is_symlink())
+        self.assertEqual((root / 'remember').resolve(), self.source / 'remember')
+        self.assertIn('created 0 links', self.run_install('--migrate-existing').stdout)
+
+    def test_migrate_linked_root_does_not_change_target(self):
+        target = self.base / 'old-skills'
+        self.skill(target, 'remember')
+        self.skill(target, 'unrelated')
+        (target / 'unrelated/ref.md').write_text('reference')
+        root = self.home / '.claude/skills'
+        root.parent.mkdir(parents=True)
+        root.symlink_to(target)
+        before = {str(p.relative_to(target)): p.read_bytes() for p in target.rglob('*') if p.is_file()}
+        result = self.run_install('--migrate-existing')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(root.is_symlink())
+        self.assertEqual((root / 'remember').resolve(), self.source / 'remember')
+        self.assertEqual((root / 'unrelated/ref.md').read_text(), 'reference')
+        self.assertEqual(before, {str(p.relative_to(target)): p.read_bytes() for p in target.rglob('*') if p.is_file()})
+        self.assertEqual(len(list(root.parent.glob('skills-backup-*/skills'))), 1)
+        self.assertEqual(self.run_install('--check').returncode, 0)
+
+    def test_migrate_broken_entry_keeps_link_text(self):
+        root = self.home / '.agents/skills'
+        root.mkdir(parents=True)
+        (root / 'remember').symlink_to('../missing')
+        result = self.run_install('--migrate-existing')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        saved = list(root.parent.glob('skills-backup-*/remember'))
+        self.assertEqual(len(saved), 1)
+        self.assertEqual(str(saved[0].readlink()), '../missing')
+
+    def test_migration_preflight_leaves_conflicts_intact_on_invalid_parent(self):
+        original = self.skill(self.home / '.agents/skills', 'remember')
+        target = self.base / 'other'
+        target.mkdir()
+        (self.home / '.claude').symlink_to(target)
+        result = self.run_install('--migrate-existing')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(original.is_symlink())
+        self.assertEqual(list(original.parent.parent.glob('skills-backup-*')), [])
+
+    def test_check_cannot_migrate(self):
+        self.assertNotEqual(self.run_install('--check', '--migrate-existing').returncode, 0)
+        self.assertFalse(self.home.exists())
+
 
 if __name__ == '__main__':
     unittest.main()

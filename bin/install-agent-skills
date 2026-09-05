@@ -4,13 +4,15 @@
 import argparse
 from pathlib import Path
 import sys
+import tempfile
+import json
 
 
-def install(sources, home, check=False):
+def install(sources, home, check=False, migrate=False):
     """Validate all sources and destinations before creating missing links.
 
     Sources are additive: duplicate names from different directories are errors.
-    Existing files and links are never replaced, including broken links.
+    Conflicts require explicit migration, which saves originals outside discovery.
     """
     skills = {}
     for source in sources:
@@ -32,17 +34,47 @@ def install(sources, home, check=False):
     roots = [home / '.agents' / 'skills', home / '.claude' / 'skills']
     missing = []
     errors = []
+    migrations = []
     for root in roots:
-        # Do not redirect an entire harness directory into a tracked repository.
-        for ancestor in [home, root.parent, root]:
+        invalid_parent = False
+        for ancestor in [home, root.parent]:
             if ancestor.is_symlink() or (ancestor.exists() and not ancestor.is_dir()):
                 errors.append(f"Discovery parent must be a real directory: {ancestor}")
+                invalid_parent = True
+        if invalid_parent:
+            continue
+        if root.is_symlink():
+            if not migrate:
+                errors.append(f"Discovery parent must be a real directory: {root}; use --migrate-existing to preserve and convert it")
+                continue
+            if not root.is_dir():
+                errors.append(f"Cannot migrate a broken or non-directory discovery link: {root}")
+                continue
+            target = root.resolve(strict=True)
+            # New per-entry links preserve unmanaged skills without writing into the old target.
+            entries = [(entry.name, target / entry.name) for entry in target.iterdir()
+                       if entry.name not in skills]
+            migrations.append((root, entries))
+            missing.extend((root / name, source) for name, source in skills.items())
+            continue
+        if root.exists() and not root.is_dir():
+            errors.append(f"Discovery parent must be a real directory: {root}")
+            continue
         for name, source in skills.items():
             destination = root / name
             if destination.is_symlink() and destination.resolve() == source:
                 continue
             if destination.exists() or destination.is_symlink():
-                errors.append(f"Conflict (preserved): {destination}; expected link to {source}")
+                if migrate:
+                    # A source inside a moved directory would break its own replacement link.
+                    if any(destination.resolve() == value or destination.resolve() in value.parents
+                           for value in skills.values()):
+                        errors.append(f"Cannot migrate a destination containing a skill source: {destination}")
+                    else:
+                        migrations.append((destination, None))
+                        missing.append((destination, source))
+                else:
+                    errors.append(f"Conflict (preserved): {destination}; expected link to {source}; use --migrate-existing to back up and replace")
             else:
                 missing.append((destination, source))
     if errors:
@@ -50,6 +82,20 @@ def install(sources, home, check=False):
     if check and missing:
         raise ValueError('\n'.join(f"Missing link: {dest}" for dest, _ in missing))
     if not check:
+        for original, entries in migrations:
+            # Backups sit beside skills/, outside harness discovery and outside source repos.
+            parent = original.parent if entries is not None else original.parent.parent
+            backup = Path(tempfile.mkdtemp(prefix='skills-backup-', dir=parent))
+            saved = backup / original.name
+            record = {'original': str(original), 'backup': str(saved),
+                      'symlink_target': str(original.readlink()) if original.is_symlink() else None}
+            (backup / 'restore.json').write_text(json.dumps(record, indent=2) + '\n')
+            original.rename(saved)
+            print(f"Saved original {original} in {saved}")
+            if entries is not None:
+                original.mkdir()
+                for name, target in entries:
+                    (original / name).symlink_to(target)
         for destination, source in missing:
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.symlink_to(source, target_is_directory=True)
@@ -64,10 +110,14 @@ def main():
     parser.add_argument('--home', type=Path, default=Path.home(),
                         help='Target home directory (default: current user).')
     parser.add_argument('--check', action='store_true', help='Verify links without changing files.')
+    parser.add_argument('--migrate-existing', action='store_true',
+                        help='Back up conflicting entries and convert linked skills directories before installing.')
     args = parser.parse_args()
+    if args.check and args.migrate_existing:
+        parser.error('--check cannot be combined with --migrate-existing')
     sources = args.source or [Path(__file__).resolve().parents[1] / 'agents' / 'skills']
     try:
-        install(sources, args.home.expanduser().absolute(), args.check)
+        install(sources, args.home.expanduser().absolute(), args.check, args.migrate_existing)
     except (OSError, ValueError, RuntimeError) as error:
         print(f"Skill installation failed: {error}", file=sys.stderr)
         return 1

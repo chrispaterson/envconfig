@@ -30,11 +30,33 @@ skills without running terminal or package setup:
 ./install --agent-skills-only --check
 ```
 
-The check is read-only. Installation is repeatable, leaves unrelated skills in
-place, and refuses conflicting names, existing directories, or broken links.
+The check is read-only. Default installation is repeatable, leaves unrelated skills
+in place, and refuses conflicting names, existing directories, or broken links.
 It also refuses symlinked discovery directories so installation cannot write
-through an entire harness directory into a tracked repository. Resolve conflicts
-explicitly and rerun; the installer never replaces or deletes skills.
+through an entire harness directory into a tracked repository.
+
+For an existing installation with conflicting skill copies or a linked skills
+root, explicitly select the canonical source versions while retaining originals:
+
+```sh
+./install --agent-skills-only --migrate-existing
+./install --agent-skills-only --check
+```
+
+Migration moves conflicting entries into unique `skills-backup-*` directories
+beside each harness's `skills/` directory and prints their locations. It saves a
+linked skills root itself, creates a real discovery directory, and links unrelated
+entries back to the old target without modifying that target. Existing custom
+content is preserved in backups, but the selected source version becomes active;
+review and merge any desired customizations separately. A `restore.json` in each
+backup records the original location and original symlink text. To restore an
+entry, first move aside the replacement at that exact location, then move the
+saved original back; do not copy a relative symlink into a different location and
+assume it resolves identically. Keep backups until reviewed.
+
+Migration still refuses linked harness parents (such as `~/.claude` itself),
+broken skills-root links, duplicate source names, and source/destination nesting
+that would move a canonical source. `--check` cannot be combined with migration.
 
 To combine public and private configuration, clone both repositories and supply
 each skill directory explicitly (`--source` replaces the default source):
