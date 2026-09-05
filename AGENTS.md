@@ -1,18 +1,32 @@
-# Global Agent Guide
+# Brain-first protocol
 
-## Pre-Completion Checklist
+A knowledge brain is connected over MCP (gbrain, full surface), mirrored to the
+git repo at `~/brain`. Before answering any question about people, companies,
+decisions, projects, or past context:
 
-Before considering any code writing task done, run the following in **every package or module you touched**:
+## 1. Brain first — route by the shape of the question
 
-1. **Build** — The project must compile without errors. Use the appropriate command for the project (e.g. `rushx build`, `npm run build`, `tsc`).
-2. **Lint** — No lint violations. Fix any reported issues. (e.g. `rushx lint`, `npm run lint`).
-3. **Test** — All unit tests must pass. If you wrote code that has no existing tests, write tests for it first, then run them. Update test assertions only if the behavior change was intentional. (e.g. `rushx test`, `npm test`).
-4. **Comments** — Review all code you touched and ensure comments follow the comment skill guidelines:
-   - TSDoc on all exported functions, classes, and types (summary, `@param`, `@returns`, `@throws` where applicable).
-   - Explain *why*, not *how* — capture rationale, invariants, and constraints, not what the code already shows.
-   - Brief comments on non-obvious algorithms or tricky logic; name the algorithm if applicable.
-   - Remove or update any outdated comments; misleading comments are worse than none.
-   - Don't over-comment — skip obvious lines, focus on high-value areas.
-5. **Formatting** — Run the project formatter if one is configured. (e.g. `rush format`, `npm run format`, `prettier --write`).
+- Exact names or known tokens → `search` (cheap hybrid, no expansion).
+- Concepts, landscapes, "all the X that do Y" → `query` **first**. It recovers synonym
+  phrasings `search` misses, and a populated `search` result set is _not_ proof of coverage.
+- Check the brain **before** answering from memory and before asking me. Never ask
+  "who is X?" or "what did we decide about Y?" without checking first — it probably
+  already knows.
 
-If any step fails, fix the issue and re-run before finishing.
+## 2. Write back
+
+When I make a decision, mention a new person or company, or land on an idea worth
+keeping, write it to the brain. One insight, one page, linked.
+
+- `gbrain capture --file <path> --slug <topic>/<name> --type note`, or `put_page`.
+- **File by subject, not by source.** `people/`, `companies/`, `computers/`, `infra/`,
+  `projects/`, `notes/`. `~/brain/RESOLVER.md` and each directory's `README.md` are
+  authoritative — read them when the home isn't obvious.
+- Use `inbox/` **only** when there is genuinely no known home. Its README says so, and a
+  nightly `gbrain autopilot` on the Mac mini drains it.
+- Always pass `--slug` for anything that may be edited later. The default slug is a
+  **content hash**, so a later edit forks a second page instead of updating the first.
+
+## 3. Cite
+
+When you answer from the brain, name the page you used.

@@ -55,7 +55,10 @@ do
       # link
       ln -sv $RELATIVE_project_dir/$FILE
     fi
-
+  elif [[ $FILE == "AGENTS.md" ]]; then
+      # link
+      ln -sv $RELATIVE_project_dir/$FILE
+      ln -sv $RELATIVE_project_dir/$FILE CLAUDE.md
   fi
 done
 
