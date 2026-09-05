@@ -1,112 +1,65 @@
 #!/bin/bash
+set -euo pipefail
 
-project_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-home_dir=$(echo ~)
-RELATIVE_project_dir=./${project_dir#"$home_dir/"}
-
+project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+home_dir=${HOME:?HOME must be set}
+backup_dir=$home_dir/.envconfig-backups
 cd "$project_dir"
 
-# Skills can be installed independently of the terminal and package setup.
-if [[ "${1:-}" == "--agent-skills-only" ]]; then
-  shift
-  exec python3 "$project_dir/bin/install-agent-skills" "$@"
-fi
+case ${1:-} in
+  --agent-skills-only)
+    shift
+    exec python3 "$project_dir/bin/install-agent-skills" "$@"
+    ;;
+  --links-only|'') ;;
+  *) printf 'Usage: %s [--links-only | --agent-skills-only [options]]\n' "$0" >&2; exit 2 ;;
+esac
+[[ $# -le 1 ]] || { printf 'Unexpected arguments\n' >&2; exit 2; }
 
-# Enable this repository's memory guard without replacing an existing hook setup.
-if ! git config --get core.hooksPath >/dev/null 2>&1 &&
-   [ ! -f "$(git rev-parse --git-path hooks/pre-commit)" ]; then
-  git config --local core.hooksPath .githooks
-fi
+# shellcheck source=lib/home-links.sh
+source "$project_dir/lib/home-links.sh"
 
-# Back up any existing files
-if [[ ! -d .bak ]]; then
-  mkdir .bak
-fi
-
-# initialize submodules
-git submodule init
-git submodule update
-
-# Run the humanize submodule's installer
-$project_dir/humanize/install.sh all
-
-# Requires a make for vim jsdoc to work
-cd .vim/pack/lib/start/vim-jsdoc/
-make install
-
-cd $home_dir
-
-for FILE in $(ls -A $project_dir)
-do
-
-  if ! [[ $FILE == ".git" || $FILE == ".gitmodules" || $FILE == ".github" || $FILE == ".githooks" || $FILE == "tests" || $FILE == "humanize" || $FILE =~ ".bak" ||$FILE =~ ".md" || $FILE =~ "install" || $FILE =~ ".sw" || $FILE =~ ".DS_Store" || $FILE =~ "font" || $FILE =~ ".txt" ]]; then
-
-    # if the file exists and is not a symbolic link, if it is a symbolic link
-    # then we've been here before
-    if [[ -e $home_dir/$FILE && ! -L $home_dir/$FILE ]]; then
-
-      # Force override of old
-      mv -f $home_dir/$FILE $project_dir/.bak/
-
-    fi
-
-    if [ ! -e $FILE ]; then
-
-      # link
-      ln -sv $RELATIVE_project_dir/$FILE
-    fi
-  elif [[ $FILE == "AGENTS.md" ]]; then
-      # link
-      ln -sv $RELATIVE_project_dir/$FILE
-      ln -sv $RELATIVE_project_dir/$FILE CLAUDE.md
+if [[ ${1:-} != --links-only ]]; then
+  if ! git config --local --get core.hooksPath >/dev/null 2>&1 &&
+     [[ ! -e $(git rev-parse --git-path hooks/pre-commit) ]]; then
+    git config --local core.hooksPath .githooks
   fi
-done
-
-# See if we need to cp any bin scripts back
-if [[ -d $project_dir/.bak/bin ]]; then
-
-  # look at all the files that we copied over
-  for FILE in $(ls -A $project_dir/.bak/bin/)
-  do
-
-    # if it's not in the bin, we copy back
-    if ! [[ -e $home_dir/bin/$FILE ]]; then
-
-      cp -r $project_dir/.bak/bin/$FILE $home_dir/bin/
-
-    fi
-  done
+  git submodule update --init
+  "$project_dir/humanize/install.sh" all
+  make -C "$project_dir/.vim/pack/lib/start/vim-jsdoc" install
 fi
 
-# If we're on MacOS, then we'll install brew if it's not there
-if [[ "$OSTYPE" =~ "darwin" ]]; then
+install_home_links
+python3 "$project_dir/bin/install-agent-skills"
 
-  if ! command -v brew &> /dev/null
-  then
+if [[ ${1:-} == --links-only ]]; then
+  printf 'Installed home and skill links.\n'
+  exit 0
+fi
 
+if [[ ${OSTYPE:-} == darwin* ]]; then
+  if ! command -v brew >/dev/null 2>&1; then
     export HOMEBREW_NO_INSTALL_FROM_API=1
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-  fi
-
-  # All the brew taps to get brew stuff from
-  for TAP in $(cat $project_dir/brew_taps.txt); do
-
-    brew tap $TAP 
-  done
-
-  # All the system level apps that I install with brew
-  for APP in $(cat $project_dir/brew_apps.txt); do
-
-    if ! command -v $APP &> /dev/null
-    then
-      brew install $APP
+    brew_installer=$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)
+    /bin/bash -c "$brew_installer"
+    # Homebrew is not necessarily on PATH until a new shell starts.
+    if [[ -x /opt/homebrew/bin/brew ]]; then
+      export PATH="/opt/homebrew/bin:$PATH"
+    elif [[ -x /usr/local/bin/brew ]]; then
+      export PATH="/usr/local/bin:$PATH"
     fi
-  done
-
+  fi
+  while IFS= read -r tap || [[ -n $tap ]]; do
+    [[ -z $tap || $tap == \#* ]] && continue
+    brew tap "$tap"
+  done < "$project_dir/brew_taps.txt"
+  while IFS= read -r package || [[ -n $package ]]; do
+    [[ -z $package || $package == \#* ]] && continue
+    if ! brew list --versions "$package" >/dev/null 2>&1; then
+      brew install "$package"
+    fi
+  done < "$project_dir/brew_apps.txt"
 fi
 
-python3 "$project_dir/bin/install-agent-skills" || exit 1
-
-$project_dir/bin/yarn-global
-
-echo "Installed, but you must source ~/.profile for the env to take effect"
+"$project_dir/bin/yarn-global"
+printf 'Installed. Source ~/.profile for the environment changes to take effect.\n'

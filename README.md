@@ -95,3 +95,33 @@ Machine-specific shell settings can live in `~/.config/envconfig/local.sh`, whic
 that includes this checkout's `.gitconfig`; do not write private settings through
 a symlink into this repository. Configure your own Git email locally, scoped to
 appropriate repositories. Public-only skill installation requires no private checkout.
+
+
+# Home links and uninstall
+
+`./install --links-only` installs home and skill links without running package or
+submodule setup. Full `./install` also initializes submodules and installs tools.
+Both require Python 3. Install/uninstall share an explicit list of home entries;
+repository metadata, tests, and implementation helpers are never linked into HOME.
+
+`~/envconfig/agents/skills` contains the shared skill sources. `~/.agents/skills`
+is Codex's discovery directory, and `~/.claude/skills` is Claude Code's. The old
+`~/agents` alias is unnecessary: installation removes it only if it points to
+this checkout's `agents` directory. An unrelated alias or real directory is retained.
+
+Existing home files replaced by links are saved in `~/.envconfig-backups`.
+A backup collision stops installation without overwriting either version.
+Existing local `.gitconfig` files are preserved; include this checkout's `.gitconfig`
+from your local file if it does not already include the public defaults.
+Personal scripts from an old `~/bin` are backed up, never copied into the public
+checkout. Review the backup and keep those scripts in a separate local/private bin
+location if you still need them on PATH.
+
+`./uninstall` removes only home and per-skill links pointing to this checkout,
+then restores available known home entries from the new backup directory and
+legacy `.bak`, including dotfiles. Occupied destinations are preserved. It keeps
+packages, private configuration, harness state, and skill-migration backups;
+it does not reverse changes made by third-party package/submodule installers.
+
+Validate with `shellcheck install uninstall lib/home-links.sh` and
+`python3 -m unittest discover -s tests -p 'test_*.py'`.
