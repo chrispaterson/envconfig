@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+"""Link canonical skill directories into Codex and Claude Code discovery paths."""
+
+import argparse
+from pathlib import Path
+import sys
+
+
+def install(sources, home, check=False):
+    """Validate all sources and destinations before creating missing links.
+
+    Sources are additive: duplicate names from different directories are errors.
+    Existing files and links are never replaced, including broken links.
+    """
+    skills = {}
+    for source in sources:
+        source = source.expanduser().resolve(strict=True)
+        if not source.is_dir():
+            raise ValueError(f"Not a skill directory: {source}")
+        found = False
+        for skill in sorted(source.iterdir()):
+            if skill.name.startswith('.') or not (skill / 'SKILL.md').is_file():
+                continue
+            found = True
+            canonical = skill.resolve(strict=True)
+            if skill.name in skills and skills[skill.name] != canonical:
+                raise ValueError(f"Duplicate skill {skill.name}: {skills[skill.name]} and {canonical}")
+            skills[skill.name] = canonical
+        if not found:
+            raise ValueError(f"No skills with SKILL.md found in {source}")
+
+    roots = [home / '.agents' / 'skills', home / '.claude' / 'skills']
+    missing = []
+    errors = []
+    for root in roots:
+        # Do not redirect an entire harness directory into a tracked repository.
+        for ancestor in [home, root.parent, root]:
+            if ancestor.is_symlink() or (ancestor.exists() and not ancestor.is_dir()):
+                errors.append(f"Discovery parent must be a real directory: {ancestor}")
+        for name, source in skills.items():
+            destination = root / name
+            if destination.is_symlink() and destination.resolve() == source:
+                continue
+            if destination.exists() or destination.is_symlink():
+                errors.append(f"Conflict (preserved): {destination}; expected link to {source}")
+            else:
+                missing.append((destination, source))
+    if errors:
+        raise ValueError('\n'.join(errors))
+    if check and missing:
+        raise ValueError('\n'.join(f"Missing link: {dest}" for dest, _ in missing))
+    if not check:
+        for destination, source in missing:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.symlink_to(source, target_is_directory=True)
+    print(f"Verified {len(skills)} shared skills in both harnesses; created {0 if check else len(missing)} links.")
+
+
+def main():
+    """Parse source overrides and report installation failures without a traceback."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--source', type=Path, action='append',
+                        help='Skill directory; repeat for public/private sources. Default: repository agents/skills.')
+    parser.add_argument('--home', type=Path, default=Path.home(),
+                        help='Target home directory (default: current user).')
+    parser.add_argument('--check', action='store_true', help='Verify links without changing files.')
+    args = parser.parse_args()
+    sources = args.source or [Path(__file__).resolve().parents[1] / 'agents' / 'skills']
+    try:
+        install(sources, args.home.expanduser().absolute(), args.check)
+    except (OSError, ValueError, RuntimeError) as error:
+        print(f"Skill installation failed: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -4,7 +4,13 @@ project_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 home_dir=$(echo ~)
 RELATIVE_project_dir=./${project_dir#"$home_dir/"}
 
-cd $project_dir
+cd "$project_dir"
+
+# Skills can be installed independently of the terminal and package setup.
+if [[ "${1:-}" == "--agent-skills-only" ]]; then
+  shift
+  exec python3 "$project_dir/bin/install-agent-skills" "$@"
+fi
 
 # Enable this repository's memory guard without replacing an existing hook setup.
 if ! git config --get core.hooksPath >/dev/null 2>&1 &&
@@ -95,6 +101,8 @@ if [[ "$OSTYPE" =~ "darwin" ]]; then
   done
 
 fi
+
+python3 "$project_dir/bin/install-agent-skills" || exit 1
 
 $project_dir/bin/yarn-global
 
