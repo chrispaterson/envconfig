@@ -1,103 +1,61 @@
 ---
 name: remember
-description: Record a decision, context note, or key fact about a Jira ticket into its persistent memory file. Creates the file if it doesn't exist.
+description: Save a Jira ticket decision, context note, or key fact directly to the configured private GBrain knowledge base. Use when asked to remember ticket context or called by another ticket workflow.
 user-invocable: true
-argument-hint: "[GRAPH-XXX] [note text]"
+argument-hint: "[ISSUE-123] [note text]"
 ---
 
 # Remember
 
-Record a decision or context note about a Jira ticket into its persistent memory file at `~/agents/memory/jira_<KEY>.md`. Invoked by the user directly, or called by other skills (e.g. `createjira`, `polish`) to capture origin context automatically.
+Save durable ticket context to GBrain. The configured private brain is the destination; `~/agents` can point into a public configuration repository. Never write ticket content to `~/agents/memory`, its `MEMORY.md`, or another file in the configuration repository, including temporary files. This skill does not also write Claude auto-memory.
 
-## Invocation forms
+## Invocation
 
-| Invocation | Behaviour |
-|---|---|
-| `/remember` | Infer ticket from branch name; derive note from conversation context |
-| `/remember GRAPH-123` | Use the specified ticket; derive note from conversation context |
-| `/remember we decided to use X because Y` | Infer ticket from branch; use provided text as the note |
-| `/remember GRAPH-123 we decided to use X because Y` | Explicit ticket and note |
+- `/remember` — infer the issue from the branch and the note from the conversation.
+- `/remember ISSUE-123` — use that issue and derive the note from context.
+- `/remember <note>` — infer the issue and save the supplied note.
+- `/remember ISSUE-123 <note>` — use both explicit values.
 
-When called by another skill, the caller passes the issue key and any structured fields (origin, preservation branch, note text) as part of the invocation context.
-
----
+Other skills can supply the issue key, origin context, and preservation branch. Preserve this calling convention.
 
 ## Workflow
 
-### 1. Resolve the issue key
+### 1. Resolve the issue and note
 
-- Parse from arguments (e.g. `GRAPH-123`).
-- If not in arguments, infer from `git branch --show-current` (e.g. `paterson/GRAPH-530/plugin-types` → `GRAPH-530`).
-- If still ambiguous, ask the user.
+Use the explicit issue key, then the current conversation or `git branch --show-current`. Ask only if the issue is still ambiguous. Use the user's note when supplied; otherwise capture the meaningful decision, rationale, scope change, or discovered constraint from context. Ask if there is no meaningful note to derive.
 
-### 2. Determine the note content
+Keep each entry concise, normally two sentences. Preserve exact branch names and relevant caveats for deferred work. Do not infer decisions the user has not made or store credentials.
 
-- If the invocation includes explicit text (after the optional key), use that as the note.
-- Otherwise, derive a concise note from the current conversation — the most recent decision, scope change, approach choice, or key fact. Focus on *why*, not *what*.
-- If context is insufficient to write a meaningful note, ask the user: *"What should I remember about GRAPH-XXX?"*
+### 2. Find the existing knowledge
 
-### 3. Create or update the memory file
+Use GBrain MCP tools when available. For CLI fallback, supply the runtime path:
 
-Check for `~/agents/memory/jira_<KEY>.md`.
-
-#### If the file does not exist — create it
-
-Fetch the ticket summary from Jira so the file is self-contained: `jira issue view <KEY> --raw` (parse `fields.summary`, `fields.issuetype`, `fields.parent`) per `~/agents/skills/jira-access/SKILL.md`. Then write:
-
-```markdown
----
-name: GRAPH-XXXX — <summary>
-description: Ticket memory for GRAPH-XXXX: decisions, context, and origin notes
-type: project
----
-
-# GRAPH-XXXX — <summary>
-
-**Type:** Story | Bug | Epic
-**Created:** <today's date>
-**Epic:** <epic key and summary, or "none">
-
-## Origin
-<Derive from conversation context: why this ticket exists, how it came to be worked on.
-If this was split out from another branch during a /polish scope reduction, record:
-the source branch name, why it was deferred, and any caveats in the preserved snapshot.>
-
-## Preservation Branch
-<If applicable: the git branch name preserving split-out work, e.g.
-`paterson/GRAPH-XXXX/scheduler-refactor`. Omit this section entirely if not a scope split.>
-
-## Decisions
-<!-- Newest first -->
-
-### <today's date> — <short label>
-<The note content from step 2.>
+```bash
+export PATH="$HOME/.bun/bin:$HOME/.local/bin:$PATH"
 ```
 
-Then add a pointer to `~/agents/memory/MEMORY.md`:
-```
-- [GRAPH-XXXX — <summary>](./jira_GRAPH-XXXX.md) — <one-line hook>
-```
+Use the equivalent `gbrain` CLI operation, consulting its help for the installed version's arguments.
 
-#### If the file already exists — append to it
+Search the exact issue key with `search`; also check the legacy token `jira_<KEY>` when necessary. Read relevant pages, rather than treating a search snippet or similar score as a match. Resolve matching pages in the configured private source; do not select an unrelated federated source for writes.
 
-Prepend a new entry to the `## Decisions` section (newest first):
+Prefer the existing maintained page for the exact issue. Imported source pages and session transcripts are supporting evidence, not the maintained destination. If only those exist, preserve them and create a subject page linked to that evidence. Consult the brain's `RESOLVER.md`, relevant directory README, and active schema to select a stable, subject-based slug and valid type. Include the exact issue key in the title and aliases so `/getcontext` can find it.
 
-```markdown
-### <today's date> — <short label>
-<The note content from step 2.>
-```
+During migration, read `~/agents/memory/jira_<KEY>.md` if it exists. Reconcile unique origin context, preservation branches, and decisions into the brain page; do not copy its index or overwrite newer brain knowledge with older notes. Retain dates and attribution and identify unresolved conflicts. Leave the legacy file unchanged.
 
-Do not modify the Origin, Preservation Branch, or frontmatter sections unless explicitly asked.
+Fetch missing ticket metadata only when needed, using the installed Jira access skill. A Jira failure need not block saving a clear user-provided decision for a known issue; omit unverified metadata.
 
-### 4. Confirm
+### 3. Write the brain page
 
-Briefly confirm what was recorded and to which file. One line is enough.
+For an existing page, call `get_page` with `include_content: true`, edit the canonical `content`, and pass the complete result to `put_page` with the same slug. Preserve frontmatter, unrelated sections, source links, and timeline markers. Avoid duplicate entries when the same decision is already recorded; make genuine corrections explicit and dated.
 
----
+For a new page, include the issue key, known summary, origin context, any preservation branch, and dated decisions with inline provenance such as `[Source: User, YYYY-MM-DD, current conversation]`. Link related project and evidence pages using the brain's relative-link conventions. Do not invent a ticket title or project relationship.
 
-## Guidelines
+Prefer `put_page` with structured content. If using `gbrain capture --file`, create a private temporary file outside all public repositories, pass the explicit resolved `--slug` and schema-valid `--type`, and remove that temporary file after confirmed capture. Never use the content-hash default slug for an editable ticket page.
 
-- **Only record meaningful notes**: scope changes, approach decisions, deferred work, discovered constraints, significant pivots. Skip trivial facts that are obvious from the code or ticket.
-- **Explain why, not what**: the note should capture rationale that a future session cannot infer from code or git history alone.
-- **Keep notes short**: two sentences maximum per entry. If it needs more, the ticket description is the right place.
-- **Preservation branch notes** are especially important — always record the branch name verbatim so a future agent can check it out without searching.
+If the brain lookup or write fails, report that the note was not saved. Do not fall back to public memory files or claim success. If a write's outcome is uncertain, re-read the target before retrying to avoid duplicate decisions.
+
+### 4. Verify and confirm
+
+Read the saved page back and check that the new decision and any carried-forward context are present. Confirm the issue key and brain page, with a verified link when available. Distinguish successful brain persistence from any pending or failed Git-mirror push; do not claim that all machines or the remote repository have synchronized without evidence.
+
+The Claude Stop hook mirrors separate auto-memory writes. It is not required for this skill's direct GBrain writes, and this skill does not install, disable, or modify it.

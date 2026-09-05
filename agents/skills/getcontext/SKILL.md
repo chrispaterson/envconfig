@@ -12,7 +12,7 @@ argument-hint: "[GRAPH-XXX]"
 Orient the agent in the current work session by loading:
 1. The Jira ticket (acceptance criteria, status, description)
 2. The GitHub PR diff (what has been done, what remains)
-3. Any persistent memory notes for the issue
+3. Durable decisions and context for the issue from GBrain
 
 After running this skill, the agent should be ready to answer questions, continue implementation, or review decisions — without the user needing to re-explain the work.
 
@@ -42,7 +42,17 @@ Pattern: `<username>/GRAPH-XXX/<slug>` → extract `GRAPH-XXX`.
 
 If no key can be found, ask the user.
 
-### Step 2 — Fetch the Jira Ticket
+### Step 2 — Load GBrain Notes
+
+Search the configured private GBrain for the exact issue key using `search`, then read relevant pages with `get_page`. Check the legacy `jira_<KEY>` token when necessary. Prefer the maintained page for that exact issue; imported sources and transcripts provide supporting context. Cite the pages used and distinguish dated decisions from current ticket status.
+
+Use MCP tools when available. For CLI fallback, first supply `export PATH="$HOME/.bun/bin:$HOME/.local/bin:$PATH"`, then use the equivalent installed `gbrain` commands, consulting their help as needed.
+
+During migration, also read `~/agents/memory/jira_<KEY>.md` if present to recover context not yet in the brain. Treat it as a legacy source: do not write it, overwrite newer brain decisions with it, or imply it is current. Flag material conflicts. New decisions are saved through `/remember` directly to GBrain.
+
+If GBrain is unavailable, say that retrieval failed; do not report "no memory". Continue with available legacy, Jira, and Git context. An empty successful lookup simply means no relevant brain notes were found.
+
+### Step 3 — Fetch the Jira Ticket
 
 Per `~/agents/skills/jira-access/SKILL.md`:
 
@@ -56,7 +66,7 @@ Extract and display:
 - **Acceptance Criteria** — pull from the description (usually under "Acceptance Criteria" heading)
 - **Story Points** — `customfield_10003` value if set
 
-### Step 3 — Fetch the PR Diff
+### Step 4 — Fetch the PR Diff
 
 Per `~/agents/skills/github-access/SKILL.md` — use `gh pr view` and `gh pr diff` for the current branch. If no PR exists yet, use `git diff origin/main...HEAD` (three dots) per the `github-access` skill.
 
@@ -69,16 +79,6 @@ If no PR exists yet, note that and check for local commits ahead of main:
 ```bash
 git log origin/main..HEAD --oneline
 ```
-
-### Step 4 — Load Memory Notes
-
-Check for a persistent memory file for this issue:
-
-```
-~/agents/memory/jira_GRAPH-XXX.md
-```
-
-If found, read it and include any key decisions, constraints, or context recorded there.
 
 ### Step 5 — Present Context Summary
 
@@ -100,7 +100,7 @@ Output a structured summary in this format:
 <Bulleted gaps between AC and current diff — be specific>
 
 ### Memory Notes
-<Contents of ~/agents/memory/jira_GRAPH-XXX.md if it exists, else "None">
+<Relevant GBrain decisions with page citations; label any legacy-only notes or retrieval failure>
 
 ### Open Questions / Flags
 <Any risks, TODOs, or decisions noted in the diff or memory>
@@ -123,4 +123,5 @@ Ready — ask me anything about GRAPH-XXX or continue the implementation.
 | No open PR, no local commits ahead | Note "No PR and no commits yet — nothing implemented" |
 | `gh` not authenticated | Warn; skip PR diff step and continue with Jira context |
 | `jira` fails (auth or CLI) | Report; stop or continue with PR + memory only per user preference |
-| Memory file missing | Skip silently; do not warn |
+| No relevant brain notes or legacy file | Show "None" |
+| GBrain lookup fails | State retrieval failed; continue with available context |
