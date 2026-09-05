@@ -51,14 +51,18 @@ Assess each factor **after** completing the pre-estimation research above:
 
 ## Calibration
 
-Before estimating, read `~/agents/memory/storypoint_calibration.md`. Scan the log for:
+Read the maintained calibration page `notes/storypoint-calibration` from the configured private GBrain using `get_page`. If it has moved, search for `storypoint_calibration` and resolve the maintained page; `sources/claude-memory/storypoint_calibration` is historical evidence. Use GBrain MCP tools when available; for CLI fallback, supply `export PATH="$HOME/.bun/bin:$HOME/.local/bin:$PATH"` and consult the installed command's help.
+
+Scan the log for:
 - **Directional bias**: consistent under/over-estimation across entries
 - **Factor patterns**: which complexity factors are most often wrong
 - **Component patterns**: corrections clustered around a package or area (e.g. SDK, e2e)
 
-If patterns are found, apply adjustments and call them out explicitly in the estimate output under a "Calibration adjustments" line. If no entries exist yet, skip this step silently.
+If patterns are found, apply adjustments and call them out explicitly in the estimate output under a "Calibration adjustments" line. If a successful lookup finds no entries, skip calibration silently. If retrieval fails, say calibration was unavailable; do not treat that as an empty log.
 
-After the user provides a correction (any change to the AI estimate before writing to Jira), append a row to the calibration log table:
+After the user provides a correction (any change to the AI estimate before writing to Jira), update the GBrain calibration table. Read the page using `get_page` with `include_content: true`, preserve the full canonical content, and write it back with `put_page` at the same slug. Include dated provenance for the user's correction, avoid repeating an identical entry, and verify the saved row with a read-back. If the write fails, report that calibration was not saved; do not repeat a successful Jira update when retrying the brain write.
+
+Never append calibration data to `~/agents/memory`, the public configuration repository, or Claude auto-memory. Keep the existing table columns:
 ```
 | <date> | <issue-key> | <ai-estimate>.1 | <final>.1 | <delta> | <factor(s)> | <reason> |
 ```
@@ -67,7 +71,7 @@ After the user provides a correction (any change to the AI estimate before writi
 
 1. **Resolve issue key**: Parse from invocation args, or infer from `git branch --show-current` (e.g. `paterson/GRAPH-1170/...` → GRAPH-1170). If neither yields a key, ask the user.
 
-2. **Read calibration log**: Load `~/agents/memory/storypoint_calibration.md` and check for patterns (see Calibration section above).
+2. **Read calibration log**: Load the maintained GBrain calibration page and check for patterns (see Calibration section above).
 
 3. **Fetch the issue** with the jira CLI per `~/agents/skills/jira-access/SKILL.md` — e.g. `jira issue view GRAPH-XXX --raw`. Extract `fields.summary`, `fields.description`, and `fields.customfield_10003` (story points) from the JSON.
 
@@ -91,7 +95,7 @@ After the user provides a correction (any change to the AI estimate before writi
    ```
 
 6. **Handle corrections**: If the user disagrees and provides a different value with a reason, record it before proceeding:
-   - Append a row to `~/agents/memory/storypoint_calibration.md`
+   - Save the correction in the GBrain calibration page, following the Calibration section above
    - Use the user's corrected value as the final estimate
 
 7. **Confirm with user**: Ask "Update GRAPH-XXX to X.1 points?" before writing to Jira.
